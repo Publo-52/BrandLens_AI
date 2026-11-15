@@ -1,0 +1,20 @@
+{
+  "name": "brandlens-ai-root",
+  "version": "1.0.0",
+  "description": "BrandLens AI — Intelligent brand governance, before you publish.",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently -n \"AI,BACKEND,FRONTEND\" -c \"magenta,blue,cyan\" \"npm run dev:ai\" \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:ai": "cd ai-service && python -m uvicorn app.main:app --port 8000 --reload",
+    "test:backend": "cd backend && npm test",
+    "test:ai": "cd ai-service && python -m unittest discover -s tests -p \"test_*.py\"",
+    "build:frontend": "cd frontend && npm run build"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  },
+  "author": "Team ALGO_X",
+  "license": "ISC"
+}
