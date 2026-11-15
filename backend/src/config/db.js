@@ -3,11 +3,13 @@ import dns from 'node:dns';
 import { config } from './env.js';
 import { logger } from '../utils/logger.js';
 
-// Ensure reliable SRV DNS resolution on Windows environments
-try {
-  dns.setServers(['8.8.8.8', '1.1.1.1']);
-} catch {
-  // fallback to system default if restricted
+// Ensure reliable SRV DNS resolution on Windows environments (do not override Linux container resolver)
+if (process.platform === 'win32') {
+  try {
+    dns.setServers(['8.8.8.8', '1.1.1.1']);
+  } catch {
+    // fallback to system default if restricted
+  }
 }
 
 let isConnected = false;
@@ -41,7 +43,12 @@ export async function connectDB() {
       socketTimeoutMS: 45000,
     });
   } catch (error) {
-    logger.warn(`Initial MongoDB connection failed (${error.message}). The server will run in degraded mode until MongoDB is reachable.`);
+    logger.warn(`Initial MongoDB connection failed (${error.message}). Retrying in 5 seconds...`);
+    setTimeout(() => {
+      if (mongoose.connection.readyState !== 1) {
+        connectDB().catch(() => {});
+      }
+    }, 5000);
   }
 }
 
