@@ -48,6 +48,7 @@ const contentVersionSchema = new mongoose.Schema(
 );
 
 contentVersionSchema.index({ organisationId: 1, contentId: 1, versionNumber: 1 }, { unique: true });
+contentVersionSchema.index({ contentId: 1, versionNumber: -1 });
 
 contentVersionSchema.methods.toJSON = function () {
   const obj = this.toObject();

@@ -74,6 +74,9 @@ const contentSchema = new mongoose.Schema(
   }
 );
 
+contentSchema.index({ organisationId: 1, status: 1 });
+contentSchema.index({ organisationId: 1, createdAt: -1 });
+
 contentSchema.methods.toJSON = function () {
   const obj = this.toObject();
   delete obj.__v;

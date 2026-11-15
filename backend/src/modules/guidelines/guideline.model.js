@@ -92,6 +92,9 @@ const guidelineSchema = new mongoose.Schema(
   }
 );
 
+guidelineSchema.index({ organisationId: 1, status: 1 });
+guidelineSchema.index({ organisationId: 1, category: 1 });
+
 guidelineSchema.methods.toJSON = function () {
   const obj = this.toObject();
   delete obj.__v;

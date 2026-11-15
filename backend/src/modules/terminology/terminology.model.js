@@ -57,6 +57,8 @@ const terminologyRuleSchema = new mongoose.Schema(
   }
 );
 
+terminologyRuleSchema.index({ organisationId: 1, isActive: 1 });
+
 terminologyRuleSchema.methods.toJSON = function () {
   const obj = this.toObject();
   delete obj.__v;

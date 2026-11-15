@@ -64,6 +64,8 @@ const approvedFactSchema = new mongoose.Schema(
   }
 );
 
+approvedFactSchema.index({ organisationId: 1, status: 1 });
+
 approvedFactSchema.methods.toJSON = function () {
   const obj = this.toObject();
   delete obj.__v;

@@ -1,18 +1,30 @@
-import React, { useState } from 'react';
+import React, { useState, lazy, Suspense } from 'react';
 import { Layout } from './components/layout/Layout';
-import { DashboardPage } from './pages/DashboardPage';
-import { ReviewPage } from './pages/ReviewPage';
-import { KnowledgeBasePage } from './pages/KnowledgeBasePage';
-import { ApprovalsPage } from './pages/ApprovalsPage';
-import { InsightsPage } from './pages/InsightsPage';
-import { AuditPage } from './pages/AuditPage';
-import { SettingsPage } from './pages/SettingsPage';
 import { useHealthCheck } from './hooks/useHealthCheck';
 import { AuthProvider } from './features/auth/AuthContext';
+import { Loader2 } from 'lucide-react';
+
+// Code-split pages for instant initial load and optimal browser caching
+const DashboardPage = lazy(() => import('./pages/DashboardPage').then((m) => ({ default: m.DashboardPage })));
+const ReviewPage = lazy(() => import('./pages/ReviewPage').then((m) => ({ default: m.ReviewPage })));
+const KnowledgeBasePage = lazy(() => import('./pages/KnowledgeBasePage').then((m) => ({ default: m.KnowledgeBasePage })));
+const ApprovalsPage = lazy(() => import('./pages/ApprovalsPage').then((m) => ({ default: m.ApprovalsPage })));
+const InsightsPage = lazy(() => import('./pages/InsightsPage').then((m) => ({ default: m.InsightsPage })));
+const AuditPage = lazy(() => import('./pages/AuditPage').then((m) => ({ default: m.AuditPage })));
+const SettingsPage = lazy(() => import('./pages/SettingsPage').then((m) => ({ default: m.SettingsPage })));
+
+function PageLoadingFallback() {
+  return (
+    <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-3">
+      <Loader2 className="w-6 h-6 text-brand-600 animate-spin" />
+      <span className="text-xs text-slate-400 font-medium tracking-wide">Loading workspace...</span>
+    </div>
+  );
+}
 
 function AppContent() {
   const [currentTab, setCurrentTab] = useState('dashboard');
-  const { backendHealth, aiHealth, loading, refresh } = useHealthCheck(15000);
+  const { backendHealth, aiHealth, loading, refresh } = useHealthCheck(20000);
 
   const renderContent = () => {
     switch (currentTab) {
@@ -60,7 +72,9 @@ function AppContent() {
       loading={loading}
       onRefresh={refresh}
     >
-      {renderContent()}
+      <Suspense fallback={<PageLoadingFallback />}>
+        {renderContent()}
+      </Suspense>
     </Layout>
   );
 }

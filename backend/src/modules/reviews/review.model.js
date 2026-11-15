@@ -139,6 +139,9 @@ const reviewSchema = new mongoose.Schema(
   }
 );
 
+reviewSchema.index({ contentId: 1, createdAt: -1 });
+reviewSchema.index({ organisationId: 1, createdAt: -1 });
+
 reviewSchema.methods.toJSON = function () {
   const obj = this.toObject();
   delete obj.__v;

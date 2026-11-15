@@ -42,6 +42,9 @@ const auditLogSchema = new mongoose.Schema(
   }
 );
 
+auditLogSchema.index({ organisationId: 1, createdAt: -1 });
+auditLogSchema.index({ organisationId: 1, action: 1 });
+
 auditLogSchema.methods.toJSON = function () {
   const obj = this.toObject();
   delete obj.__v;

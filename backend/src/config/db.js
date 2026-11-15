@@ -33,9 +33,12 @@ export async function connectDB() {
       logger.warn('MongoDB connection lost / disconnected.');
     });
 
-    // Set serverSelectionTimeoutMS to 5000 so app doesn't hang indefinitely if DB is offline during dev
+    // Set serverSelectionTimeoutMS, maxPoolSize, and socketTimeoutMS for high-performance pooling
     await mongoose.connect(config.mongoUri, {
       serverSelectionTimeoutMS: 5000,
+      maxPoolSize: 20,
+      minPoolSize: 2,
+      socketTimeoutMS: 45000,
     });
   } catch (error) {
     logger.warn(`Initial MongoDB connection failed (${error.message}). The server will run in degraded mode until MongoDB is reachable.`);
