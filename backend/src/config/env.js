@@ -12,4 +12,8 @@ export const config = {
     return rawUrl.replace(/\/+$/, '');
   },
   aiServiceApiKey: process.env.AI_SERVICE_API_KEY || 'local_dev_key',
+  cloudinaryUrl: process.env.CLOUDINARY_URL || '',
+  cloudinaryCloudName: process.env.CLOUDINARY_CLOUD_NAME || 'kewdjwvy',
+  cloudinaryApiKey: process.env.CLOUDINARY_API_KEY || '729575224183126',
+  cloudinaryApiSecret: process.env.CLOUDINARY_API_SECRET || 'jwg9Orh_jW3IkcIo_BPDXyt_nzA',
 };

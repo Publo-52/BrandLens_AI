@@ -1,9 +1,39 @@
 import express from 'express';
+import multer from 'multer';
 import { Asset, ASSET_TYPES } from './asset.model.js';
 import { ROLES } from '../members/membership.model.js';
 import { authenticate, requireOrgAccess } from '../../middleware/auth.js';
+import { uploadToCloudinary } from '../../utils/cloudinary.js';
 
+const upload = multer({ limits: { fileSize: 10 * 1024 * 1024 } });
 const router = express.Router({ mergeParams: true });
+
+// POST /api/organisations/:organisationId/assets/upload - Upload asset file directly to Cloudinary
+router.post('/upload', authenticate, requireOrgAccess([ROLES.ADMIN, ROLES.MANAGER]), upload.single('file'), async (req, res, next) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        error: { message: 'File is required for upload.', statusCode: 400 },
+      });
+    }
+
+    const uploadResult = await uploadToCloudinary(req.file.buffer, {
+      folder: `brandlens/${req.params.organisationId}/assets`,
+      resource_type: 'auto',
+    });
+
+    res.status(201).json({
+      success: true,
+      url: uploadResult.secure_url,
+      publicId: uploadResult.public_id,
+      format: uploadResult.format,
+      bytes: uploadResult.bytes,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
 
 // GET /api/organisations/:organisationId/assets - List brand visual assets
 router.get('/', authenticate, requireOrgAccess(), async (req, res, next) => {

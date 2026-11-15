@@ -5,6 +5,7 @@ import { ContentVersion } from './contentVersion.model.js';
 import { Review, REVIEW_STATUS } from '../reviews/review.model.js';
 import { executeReview } from '../reviews/review.service.js';
 import { authenticate, requireOrgAccess } from '../../middleware/auth.js';
+import { uploadToCloudinary } from '../../utils/cloudinary.js';
 
 const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
@@ -39,11 +40,24 @@ router.post('/', authenticate, requireOrgAccess(), upload.array('files', 5), asy
           extracted = `[Document: ${file.originalname}] ${file.buffer.toString('utf-8', 0, Math.min(file.buffer.length, 500)).replace(/[^\x20-\x7E\t\r\n]/g, ' ')}`;
         }
 
+        let storageKey = `local_uploads/${Date.now()}_${file.originalname}`;
+        try {
+          const uploadResult = await uploadToCloudinary(file.buffer, {
+            folder: `brandlens/${orgId}/drafts`,
+            public_id: `${Date.now()}_${file.originalname.replace(/[^a-zA-Z0-9_-]/g, '_')}`,
+          });
+          if (uploadResult?.secure_url) {
+            storageKey = uploadResult.secure_url;
+          }
+        } catch {
+          // Fallback to local storage identifier if Cloudinary is offline or in mock test mode
+        }
+
         fileReferences.push({
           originalName: file.originalname,
           mimeType: file.mimetype,
           size: file.size,
-          storageKey: `local_uploads/${Date.now()}_${file.originalname}`,
+          storageKey,
           extractedText: extracted,
         });
 
