@@ -23,6 +23,7 @@ function AppContent() {
             aiHealth={aiHealth}
             loading={loading}
             onRefresh={refresh}
+            onNavigate={setCurrentTab}
           />
         );
       case 'review':
@@ -44,6 +45,7 @@ function AppContent() {
             aiHealth={aiHealth}
             loading={loading}
             onRefresh={refresh}
+            onNavigate={setCurrentTab}
           />
         );
     }
