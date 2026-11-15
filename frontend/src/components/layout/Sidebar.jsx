@@ -50,7 +50,7 @@ export function Sidebar({ currentTab, onSelectTab }) {
 
       <div className="mt-auto p-4 border-t border-slate-200 text-xs text-slate-400">
         <div className="font-semibold text-slate-600">BrandLens AI v1.0.0</div>
-        <div className="mt-0.5">Team ALGO_X &bull; Round 1</div>
+        <div className="mt-0.5 text-slate-400">Team ALGO_X</div>
       </div>
     </aside>
   );

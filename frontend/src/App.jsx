@@ -1,6 +1,5 @@
 import React, { useState, lazy, Suspense } from 'react';
 import { Layout } from './components/layout/Layout';
-import { useHealthCheck } from './hooks/useHealthCheck';
 import { AuthProvider } from './features/auth/AuthContext';
 import { Loader2 } from 'lucide-react';
 
@@ -24,20 +23,11 @@ function PageLoadingFallback() {
 
 function AppContent() {
   const [currentTab, setCurrentTab] = useState('dashboard');
-  const { backendHealth, aiHealth, loading, refresh } = useHealthCheck(20000);
 
   const renderContent = () => {
     switch (currentTab) {
       case 'dashboard':
-        return (
-          <DashboardPage
-            backendHealth={backendHealth}
-            aiHealth={aiHealth}
-            loading={loading}
-            onRefresh={refresh}
-            onNavigate={setCurrentTab}
-          />
-        );
+        return <DashboardPage onNavigate={setCurrentTab} />;
       case 'review':
         return <ReviewPage />;
       case 'knowledge':
@@ -51,15 +41,7 @@ function AppContent() {
       case 'settings':
         return <SettingsPage />;
       default:
-        return (
-          <DashboardPage
-            backendHealth={backendHealth}
-            aiHealth={aiHealth}
-            loading={loading}
-            onRefresh={refresh}
-            onNavigate={setCurrentTab}
-          />
-        );
+        return <DashboardPage onNavigate={setCurrentTab} />;
     }
   };
 
@@ -67,10 +49,6 @@ function AppContent() {
     <Layout
       currentTab={currentTab}
       onSelectTab={setCurrentTab}
-      backendHealth={backendHealth}
-      aiHealth={aiHealth}
-      loading={loading}
-      onRefresh={refresh}
     >
       <Suspense fallback={<PageLoadingFallback />}>
         {renderContent()}

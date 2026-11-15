@@ -1,17 +1,12 @@
 import React, { useState } from 'react';
-import { ShieldCheck, RefreshCw, Building2, LogOut, LogIn, ChevronDown, Check } from 'lucide-react';
-import { StatusBadge } from '../common/StatusBadge';
+import { ShieldCheck, Building2, LogOut, LogIn, ChevronDown, Check } from 'lucide-react';
 import { useAuth } from '../../features/auth/AuthContext';
 import { AuthModal } from '../../features/auth/AuthModal';
 
-export function Navbar({ backendHealth, aiHealth, loading, onRefresh }) {
+export function Navbar() {
   const { user, memberships, activeOrg, activeRole, logout, switchOrg } = useAuth();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showOrgDropdown, setShowOrgDropdown] = useState(false);
-
-  const beStatus = backendHealth?.status === 'healthy' ? 'healthy' : 'unreachable';
-  const aiStatus = aiHealth?.aiServiceStatus === 'reachable' ? 'reachable' : 'unreachable';
-  const dbStatus = backendHealth?.database?.status === 'connected' ? 'connected' : 'disconnected';
 
   const getRoleBadgeColor = (role) => {
     switch (role) {
@@ -96,30 +91,6 @@ export function Navbar({ backendHealth, aiHealth, loading, onRefresh }) {
               )}
             </div>
           )}
-
-          {/* Live Service Health Indicators */}
-          <div className="hidden lg:flex items-center gap-3 text-xs pl-3 border-l border-slate-200">
-            <div className="flex items-center gap-1.5">
-              <span className="text-slate-400">API:</span>
-              <StatusBadge status={beStatus} label={beStatus} />
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="text-slate-400">DB:</span>
-              <StatusBadge status={dbStatus} label={dbStatus} />
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="text-slate-400">AI:</span>
-              <StatusBadge status={aiStatus} label={aiStatus} />
-            </div>
-          </div>
-
-          <button
-            onClick={onRefresh}
-            title="Refresh service health checks"
-            className="p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
-          >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-brand-600' : ''}`} />
-          </button>
 
           {/* User Profile & Role or Sign In Button */}
           {user ? (
