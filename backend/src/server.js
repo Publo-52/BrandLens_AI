@@ -28,3 +28,5 @@ startServer().catch((err) => {
   logger.error('Fatal error starting server:', err);
   process.exit(1);
 });
+
+export default app;

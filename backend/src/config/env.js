@@ -8,7 +8,8 @@ export const config = {
   jwtSecret: process.env.JWT_SECRET || 'dev_secret_brandlens_algo_x',
   frontendOrigin: process.env.FRONTEND_ORIGIN || 'http://localhost:5173',
   get aiServiceUrl() {
-    return process.env.AI_SERVICE_URL || 'http://localhost:8000';
+    const rawUrl = process.env.AI_SERVICE_URL || 'http://localhost:8000';
+    return rawUrl.replace(/\/+$/, '');
   },
   aiServiceApiKey: process.env.AI_SERVICE_API_KEY || 'local_dev_key',
 };

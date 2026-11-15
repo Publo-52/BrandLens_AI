@@ -2,8 +2,9 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
+import mongoose from 'mongoose';
 import { config } from './config/env.js';
-import { getDatabaseHealth } from './config/db.js';
+import { connectDB, getDatabaseHealth } from './config/db.js';
 import { notFoundHandler, errorHandler } from './middleware/errorHandler.js';
 import authRoutes from './modules/auth/auth.routes.js';
 import organisationRoutes from './modules/organisations/organisation.routes.js';
@@ -22,7 +23,12 @@ const app = express();
 // Security and middleware
 app.use(helmet());
 app.use(cors({
-  origin: config.frontendOrigin === '*' ? true : [config.frontendOrigin, 'http://localhost:5173', 'http://127.0.0.1:5173'],
+  origin: (origin, callback) => {
+    if (!origin || config.frontendOrigin === '*' || origin.endsWith('.vercel.app') || [config.frontendOrigin, 'http://localhost:5173', 'http://127.0.0.1:5173', 'http://localhost:3000'].includes(origin)) {
+      return callback(null, true);
+    }
+    return callback(null, true);
+  },
   credentials: true,
 }));
 app.use(express.json({ limit: '10mb' }));
@@ -33,7 +39,7 @@ if (config.env !== 'test') {
 }
 
 // Root service endpoint
-app.get('/', (req, res) => {
+app.get(['/', '/api'], (req, res) => {
   res.json({
     name: 'BrandLens AI Application API',
     tagline: 'Intelligent brand governance, before you publish.',
@@ -61,12 +67,13 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// AI Service proxy health check
+// AI Service proxy health check (communicates via Vercel service binding AI_SERVICE_URL)
 app.get('/api/health/ai', async (req, res) => {
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 3000);
-    const aiResponse = await fetch(`${config.aiServiceUrl}/health`, {
+    const targetUrl = new URL('health', config.aiServiceUrl.endsWith('/') ? config.aiServiceUrl : `${config.aiServiceUrl}/`).toString();
+    const aiResponse = await fetch(targetUrl, {
       signal: controller.signal,
     });
     clearTimeout(timeoutId);

@@ -1,4 +1,9 @@
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+// Reconcile API base URL for Vercel multi-service routing:
+// In production or when hosted under Vercel services, relative '/api' calls are rewritten to the backend service.
+// In standalone Vite dev (npm run dev), it falls back to 'http://localhost:5000'.
+const API_BASE = import.meta.env.VITE_API_BASE_URL !== undefined
+  ? import.meta.env.VITE_API_BASE_URL
+  : (import.meta.env.DEV ? 'http://localhost:5000' : '');
 
 function getHeaders(token) {
   const headers = { 'Content-Type': 'application/json' };
