@@ -11,7 +11,36 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   const initAuth = useCallback(async () => {
-    const savedToken = localStorage.getItem('brandlens_token');
+    let savedToken = localStorage.getItem('brandlens_token');
+
+    // Auto-login to pre-seeded NovaTech Admin demo workspace if no session exists yet
+    if (!savedToken) {
+      try {
+        const loginData = await api.login({
+          email: 'admin@novatech.demo',
+          password: 'DemoPass123!',
+        });
+        if (loginData?.token) {
+          savedToken = loginData.token;
+          localStorage.setItem('brandlens_token', loginData.token);
+          setToken(loginData.token);
+          setUser(loginData.user);
+          setMemberships(loginData.memberships || []);
+
+          const firstOrg = loginData.memberships?.[0]?.organisationId;
+          const firstOrgId = typeof firstOrg === 'object' ? firstOrg?._id : firstOrg;
+          if (firstOrgId) {
+            setActiveOrgId(firstOrgId);
+            localStorage.setItem('brandlens_active_org_id', firstOrgId);
+          }
+          setLoading(false);
+          return;
+        }
+      } catch (e) {
+        console.warn('Initial demo auto-login skipped:', e.message);
+      }
+    }
+
     if (!savedToken) {
       setLoading(false);
       return;
@@ -24,11 +53,16 @@ export function AuthProvider({ children }) {
 
       // Determine active organisation
       const savedOrgId = localStorage.getItem('brandlens_active_org_id');
-      const validOrg = data.memberships?.find((m) => m.organisationId?._id === savedOrgId);
+      const validOrg = data.memberships?.find((m) => {
+        const id = typeof m.organisationId === 'object' ? m.organisationId?._id : m.organisationId;
+        return id === savedOrgId;
+      });
+
       if (validOrg) {
         setActiveOrgId(savedOrgId);
       } else if (data.memberships && data.memberships.length > 0) {
-        const firstOrgId = data.memberships[0].organisationId?._id;
+        const firstOrg = data.memberships[0].organisationId;
+        const firstOrgId = typeof firstOrg === 'object' ? firstOrg?._id : firstOrg;
         setActiveOrgId(firstOrgId);
         if (firstOrgId) {
           localStorage.setItem('brandlens_active_org_id', firstOrgId);
@@ -41,6 +75,7 @@ export function AuthProvider({ children }) {
       setToken(null);
       setUser(null);
       setMemberships([]);
+      setActiveOrgId(null);
     } finally {
       setLoading(false);
     }
@@ -58,7 +93,8 @@ export function AuthProvider({ children }) {
     setMemberships(data.memberships || []);
 
     if (data.memberships && data.memberships.length > 0) {
-      const firstOrgId = data.memberships[0].organisationId?._id;
+      const firstOrg = data.memberships[0].organisationId;
+      const firstOrgId = typeof firstOrg === 'object' ? firstOrg?._id : firstOrg;
       setActiveOrgId(firstOrgId);
       if (firstOrgId) {
         localStorage.setItem('brandlens_active_org_id', firstOrgId);
@@ -78,9 +114,10 @@ export function AuthProvider({ children }) {
       organisationId: data.organisation,
     };
     setMemberships([initialMembership]);
-    setActiveOrgId(data.organisation?._id);
-    if (data.organisation?._id) {
-      localStorage.setItem('brandlens_active_org_id', data.organisation._id);
+    const newOrgId = data.organisation?._id;
+    setActiveOrgId(newOrgId);
+    if (newOrgId) {
+      localStorage.setItem('brandlens_active_org_id', newOrgId);
     }
     return data;
   };
@@ -95,15 +132,26 @@ export function AuthProvider({ children }) {
   };
 
   const switchOrg = (orgId) => {
-    const exists = memberships.find((m) => m.organisationId?._id === orgId);
+    const exists = memberships.find((m) => {
+      const id = typeof m.organisationId === 'object' ? m.organisationId?._id : m.organisationId;
+      return id === orgId;
+    });
     if (exists) {
       setActiveOrgId(orgId);
       localStorage.setItem('brandlens_active_org_id', orgId);
     }
   };
 
-  const activeMembership = memberships.find((m) => m.organisationId?._id === activeOrgId);
-  const activeOrg = activeMembership?.organisationId || null;
+  const activeMembership =
+    memberships.find((m) => {
+      const id = typeof m.organisationId === 'object' ? m.organisationId?._id : m.organisationId;
+      return id === activeOrgId;
+    }) || memberships[0] || null;
+
+  const activeOrg =
+    activeMembership && typeof activeMembership.organisationId === 'object'
+      ? activeMembership.organisationId
+      : null;
   const activeRole = activeMembership?.role || 'CREATOR';
 
   return (

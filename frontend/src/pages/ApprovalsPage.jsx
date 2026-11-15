@@ -86,7 +86,7 @@ export function ApprovalsPage() {
   }, [activeOrg, token]);
 
   const handlePublish = async () => {
-    if (!selectedId) return;
+    if (!selectedId || !activeOrg?._id || !token) return;
     setPublishing(true);
     setError(null);
     try {
@@ -101,7 +101,7 @@ export function ApprovalsPage() {
       await loadDetails(selectedId);
       await loadData();
     } catch (err) {
-      setError(err.message);
+      setError(err.message || 'Publishing failed');
     } finally {
       setPublishing(false);
     }
@@ -114,7 +114,7 @@ export function ApprovalsPage() {
   }, [selectedId, loadDetails]);
 
   const handleDecision = async (decision) => {
-    if (!selectedId) return;
+    if (!selectedId || !activeOrg?._id || !token) return;
     setSubmittingDecision(true);
     setError(null);
     try {
@@ -129,7 +129,7 @@ export function ApprovalsPage() {
       await loadDetails(selectedId);
       await loadData();
     } catch (err) {
-      setError(err.message);
+      setError(err.message || 'Decision failed');
     } finally {
       setSubmittingDecision(false);
     }
@@ -137,14 +137,14 @@ export function ApprovalsPage() {
 
   const handleAddComment = async (e) => {
     e.preventDefault();
-    if (!commentInput.trim() || !selectedId) return;
+    if (!commentInput.trim() || !selectedId || !activeOrg?._id || !token) return;
     try {
       await api.addComment(activeOrg._id, selectedId, { body: commentInput }, token);
       setCommentInput('');
       const cmData = await api.getComments(activeOrg._id, selectedId, token);
-      setComments(cmData.comments || []);
+      setComments(cmData?.comments || []);
     } catch (err) {
-      setError(err.message);
+      setError(err.message || 'Comment failed');
     }
   };
 

@@ -117,6 +117,7 @@ export function KnowledgeBasePage() {
 
   const handleCreateGuideline = async (e) => {
     e.preventDefault();
+    if (!activeOrg?._id || !token) return;
     setSubmitting(true);
     setError(null);
     try {
@@ -126,7 +127,7 @@ export function KnowledgeBasePage() {
       setGuidelineForm({ title: '', category: 'TONE', ruleText: '', severity: 'MEDIUM', sourceLocation: '' });
       await loadData();
     } catch (err) {
-      setError(err.message);
+      setError(err.message || 'Failed to create guideline');
     } finally {
       setSubmitting(false);
     }
@@ -134,6 +135,7 @@ export function KnowledgeBasePage() {
 
   const handleCreateFact = async (e) => {
     e.preventDefault();
+    if (!activeOrg?._id || !token) return;
     setSubmitting(true);
     setError(null);
     try {
@@ -151,7 +153,7 @@ export function KnowledgeBasePage() {
       setFactForm({ statement: '', sourceReference: '', product: 'All' });
       await loadData();
     } catch (err) {
-      setError(err.message);
+      setError(err.message || 'Failed to create fact');
     } finally {
       setSubmitting(false);
     }
@@ -159,6 +161,7 @@ export function KnowledgeBasePage() {
 
   const handleCreateTerm = async (e) => {
     e.preventDefault();
+    if (!activeOrg?._id || !token) return;
     setSubmitting(true);
     setError(null);
     try {
@@ -182,7 +185,7 @@ export function KnowledgeBasePage() {
       setTermForm({ preferredTerm: '', bannedTerms: '', replacement: '', explanation: '', scope: 'General' });
       await loadData();
     } catch (err) {
-      setError(err.message);
+      setError(err.message || 'Failed to create terminology rule');
     } finally {
       setSubmitting(false);
     }
@@ -190,6 +193,7 @@ export function KnowledgeBasePage() {
 
   const handleCreateAsset = async (e) => {
     e.preventDefault();
+    if (!activeOrg?._id || !token) return;
     setSubmitting(true);
     setError(null);
     try {

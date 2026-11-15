@@ -104,6 +104,12 @@ export function ReviewPage() {
   const handleCreateSubmission = async (e) => {
     e.preventDefault();
     if (!newTitle.trim() || !newText.trim()) return;
+
+    if (!activeOrg?._id || !token) {
+      setError('Please sign in or select an organisation workspace before submitting draft content.');
+      return;
+    }
+
     setSubmitting(true);
     setError(null);
     try {
@@ -116,11 +122,15 @@ export function ReviewPage() {
       setShowNewModal(false);
       setNewTitle('');
       setNewText('');
-      setSelectedContentId(res.content._id);
-      await loadContents();
-      await loadContentDetails(res.content._id);
+      if (res?.content?._id) {
+        setSelectedContentId(res.content._id);
+        await loadContents();
+        await loadContentDetails(res.content._id);
+      } else {
+        await loadContents();
+      }
     } catch (err) {
-      setError(err.message);
+      setError(err.message || 'Failed to submit draft content');
     } finally {
       setSubmitting(false);
     }
@@ -128,13 +138,16 @@ export function ReviewPage() {
 
   const handleApplyFix = (original, suggestion) => {
     if (!suggestion) return;
-    setWorkingText((prev) => prev.replace(original, suggestion));
+    setWorkingText((prev) => (prev ? prev.replace(original, suggestion) : suggestion));
     setSuccessMsg(`Applied fix: "${suggestion}"`);
   };
 
   const handleSubmitRevision = async (e) => {
     e.preventDefault();
-    if (!workingText.trim() || !selectedContentId) return;
+    if (!workingText.trim() || !selectedContentId || !activeOrg?._id || !token) {
+      if (!activeOrg?._id || !token) setError('Please sign in to submit revisions.');
+      return;
+    }
     setSubmittingRevision(true);
     setError(null);
     try {
@@ -149,14 +162,14 @@ export function ReviewPage() {
       await loadContentDetails(selectedContentId);
       await loadContents();
     } catch (err) {
-      setError(err.message);
+      setError(err.message || 'Failed to submit revision');
     } finally {
       setSubmittingRevision(false);
     }
   };
 
   const handleOverrideFinding = async () => {
-    if (!overrideModalFinding || !overrideReason.trim()) return;
+    if (!overrideModalFinding || !overrideReason.trim() || !activeOrg?._id || !token) return;
     try {
       await api.updateFindingDecision(
         activeOrg._id,
@@ -170,12 +183,12 @@ export function ReviewPage() {
       setOverrideReason('');
       await loadContentDetails(selectedContentId);
     } catch (err) {
-      setError(err.message);
+      setError(err.message || 'Failed to record override');
     }
   };
 
   const handleRejectFinding = async () => {
-    if (!rejectModalFinding || !rejectReason.trim()) return;
+    if (!rejectModalFinding || !rejectReason.trim() || !activeOrg?._id || !token) return;
     try {
       await api.updateFindingDecision(
         activeOrg._id,
@@ -189,31 +202,32 @@ export function ReviewPage() {
       setRejectReason('');
       await loadContentDetails(selectedContentId);
     } catch (err) {
-      setError(err.message);
+      setError(err.message || 'Failed to record rejection');
     }
   };
 
   const handleRequestApproval = async () => {
+    if (!selectedContentId || !activeOrg?._id || !token) return;
     try {
       await api.requestApproval(activeOrg._id, selectedContentId, token);
       setSuccessMsg('Routed to formal approval queue (IN_REVIEW).');
       await loadContentDetails(selectedContentId);
       await loadContents();
     } catch (err) {
-      setError(err.message);
+      setError(err.message || 'Approval request failed');
     }
   };
 
   const handleAddComment = async (e) => {
     e.preventDefault();
-    if (!commentInput.trim() || !selectedContentId) return;
+    if (!commentInput.trim() || !selectedContentId || !activeOrg?._id || !token) return;
     try {
       await api.addComment(activeOrg._id, selectedContentId, { body: commentInput }, token);
       setCommentInput('');
       const cmData = await api.getComments(activeOrg._id, selectedContentId, token);
-      setComments(cmData.comments || []);
+      setComments(cmData?.comments || []);
     } catch (err) {
-      setError(err.message);
+      setError(err.message || 'Failed to add comment');
     }
   };
 
@@ -629,6 +643,12 @@ export function ReviewPage() {
               </button>
             </div>
             <form onSubmit={handleCreateSubmission} className="p-6 space-y-4">
+              {!activeOrg && (
+                <div className="p-3 bg-amber-50 border border-amber-200 text-amber-800 rounded-lg text-xs flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                  <span>Please sign in or switch to an organisation workspace to submit content.</span>
+                </div>
+              )}
               <div>
                 <label className="block text-xs font-medium text-slate-700 mb-1">Content Title</label>
                 <input
@@ -679,8 +699,8 @@ export function ReviewPage() {
               </div>
               <button
                 type="submit"
-                disabled={submitting}
-                className="w-full py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-xs font-semibold shadow-sm transition-colors"
+                disabled={submitting || !activeOrg?._id}
+                className="w-full py-2.5 bg-brand-600 hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg text-xs font-semibold shadow-sm transition-colors"
               >
                 {submitting ? 'Analyzing Draft...' : 'Submit & Run Automated Review'}
               </button>

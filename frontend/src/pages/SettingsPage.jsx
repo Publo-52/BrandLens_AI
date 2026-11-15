@@ -57,7 +57,7 @@ export function SettingsPage() {
 
   const handleInvite = async (e) => {
     e.preventDefault();
-    if (!inviteEmail) return;
+    if (!inviteEmail || !activeOrg?._id || !token) return;
     setInviting(true);
     setError(null);
     setSuccessMsg(null);
@@ -74,13 +74,14 @@ export function SettingsPage() {
       setInviteRole('CREATOR');
       await loadMembers();
     } catch (err) {
-      setError(err.message);
+      setError(err.message || 'Invitation failed');
     } finally {
       setInviting(false);
     }
   };
 
   const handleRoleChange = async (memberId, newRole) => {
+    if (!activeOrg?._id || !token) return;
     setError(null);
     setSuccessMsg(null);
     try {
@@ -88,13 +89,13 @@ export function SettingsPage() {
       setSuccessMsg('Member role updated successfully!');
       await loadMembers();
     } catch (err) {
-      setError(err.message);
+      setError(err.message || 'Failed to update role');
     }
   };
 
   const handleUpdateOrg = async (e) => {
     e.preventDefault();
-    if (!orgName.trim() || !activeOrg?._id) return;
+    if (!orgName.trim() || !activeOrg?._id || !token) return;
     setUpdatingOrg(true);
     setError(null);
     setSuccessMsg(null);
