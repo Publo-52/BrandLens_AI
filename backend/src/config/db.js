@@ -1,6 +1,14 @@
 import mongoose from 'mongoose';
+import dns from 'node:dns';
 import { config } from './env.js';
 import { logger } from '../utils/logger.js';
+
+// Ensure reliable SRV DNS resolution on Windows environments
+try {
+  dns.setServers(['8.8.8.8', '1.1.1.1']);
+} catch {
+  // fallback to system default if restricted
+}
 
 let isConnected = false;
 
