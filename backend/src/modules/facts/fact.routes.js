@@ -22,7 +22,8 @@ router.get('/', authenticate, requireOrgAccess(), async (req, res, next) => {
 
     const facts = await ApprovedFact.find(filter)
       .populate('ownerId', 'name email')
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean();
 
     res.json({
       success: true,

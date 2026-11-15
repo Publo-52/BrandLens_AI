@@ -12,7 +12,8 @@ router.get('/audit-logs', authenticate, requireOrgAccess(), async (req, res, nex
     const logs = await AuditLog.find({ organisationId: req.params.organisationId })
       .populate('actorId', 'name email')
       .sort({ createdAt: -1 })
-      .limit(100);
+      .limit(100)
+      .lean();
 
     res.json({
       success: true,
@@ -29,8 +30,8 @@ router.get('/insights', authenticate, requireOrgAccess(), async (req, res, next)
     const orgId = req.params.organisationId;
 
     const [contents, reviews] = await Promise.all([
-      Content.find({ organisationId: orgId }),
-      Review.find({ organisationId: orgId }),
+      Content.find({ organisationId: orgId }).select('status').lean(),
+      Review.find({ organisationId: orgId }).select('findings.type findings.reviewStatus').lean(),
     ]);
 
     // Aggregate findings metrics

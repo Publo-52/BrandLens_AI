@@ -119,7 +119,8 @@ router.get('/', authenticate, requireOrgAccess(), async (req, res, next) => {
     const contents = await Content.find(filter)
       .populate('createdBy', 'name email')
       .populate('assignedTo', 'name email')
-      .sort({ updatedAt: -1 });
+      .sort({ updatedAt: -1 })
+      .lean();
 
     res.json({
       success: true,
@@ -139,7 +140,8 @@ router.get('/:contentId', authenticate, requireOrgAccess(), async (req, res, nex
     })
       .populate('createdBy', 'name email')
       .populate('assignedTo', 'name email')
-      .populate('currentVersionId');
+      .populate('currentVersionId')
+      .lean();
 
     if (!content) {
       return res.status(404).json({
@@ -151,12 +153,12 @@ router.get('/:contentId', authenticate, requireOrgAccess(), async (req, res, nex
     const versions = await ContentVersion.find({
       contentId: content._id,
       organisationId: req.params.organisationId,
-    }).sort({ versionNumber: 1 });
+    }).sort({ versionNumber: 1 }).lean();
 
     const latestReview = await Review.findOne({
       contentId: content._id,
       contentVersionId: content.currentVersionId?._id || versions[versions.length - 1]?._id,
-    }).sort({ createdAt: -1 });
+    }).sort({ createdAt: -1 }).lean();
 
     res.json({
       success: true,

@@ -13,7 +13,8 @@ router.get('/', authenticate, requireOrgAccess(), async (req, res, next) => {
       isActive: true,
     })
       .populate('ownerId', 'name email')
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean();
 
     res.json({
       success: true,

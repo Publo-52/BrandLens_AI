@@ -6,22 +6,35 @@ import { Content } from '../contents/content.model.js';
 import { ContentVersion } from '../contents/contentVersion.model.js';
 import { logger } from '../../utils/logger.js';
 
+// In-memory compiled RegEx cache for ultra-fast terminology scanning
+const regexCache = new Map();
+function getCachedRegex(banned, caseSensitive) {
+  const key = `${caseSensitive ? 's' : 'i'}:${banned}`;
+  let regex = regexCache.get(key);
+  if (!regex) {
+    const flags = caseSensitive ? 'g' : 'gi';
+    const escapedBanned = banned.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    regex = new RegExp(`\\b${escapedBanned}\\b`, flags);
+    if (regexCache.size > 2000) regexCache.clear();
+    regexCache.set(key, regex);
+  }
+  regex.lastIndex = 0;
+  return regex;
+}
+
 /**
  * 1. Deterministic Terminology Check Engine
  * Scans content text against organisation's active terminology rules.
  */
 export async function runDeterministicChecks(text, organisationId) {
-  const rules = await TerminologyRule.find({ organisationId, isActive: true });
+  const rules = await TerminologyRule.find({ organisationId, isActive: true }).lean();
   const findings = [];
 
   for (const rule of rules) {
     for (const banned of rule.bannedTerms) {
       if (!banned.trim()) continue;
 
-      const flags = rule.caseSensitive ? 'g' : 'gi';
-      // Escape special regex characters in the banned term
-      const escapedBanned = banned.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const regex = new RegExp(`\\b${escapedBanned}\\b`, flags);
+      const regex = getCachedRegex(banned, rule.caseSensitive);
 
       let match;
       while ((match = regex.exec(text)) !== null) {
@@ -63,8 +76,8 @@ export async function runDeterministicChecks(text, organisationId) {
  */
 export async function runGroundedChecks(text, organisationId, channel, audience) {
   const [facts, guidelines] = await Promise.all([
-    ApprovedFact.find({ organisationId, status: 'ACTIVE' }),
-    Guideline.find({ organisationId, status: 'ACTIVE' }),
+    ApprovedFact.find({ organisationId, status: 'ACTIVE' }).lean(),
+    Guideline.find({ organisationId, status: 'ACTIVE' }).lean(),
   ]);
 
   const findings = [];

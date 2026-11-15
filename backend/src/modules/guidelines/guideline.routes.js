@@ -22,7 +22,8 @@ router.get('/', authenticate, requireOrgAccess(), async (req, res, next) => {
 
     const guidelines = await Guideline.find(filter)
       .populate('ownerId', 'name email')
-      .sort({ category: 1, severity: -1, createdAt: -1 });
+      .sort({ category: 1, severity: -1, createdAt: -1 })
+      .lean();
 
     res.json({
       success: true,

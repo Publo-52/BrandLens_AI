@@ -8,13 +8,46 @@ function getHeaders(token) {
   return headers;
 }
 
+// In-flight request deduplicator to eliminate redundant concurrent API calls
+const inFlightRequests = new Map();
+
+async function request(url, options = {}) {
+  const method = (options.method || 'GET').toUpperCase();
+  const isGet = method === 'GET';
+
+  if (!isGet) {
+    inFlightRequests.clear(); // Bust cache on mutations
+    const res = await fetch(url, options);
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error?.message || `Request failed (${res.status})`);
+    return data;
+  }
+
+  const cacheKey = `${url}:${options.headers?.Authorization || ''}`;
+  if (inFlightRequests.has(cacheKey)) {
+    return inFlightRequests.get(cacheKey);
+  }
+
+  const promise = (async () => {
+    try {
+      const res = await fetch(url, options);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error?.message || `Request failed (${res.status})`);
+      return data;
+    } finally {
+      setTimeout(() => inFlightRequests.delete(cacheKey), 2500); // 2.5s deduplication window
+    }
+  })();
+
+  inFlightRequests.set(cacheKey, promise);
+  return promise;
+}
+
 export const api = {
   // System Health
   async getBackendHealth() {
     try {
-      const response = await fetch(`${API_BASE}/api/health`);
-      if (!response.ok) throw new Error(`HTTP error ${response.status}`);
-      return await response.json();
+      return await request(`${API_BASE}/api/health`);
     } catch (error) {
       return { status: 'unreachable', service: 'backend', error: error.message };
     }
@@ -22,8 +55,7 @@ export const api = {
 
   async getAIServiceHealth() {
     try {
-      const response = await fetch(`${API_BASE}/api/health/ai`);
-      return await response.json();
+      return await request(`${API_BASE}/api/health/ai`);
     } catch (error) {
       return { success: false, aiServiceStatus: 'unreachable', error: error.message };
     }
@@ -31,295 +63,231 @@ export const api = {
 
   // Auth
   async register({ name, email, password, organisationName }) {
-    const res = await fetch(`${API_BASE}/api/auth/register`, {
+    return await request(`${API_BASE}/api/auth/register`, {
       method: 'POST',
       headers: getHeaders(),
       body: JSON.stringify({ name, email, password, organisationName }),
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error?.message || 'Registration failed');
-    return data;
   },
 
   async login({ email, password }) {
-    const res = await fetch(`${API_BASE}/api/auth/login`, {
+    return await request(`${API_BASE}/api/auth/login`, {
       method: 'POST',
       headers: getHeaders(),
       body: JSON.stringify({ email, password }),
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error?.message || 'Login failed');
-    return data;
   },
 
   async getMe(token) {
-    const res = await fetch(`${API_BASE}/api/auth/me`, {
+    return await request(`${API_BASE}/api/auth/me`, {
       headers: getHeaders(token),
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error?.message || 'Failed to fetch user session');
-    return data;
   },
 
   // Organisations
   async getOrganisations(token) {
-    const res = await fetch(`${API_BASE}/api/organisations`, {
+    return await request(`${API_BASE}/api/organisations`, {
       headers: getHeaders(token),
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error?.message || 'Failed to list organisations');
-    return data;
   },
 
   async updateOrganisation(orgId, updateData, token) {
-    const res = await fetch(`${API_BASE}/api/organisations/${orgId}`, {
+    return await request(`${API_BASE}/api/organisations/${orgId}`, {
       method: 'PATCH',
       headers: getHeaders(token),
       body: JSON.stringify(updateData),
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error?.message || 'Failed to update organisation');
-    return data;
   },
 
   // Members & RBAC
   async getMembers(orgId, token) {
-    const res = await fetch(`${API_BASE}/api/organisations/${orgId}/members`, {
+    return await request(`${API_BASE}/api/organisations/${orgId}/members`, {
       headers: getHeaders(token),
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error?.message || 'Failed to list members');
-    return data;
   },
 
   async inviteMember(orgId, { email, role, name }, token) {
-    const res = await fetch(`${API_BASE}/api/organisations/${orgId}/members`, {
+    return await request(`${API_BASE}/api/organisations/${orgId}/members`, {
       method: 'POST',
       headers: getHeaders(token),
       body: JSON.stringify({ email, role, name }),
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error?.message || 'Failed to invite member');
-    return data;
   },
 
   async updateMemberRole(orgId, memberId, role, token) {
-    const res = await fetch(`${API_BASE}/api/organisations/${orgId}/members/${memberId}`, {
+    return await request(`${API_BASE}/api/organisations/${orgId}/members/${memberId}`, {
       method: 'PATCH',
       headers: getHeaders(token),
       body: JSON.stringify({ role }),
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error?.message || 'Failed to update member role');
-    return data;
   },
 
   // Guidelines
   async getGuidelines(orgId, token, category) {
     const url = new URL(`${API_BASE}/api/organisations/${orgId}/guidelines`);
     if (category) url.searchParams.append('category', category);
-    const res = await fetch(url.toString(), { headers: getHeaders(token) });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error?.message || 'Failed to list guidelines');
-    return data;
+    return await request(url.toString(), { headers: getHeaders(token) });
   },
 
   async createGuideline(orgId, guidelineData, token) {
-    const res = await fetch(`${API_BASE}/api/organisations/${orgId}/guidelines`, {
+    return await request(`${API_BASE}/api/organisations/${orgId}/guidelines`, {
       method: 'POST',
       headers: getHeaders(token),
       body: JSON.stringify(guidelineData),
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error?.message || 'Failed to create guideline');
-    return data;
   },
 
   // Approved Facts
   async getFacts(orgId, token) {
-    const res = await fetch(`${API_BASE}/api/organisations/${orgId}/facts`, {
+    return await request(`${API_BASE}/api/organisations/${orgId}/facts`, {
       headers: getHeaders(token),
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error?.message || 'Failed to list facts');
-    return data;
   },
 
   async createFact(orgId, factData, token) {
-    const res = await fetch(`${API_BASE}/api/organisations/${orgId}/facts`, {
+    return await request(`${API_BASE}/api/organisations/${orgId}/facts`, {
       method: 'POST',
       headers: getHeaders(token),
       body: JSON.stringify(factData),
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error?.message || 'Failed to create fact');
-    return data;
   },
 
   // Terminology
   async getTerminology(orgId, token) {
-    const res = await fetch(`${API_BASE}/api/organisations/${orgId}/terminology`, {
+    return await request(`${API_BASE}/api/organisations/${orgId}/terminology`, {
       headers: getHeaders(token),
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error?.message || 'Failed to list terminology');
-    return data;
   },
 
   async createTerminology(orgId, ruleData, token) {
-    const res = await fetch(`${API_BASE}/api/organisations/${orgId}/terminology`, {
+    return await request(`${API_BASE}/api/organisations/${orgId}/terminology`, {
       method: 'POST',
       headers: getHeaders(token),
       body: JSON.stringify(ruleData),
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error?.message || 'Failed to create terminology rule');
-    return data;
   },
 
   // Brand Assets
   async getAssets(orgId, token) {
-    const res = await fetch(`${API_BASE}/api/organisations/${orgId}/assets`, {
+    return await request(`${API_BASE}/api/organisations/${orgId}/assets`, {
       headers: getHeaders(token),
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error?.message || 'Failed to list assets');
-    return data;
   },
 
   async createAsset(orgId, assetData, token) {
-    const res = await fetch(`${API_BASE}/api/organisations/${orgId}/assets`, {
+    return await request(`${API_BASE}/api/organisations/${orgId}/assets`, {
       method: 'POST',
       headers: getHeaders(token),
       body: JSON.stringify(assetData),
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error?.message || 'Failed to create asset');
-    return data;
   },
 
-  // Demo Seeder
-  async seedDemoBrandPack(orgId, token) {
-    const res = await fetch(`${API_BASE}/api/organisations/${orgId}/knowledge/seed-demo`, {
+  // Seed Demo Brand Pack (NovaTech)
+  async seedDemoKnowledge(orgId, token) {
+    return await request(`${API_BASE}/api/organisations/${orgId}/knowledge/seed-demo`, {
       method: 'POST',
       headers: getHeaders(token),
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error?.message || 'Failed to seed demo brand pack');
-    return data;
   },
 
-  // Content Submissions & Reviews
-  async getContents(orgId, token, params = {}) {
+  // Content Intake & Review
+  async getContents(orgId, token, filters = {}) {
     const url = new URL(`${API_BASE}/api/organisations/${orgId}/contents`);
-    if (params.status) url.searchParams.append('status', params.status);
-    const res = await fetch(url.toString(), { headers: getHeaders(token) });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error?.message || 'Failed to list contents');
-    return data;
+    if (filters.status) url.searchParams.append('status', filters.status);
+    if (filters.channel) url.searchParams.append('channel', filters.channel);
+    return await request(url.toString(), { headers: getHeaders(token) });
   },
 
   async getContent(orgId, contentId, token) {
-    const res = await fetch(`${API_BASE}/api/organisations/${orgId}/contents/${contentId}`, {
+    return await request(`${API_BASE}/api/organisations/${orgId}/contents/${contentId}`, {
       headers: getHeaders(token),
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error?.message || 'Failed to get content details');
-    return data;
   },
 
-  async createContent(orgId, { title, channel, audience, text }, token) {
+  async createContent(orgId, { title, channel, audience, text, files }, token) {
+    inFlightRequests.clear();
+    const formData = new FormData();
+    formData.append('title', title);
+    if (channel) formData.append('channel', channel);
+    if (audience) formData.append('audience', audience);
+    if (text) formData.append('text', text);
+
+    if (files && files.length > 0) {
+      Array.from(files).forEach((file) => {
+        formData.append('files', file);
+      });
+    }
+
+    const headers = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
     const res = await fetch(`${API_BASE}/api/organisations/${orgId}/contents`, {
       method: 'POST',
-      headers: getHeaders(token),
-      body: JSON.stringify({ title, channel, audience, text }),
+      headers,
+      body: formData,
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error?.message || 'Failed to submit content');
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error?.message || 'Failed to submit draft content');
     return data;
   },
 
-  async submitNewVersion(orgId, contentId, { text, changeSummary }, token) {
-    const res = await fetch(`${API_BASE}/api/organisations/${orgId}/contents/${contentId}/versions`, {
+  async createContentVersion(orgId, contentId, { text, changeSummary }, token) {
+    return await request(`${API_BASE}/api/organisations/${orgId}/contents/${contentId}/versions`, {
       method: 'POST',
       headers: getHeaders(token),
       body: JSON.stringify({ text, changeSummary }),
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error?.message || 'Failed to submit revised version');
-    return data;
   },
 
   async updateFindingDecision(orgId, contentId, findingId, decisionData, token) {
-    const res = await fetch(`${API_BASE}/api/organisations/${orgId}/contents/${contentId}/findings/${findingId}`, {
+    return await request(`${API_BASE}/api/organisations/${orgId}/contents/${contentId}/findings/${findingId}`, {
       method: 'PATCH',
       headers: getHeaders(token),
       body: JSON.stringify(decisionData),
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error?.message || 'Failed to update finding decision');
-    return data;
   },
 
   // Approvals & Workflow
   async requestApproval(orgId, contentId, token) {
-    const res = await fetch(`${API_BASE}/api/organisations/${orgId}/contents/${contentId}/approval-request`, {
+    return await request(`${API_BASE}/api/organisations/${orgId}/contents/${contentId}/approval-request`, {
       method: 'POST',
       headers: getHeaders(token),
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error?.message || 'Failed to request approval');
-    return data;
   },
 
   async submitApprovalDecision(orgId, contentId, { decision, reason }, token) {
-    const res = await fetch(`${API_BASE}/api/organisations/${orgId}/contents/${contentId}/decision`, {
+    return await request(`${API_BASE}/api/organisations/${orgId}/contents/${contentId}/decision`, {
       method: 'POST',
       headers: getHeaders(token),
       body: JSON.stringify({ decision, reason }),
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error?.message || 'Failed to submit decision');
-    return data;
   },
 
   // Comments
   async getComments(orgId, contentId, token) {
-    const res = await fetch(`${API_BASE}/api/organisations/${orgId}/contents/${contentId}/comments`, {
+    return await request(`${API_BASE}/api/organisations/${orgId}/contents/${contentId}/comments`, {
       headers: getHeaders(token),
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error?.message || 'Failed to get comments');
-    return data;
   },
 
   async addComment(orgId, contentId, { body, findingId }, token) {
-    const res = await fetch(`${API_BASE}/api/organisations/${orgId}/contents/${contentId}/comments`, {
+    return await request(`${API_BASE}/api/organisations/${orgId}/contents/${contentId}/comments`, {
       method: 'POST',
       headers: getHeaders(token),
       body: JSON.stringify({ body, findingId }),
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error?.message || 'Failed to add comment');
-    return data;
   },
 
   // Governance Insights & Audit Logs
   async getInsights(orgId, token) {
-    const res = await fetch(`${API_BASE}/api/organisations/${orgId}/insights`, {
+    return await request(`${API_BASE}/api/organisations/${orgId}/insights`, {
       headers: getHeaders(token),
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error?.message || 'Failed to get insights');
-    return data;
   },
 
   async getAuditLogs(orgId, token) {
-    const res = await fetch(`${API_BASE}/api/organisations/${orgId}/audit-logs`, {
+    return await request(`${API_BASE}/api/organisations/${orgId}/audit-logs`, {
       headers: getHeaders(token),
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error?.message || 'Failed to get audit logs');
-    return data;
   },
 };
