@@ -8,8 +8,9 @@ import { InsightsPage } from './pages/InsightsPage';
 import { AuditPage } from './pages/AuditPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { useHealthCheck } from './hooks/useHealthCheck';
+import { AuthProvider } from './features/auth/AuthContext';
 
-export function App() {
+function AppContent() {
   const [currentTab, setCurrentTab] = useState('dashboard');
   const { backendHealth, aiHealth, loading, refresh } = useHealthCheck(15000);
 
@@ -59,6 +60,14 @@ export function App() {
     >
       {renderContent()}
     </Layout>
+  );
+}
+
+export function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 }
 

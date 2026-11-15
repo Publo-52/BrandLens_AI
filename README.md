@@ -28,7 +28,7 @@ BrandLens_AI/
 ## Milestone Status
 
 - [x] **Milestone 1 — Foundation**: Repository structure, frontend shell, Express API, FastAPI service, MongoDB connection configuration, environment examples, and health checks.
-- [ ] **Milestone 2 — Authentication and Workspace Security**: Registration, login, JWT sessions, organisations, memberships, and role-based access control (ADMIN, MANAGER, REVIEWER, CREATOR).
+- [x] **Milestone 2 — Authentication and Workspace Security**: Registration, login, JWT sessions, organisations, memberships, and role-based access control (ADMIN, MANAGER, REVIEWER, CREATOR).
 - [ ] **Milestone 3 — Brand Knowledge Base**: Versioned guidelines, approved facts, terminology rules, and asset management.
 - [ ] **Milestone 4 — Content Intake**: Multi-format text and file submission, parsing, and extraction.
 - [ ] **Milestone 5 — Review Engine**: Deterministic checks, approved-fact retrieval, AI tone/claim analysis, and structured citations.

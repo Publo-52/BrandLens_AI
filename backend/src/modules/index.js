@@ -1,10 +1,12 @@
-// BrandLens AI - Module Router Registry (Milestone 1 Foundation Skeleton)
-// Individual modules will be wired as milestones progress.
+// BrandLens AI - Module Router Registry
+import authRoutes from './auth/auth.routes.js';
+import organisationRoutes from './organisations/organisation.routes.js';
+import membershipRoutes from './members/membership.routes.js';
 
 export const modules = {
-  auth: null,
-  organisations: null,
-  members: null,
+  auth: authRoutes,
+  organisations: organisationRoutes,
+  members: membershipRoutes,
   guidelines: null,
   facts: null,
   terminology: null,

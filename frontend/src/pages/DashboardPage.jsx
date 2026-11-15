@@ -9,19 +9,23 @@ import {
   Layers, 
   FileCheck2,
   Users,
-  Compass
+  Compass,
+  Building2,
+  ShieldCheck
 } from 'lucide-react';
 import { StatusBadge } from '../components/common/StatusBadge';
+import { useAuth } from '../features/auth/AuthContext';
 
 export function DashboardPage({ backendHealth, aiHealth, loading, onRefresh }) {
+  const { user, activeOrg, activeRole } = useAuth();
   const isBackendHealthy = backendHealth?.status === 'healthy';
   const isAiHealthy = aiHealth?.aiServiceStatus === 'reachable';
   const isDbConnected = backendHealth?.database?.status === 'connected';
 
   const milestones = [
     { id: 1, title: 'Foundation', status: 'Completed', desc: 'Architecture, frontend shell, Express API, FastAPI service, DB config, and health monitoring.' },
-    { id: 2, title: 'Authentication & Workspace Security', status: 'Next', desc: 'Registration, login, JWT sessions, organisations, memberships, and server-side RBAC.' },
-    { id: 3, title: 'Brand Knowledge Base', status: 'Planned', desc: 'Versioned guidelines, approved facts, deterministic terminology rules, and assets.' },
+    { id: 2, title: 'Authentication & Workspace Security', status: 'Completed', desc: 'Registration, login, JWT sessions, organisations, memberships, and server-side RBAC.' },
+    { id: 3, title: 'Brand Knowledge Base', status: 'Next', desc: 'Versioned guidelines, approved facts, deterministic terminology rules, and assets.' },
     { id: 4, title: 'Content Intake & Parsing', status: 'Planned', desc: 'Multi-format intake for plain text, PDF, DOCX, and JPG/PNG documents.' },
     { id: 5, title: 'Explainable Review Engine', status: 'Planned', desc: 'Terminology check, grounded fact retrieval, tone check, and validated findings.' },
     { id: 6, title: 'Suggestions & Human Workflow', status: 'Planned', desc: 'Accept/edit/reject, reviewer comments, overrides with reasons, and approval locking.' },

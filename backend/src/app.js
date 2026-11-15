@@ -5,6 +5,9 @@ import morgan from 'morgan';
 import { config } from './config/env.js';
 import { getDatabaseHealth } from './config/db.js';
 import { notFoundHandler, errorHandler } from './middleware/errorHandler.js';
+import authRoutes from './modules/auth/auth.routes.js';
+import organisationRoutes from './modules/organisations/organisation.routes.js';
+import membershipRoutes from './modules/members/membership.routes.js';
 
 const app = express();
 
@@ -81,12 +84,10 @@ app.get('/api/health/ai', async (req, res) => {
   }
 });
 
-// Fallback for modular routes in later milestones (auth, orgs, guidelines, etc.)
-// Milestone 1 sets up the route registration skeleton
-app.use('/api', (req, res, next) => {
-  // Let notFoundHandler catch unhandled /api paths
-  next();
-});
+// Milestone 2 Authentication, Organisations & RBAC Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/organisations/:organisationId/members', membershipRoutes);
+app.use('/api/organisations', organisationRoutes);
 
 // 404 & Error Handlers
 app.use(notFoundHandler);
