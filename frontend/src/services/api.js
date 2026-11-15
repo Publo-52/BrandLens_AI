@@ -113,4 +113,99 @@ export const api = {
     if (!res.ok) throw new Error(data.error?.message || 'Failed to update member role');
     return data;
   },
+
+  // Guidelines
+  async getGuidelines(orgId, token, category) {
+    const url = new URL(`${API_BASE}/api/organisations/${orgId}/guidelines`);
+    if (category) url.searchParams.append('category', category);
+    const res = await fetch(url.toString(), { headers: getHeaders(token) });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error?.message || 'Failed to list guidelines');
+    return data;
+  },
+
+  async createGuideline(orgId, guidelineData, token) {
+    const res = await fetch(`${API_BASE}/api/organisations/${orgId}/guidelines`, {
+      method: 'POST',
+      headers: getHeaders(token),
+      body: JSON.stringify(guidelineData),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error?.message || 'Failed to create guideline');
+    return data;
+  },
+
+  // Approved Facts
+  async getFacts(orgId, token) {
+    const res = await fetch(`${API_BASE}/api/organisations/${orgId}/facts`, {
+      headers: getHeaders(token),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error?.message || 'Failed to list facts');
+    return data;
+  },
+
+  async createFact(orgId, factData, token) {
+    const res = await fetch(`${API_BASE}/api/organisations/${orgId}/facts`, {
+      method: 'POST',
+      headers: getHeaders(token),
+      body: JSON.stringify(factData),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error?.message || 'Failed to create fact');
+    return data;
+  },
+
+  // Terminology
+  async getTerminology(orgId, token) {
+    const res = await fetch(`${API_BASE}/api/organisations/${orgId}/terminology`, {
+      headers: getHeaders(token),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error?.message || 'Failed to list terminology');
+    return data;
+  },
+
+  async createTerminology(orgId, ruleData, token) {
+    const res = await fetch(`${API_BASE}/api/organisations/${orgId}/terminology`, {
+      method: 'POST',
+      headers: getHeaders(token),
+      body: JSON.stringify(ruleData),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error?.message || 'Failed to create terminology rule');
+    return data;
+  },
+
+  // Brand Assets
+  async getAssets(orgId, token) {
+    const res = await fetch(`${API_BASE}/api/organisations/${orgId}/assets`, {
+      headers: getHeaders(token),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error?.message || 'Failed to list assets');
+    return data;
+  },
+
+  async createAsset(orgId, assetData, token) {
+    const res = await fetch(`${API_BASE}/api/organisations/${orgId}/assets`, {
+      method: 'POST',
+      headers: getHeaders(token),
+      body: JSON.stringify(assetData),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error?.message || 'Failed to create asset');
+    return data;
+  },
+
+  // Demo Seeder
+  async seedDemoBrandPack(orgId, token) {
+    const res = await fetch(`${API_BASE}/api/organisations/${orgId}/knowledge/seed-demo`, {
+      method: 'POST',
+      headers: getHeaders(token),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error?.message || 'Failed to seed demo brand pack');
+    return data;
+  },
 };

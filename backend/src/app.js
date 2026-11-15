@@ -8,6 +8,11 @@ import { notFoundHandler, errorHandler } from './middleware/errorHandler.js';
 import authRoutes from './modules/auth/auth.routes.js';
 import organisationRoutes from './modules/organisations/organisation.routes.js';
 import membershipRoutes from './modules/members/membership.routes.js';
+import guidelineRoutes from './modules/guidelines/guideline.routes.js';
+import factRoutes from './modules/facts/fact.routes.js';
+import terminologyRoutes from './modules/terminology/terminology.routes.js';
+import assetRoutes from './modules/assets/asset.routes.js';
+import knowledgeRoutes from './modules/brand-knowledge/knowledge.routes.js';
 
 const app = express();
 
@@ -88,6 +93,13 @@ app.get('/api/health/ai', async (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/organisations/:organisationId/members', membershipRoutes);
 app.use('/api/organisations', organisationRoutes);
+
+// Milestone 3 Brand Knowledge Base Routes
+app.use('/api/organisations/:organisationId/guidelines', guidelineRoutes);
+app.use('/api/organisations/:organisationId/facts', factRoutes);
+app.use('/api/organisations/:organisationId/terminology', terminologyRoutes);
+app.use('/api/organisations/:organisationId/assets', assetRoutes);
+app.use('/api/organisations/:organisationId/knowledge', knowledgeRoutes);
 
 // 404 & Error Handlers
 app.use(notFoundHandler);

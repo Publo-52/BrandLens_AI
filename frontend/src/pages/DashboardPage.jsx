@@ -25,8 +25,8 @@ export function DashboardPage({ backendHealth, aiHealth, loading, onRefresh }) {
   const milestones = [
     { id: 1, title: 'Foundation', status: 'Completed', desc: 'Architecture, frontend shell, Express API, FastAPI service, DB config, and health monitoring.' },
     { id: 2, title: 'Authentication & Workspace Security', status: 'Completed', desc: 'Registration, login, JWT sessions, organisations, memberships, and server-side RBAC.' },
-    { id: 3, title: 'Brand Knowledge Base', status: 'Next', desc: 'Versioned guidelines, approved facts, deterministic terminology rules, and assets.' },
-    { id: 4, title: 'Content Intake & Parsing', status: 'Planned', desc: 'Multi-format intake for plain text, PDF, DOCX, and JPG/PNG documents.' },
+    { id: 3, title: 'Brand Knowledge Base', status: 'Completed', desc: 'Versioned guidelines, approved facts, deterministic terminology rules, and assets.' },
+    { id: 4, title: 'Content Intake & Parsing', status: 'Next', desc: 'Multi-format intake for plain text, PDF, DOCX, and JPG/PNG documents.' },
     { id: 5, title: 'Explainable Review Engine', status: 'Planned', desc: 'Terminology check, grounded fact retrieval, tone check, and validated findings.' },
     { id: 6, title: 'Suggestions & Human Workflow', status: 'Planned', desc: 'Accept/edit/reject, reviewer comments, overrides with reasons, and approval locking.' },
     { id: 7, title: 'Visual Checks & Governance Insights', status: 'Planned', desc: 'Palette/logo validation, WCAG contrast checks, and recurring error dashboards.' },
