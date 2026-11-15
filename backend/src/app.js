@@ -23,12 +23,7 @@ const app = express();
 // Security and middleware
 app.use(helmet());
 app.use(cors({
-  origin: (origin, callback) => {
-    if (!origin || config.frontendOrigin === '*' || origin.endsWith('.vercel.app') || [config.frontendOrigin, 'http://localhost:5173', 'http://127.0.0.1:5173', 'http://localhost:3000'].includes(origin)) {
-      return callback(null, true);
-    }
-    return callback(null, true);
-  },
+  origin: true,
   credentials: true,
 }));
 app.use(express.json({ limit: '10mb' }));

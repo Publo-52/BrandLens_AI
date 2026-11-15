@@ -7,8 +7,8 @@ async function startServer() {
   // Connect to database (graceful fallback if DB is not yet running)
   await connectDB();
 
-  const server = app.listen(config.port, () => {
-    logger.info(`BrandLens AI Backend running on port ${config.port} (${config.env})`);
+  const server = app.listen(config.port, '0.0.0.0', () => {
+    logger.info(`BrandLens AI Backend running on port ${config.port} on 0.0.0.0 (${config.env})`);
     logger.info(`Health check accessible at http://localhost:${config.port}/api/health`);
   });
 
