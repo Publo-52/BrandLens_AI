@@ -1,28 +1,388 @@
-import React from 'react';
-import { CheckSquare2 } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { 
+  CheckSquare2, 
+  Check, 
+  X, 
+  RotateCcw, 
+  AlertCircle, 
+  CheckCircle2, 
+  Lock, 
+  FileCheck2, 
+  User, 
+  Calendar, 
+  MessageSquare, 
+  RefreshCw, 
+  Send 
+} from 'lucide-react';
+import { useAuth } from '../features/auth/AuthContext';
+import { api } from '../services/api';
 
 export function ApprovalsPage() {
+  const { user, token, activeOrg, activeRole } = useAuth();
+  const [contents, setContents] = useState([]);
+  const [selectedId, setSelectedId] = useState(null);
+  const [selectedContent, setSelectedContent] = useState(null);
+  const [latestReview, setLatestReview] = useState(null);
+  const [comments, setComments] = useState([]);
+  const [commentInput, setCommentInput] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [successMsg, setSuccessMsg] = useState(null);
+
+  // Decision state
+  const [decisionReason, setDecisionReason] = useState('');
+  const [submittingDecision, setSubmittingDecision] = useState(false);
+
+  const canApprove = activeRole === 'ADMIN' || activeRole === 'MANAGER';
+
+  const loadData = useCallback(async () => {
+    if (!activeOrg?._id || !token) return;
+    setLoading(true);
+    try {
+      const data = await api.getContents(activeOrg._id, token);
+      const all = data.contents || [];
+      setContents(all);
+
+      const inReviewFirst = all.find((c) => c.status === 'IN_REVIEW') || all[0];
+      if (inReviewFirst && !selectedId) {
+        setSelectedId(inReviewFirst._id);
+      }
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [activeOrg, token, selectedId]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  const loadDetails = useCallback(async (cId) => {
+    if (!activeOrg?._id || !token || !cId) return;
+    try {
+      const [cData, cmData] = await Promise.all([
+        api.getContent(activeOrg._id, cId, token),
+        api.getComments(activeOrg._id, cId, token),
+      ]);
+      setSelectedContent(cData.content);
+      setLatestReview(cData.latestReview);
+      setComments(cmData.comments || []);
+    } catch (err) {
+      setError(err.message);
+    }
+  }, [activeOrg, token]);
+
+  useEffect(() => {
+    if (selectedId) {
+      loadDetails(selectedId);
+    }
+  }, [selectedId, loadDetails]);
+
+  const handleDecision = async (decision) => {
+    if (!selectedId) return;
+    setSubmittingDecision(true);
+    setError(null);
+    try {
+      await api.submitApprovalDecision(
+        activeOrg._id,
+        selectedId,
+        { decision, reason: decisionReason },
+        token
+      );
+      setSuccessMsg(`Content officially updated to ${decision}!`);
+      setDecisionReason('');
+      await loadDetails(selectedId);
+      await loadData();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSubmittingDecision(false);
+    }
+  };
+
+  const handleAddComment = async (e) => {
+    e.preventDefault();
+    if (!commentInput.trim() || !selectedId) return;
+    try {
+      await api.addComment(activeOrg._id, selectedId, { body: commentInput }, token);
+      setCommentInput('');
+      const cmData = await api.getComments(activeOrg._id, selectedId, token);
+      setComments(cmData.comments || []);
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const pendingQueue = contents.filter((c) => c.status === 'IN_REVIEW');
+  const otherItems = contents.filter((c) => c.status !== 'IN_REVIEW');
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between pb-4 border-b border-slate-200">
+      {/* Top Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200">
         <div>
-          <h2 className="text-xl font-bold text-slate-900">Approval Queue</h2>
-          <p className="text-sm text-slate-500">Human review, comments, change requests, justified overrides, and sign-off.</p>
+          <h2 className="text-xl font-bold text-slate-900">Formal Approval Queue</h2>
+          <p className="text-xs text-slate-500">
+            Authorized human sign-off, change requests, and tamper-evident publication locking.
+          </p>
         </div>
-        <span className="text-xs font-semibold px-2.5 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-full">
-          Scheduled for Milestone 6
-        </span>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={loadData}
+            title="Reload queue"
+            className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-brand-600' : ''}`} />
+          </button>
+          <span className="text-xs font-semibold px-2.5 py-1 bg-purple-50 text-purple-700 border border-purple-200 rounded-full">
+            {pendingQueue.length} Awaiting Sign-off
+          </span>
+        </div>
       </div>
 
-      <div className="bg-white rounded-xl border border-slate-200 p-8 text-center max-w-xl mx-auto my-12 space-y-4">
-        <div className="w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto">
-          <CheckSquare2 className="w-6 h-6" />
+      {error && (
+        <div className="p-3.5 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0 text-rose-500" />
+            <span>{error}</span>
+          </div>
+          <button onClick={() => setError(null)} className="text-rose-500 hover:text-rose-800 font-semibold text-xs">
+            Dismiss
+          </button>
         </div>
-        <h3 className="text-base font-semibold text-slate-800">Authorised Reviewer & Manager Workflow</h3>
-        <p className="text-xs text-slate-500 leading-relaxed">
-          Enforces human governance. Managers and reviewers inspect cited findings, add comments, 
-          record mandatory justification reasons when overriding AI flags, and lock approved versions for release.
-        </p>
+      )}
+
+      {successMsg && (
+        <div className="p-3.5 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl text-xs flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-500" />
+            <span>{successMsg}</span>
+          </div>
+          <button onClick={() => setSuccessMsg(null)} className="text-emerald-500 hover:text-emerald-800 font-semibold text-xs">
+            Dismiss
+          </button>
+        </div>
+      )}
+
+      {/* Main Approval Queue Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* Left: Queue Items List (4 cols) */}
+        <div className="lg:col-span-4 space-y-4">
+          <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm space-y-3">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">
+              Submissions in Review Queue
+            </h3>
+            <div className="space-y-2 max-h-[600px] overflow-y-auto">
+              {contents.map((item) => {
+                const isSelected = item._id === selectedId;
+                const isInReview = item.status === 'IN_REVIEW';
+                const isApproved = item.status === 'APPROVED';
+
+                return (
+                  <button
+                    key={item._id}
+                    onClick={() => setSelectedId(item._id)}
+                    className={`w-full text-left p-3 rounded-xl border transition-all ${
+                      isSelected
+                        ? 'border-brand-500 bg-brand-50/50 shadow-sm'
+                        : 'border-slate-200 hover:border-slate-300 bg-white'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-2 mb-1">
+                      <span className="font-semibold text-slate-900 text-xs truncate max-w-[170px]">
+                        {item.title}
+                      </span>
+                      <span className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded ${
+                        isApproved
+                          ? 'bg-emerald-100 text-emerald-800'
+                          : isInReview
+                          ? 'bg-purple-100 text-purple-800'
+                          : 'bg-amber-100 text-amber-800'
+                      }`}>
+                        {item.status}
+                      </span>
+                    </div>
+                    <div className="text-[11px] text-slate-500 flex justify-between">
+                      <span>{item.channel}</span>
+                      <span>v{item.currentVersionNumber || 1}</span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* Right: Inspection & Approval Sign-off Box (8 cols) */}
+        <div className="lg:col-span-8 space-y-5">
+          {selectedContent ? (
+            <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm space-y-6">
+              {/* Submission Details Header */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-bold text-slate-900 text-base">{selectedContent.title}</h3>
+                    <span className="text-[10px] font-mono bg-slate-100 text-slate-700 px-2 py-0.5 rounded">
+                      v{selectedContent.currentVersionNumber}
+                    </span>
+                  </div>
+                  <div className="text-xs text-slate-500 mt-1 flex items-center gap-3">
+                    <span>Submitted By: <strong>{selectedContent.createdBy?.name || 'Creator'}</strong></span>
+                    <span>Channel: <strong>{selectedContent.channel}</strong></span>
+                    <span>Audience: <strong>{selectedContent.audience}</strong></span>
+                  </div>
+                </div>
+
+                <div className={`px-3 py-1 rounded-full text-xs font-bold uppercase border ${
+                  selectedContent.status === 'APPROVED'
+                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                    : selectedContent.status === 'IN_REVIEW'
+                    ? 'bg-purple-50 text-purple-700 border-purple-200'
+                    : 'bg-amber-50 text-amber-700 border-amber-200'
+                }`}>
+                  {selectedContent.status}
+                </div>
+              </div>
+
+              {/* Reviewed Text Preview */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wider text-[10px]">
+                  Submitted Content Body (Version {selectedContent.currentVersionNumber})
+                </label>
+                <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-800 leading-relaxed font-sans">
+                  {selectedContent.currentVersionId?.text || 'No text content available'}
+                </div>
+              </div>
+
+              {/* Findings Summary for Reviewer */}
+              <div className="p-4 bg-slate-50/70 rounded-xl border border-slate-200 space-y-2">
+                <div className="flex items-center justify-between text-xs font-semibold text-slate-800">
+                  <span className="flex items-center gap-1.5">
+                    <FileCheck2 className="w-4 h-4 text-brand-600" />
+                    Review Findings Checklist ({latestReview?.findings?.length || 0})
+                  </span>
+                  <span className="text-[11px] text-slate-500 font-normal">
+                    Execution Time: {latestReview?.processingMetadata?.executionTimeMs || 0}ms
+                  </span>
+                </div>
+                <div className="space-y-1.5 text-xs text-slate-600">
+                  {latestReview?.findings?.map((f) => (
+                    <div key={f._id} className="flex items-start justify-between gap-2 p-2 bg-white rounded border border-slate-100">
+                      <div>
+                        <span className="font-semibold text-slate-800">[{f.type}]</span> {f.explanation}
+                        {f.reviewStatus === 'OVERRIDDEN' && (
+                          <span className="ml-2 text-[10px] text-amber-700 font-bold bg-amber-50 px-1.5 py-0.2 rounded border border-amber-200">
+                            Overridden: "{f.overrideReason}"
+                          </span>
+                        )}
+                      </div>
+                      <span className={`text-[10px] font-bold uppercase px-1.5 py-0.2 rounded ${
+                        f.reviewStatus === 'ACCEPTED' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'
+                      }`}>
+                        {f.reviewStatus}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Manager Approval Controls */}
+              {canApprove && selectedContent.status !== 'APPROVED' ? (
+                <div className="p-5 bg-gradient-to-r from-slate-900 to-brand-950 text-white rounded-xl space-y-4">
+                  <div className="flex items-center gap-2">
+                    <CheckSquare2 className="w-5 h-5 text-brand-400" />
+                    <h4 className="font-bold text-sm">Manager Sign-off & Release Decision</h4>
+                  </div>
+                  <div>
+                    <input
+                      type="text"
+                      placeholder="Decision notes (e.g. Verified claims against published SLA whitepaper)..."
+                      value={decisionReason}
+                      onChange={(e) => setDecisionReason(e.target.value)}
+                      className="w-full px-3 py-2 text-xs bg-slate-800 border border-slate-700 text-white rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none placeholder-slate-400"
+                    />
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      disabled={submittingDecision}
+                      onClick={() => handleDecision('APPROVED')}
+                      className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white rounded-lg text-xs font-semibold shadow-sm transition-colors flex items-center justify-center gap-1.5"
+                    >
+                      <Check className="w-4 h-4" />
+                      <span>Approve Publication (Lock Version)</span>
+                    </button>
+                    <button
+                      type="button"
+                      disabled={submittingDecision}
+                      onClick={() => handleDecision('CHANGES_REQUESTED')}
+                      className="py-2.5 px-4 bg-amber-600 hover:bg-amber-700 disabled:opacity-60 text-white rounded-lg text-xs font-semibold shadow-sm transition-colors flex items-center gap-1.5"
+                    >
+                      <RotateCcw className="w-4 h-4" />
+                      <span>Request Changes</span>
+                    </button>
+                    <button
+                      type="button"
+                      disabled={submittingDecision}
+                      onClick={() => handleDecision('REJECTED')}
+                      className="py-2.5 px-4 bg-rose-600 hover:bg-rose-700 disabled:opacity-60 text-white rounded-lg text-xs font-semibold shadow-sm transition-colors flex items-center gap-1.5"
+                    >
+                      <X className="w-4 h-4" />
+                      <span>Reject</span>
+                    </button>
+                  </div>
+                </div>
+              ) : selectedContent.status === 'APPROVED' ? (
+                <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-900 flex items-center gap-3">
+                  <Lock className="w-5 h-5 text-emerald-600 shrink-0" />
+                  <div>
+                    <strong>Official Pre-Publication Sign-off Granted:</strong> This content is officially approved and locked. No further modifications can be made to this version.
+                  </div>
+                </div>
+              ) : (
+                <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-500">
+                  Only authorized Managers and Admins can formally approve or reject publication requests.
+                </div>
+              )}
+
+              {/* Collaboration Comments */}
+              <div className="pt-4 border-t border-slate-100 space-y-3">
+                <h4 className="text-xs font-semibold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                  <MessageSquare className="w-3.5 h-3.5 text-slate-400" />
+                  Review Discussion Thread ({comments.length})
+                </h4>
+                <div className="space-y-2 max-h-40 overflow-y-auto">
+                  {comments.map((cm) => (
+                    <div key={cm._id} className="p-2.5 bg-slate-50 rounded-lg text-xs border border-slate-100 space-y-1">
+                      <div className="flex justify-between text-[10px] text-slate-400">
+                        <strong>{cm.authorId?.name || 'Reviewer'}</strong>
+                        <span>{new Date(cm.createdAt).toLocaleTimeString()}</span>
+                      </div>
+                      <p className="text-slate-800">{cm.body}</p>
+                    </div>
+                  ))}
+                </div>
+                <form onSubmit={handleAddComment} className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="Add comment for creator or reviewer..."
+                    value={commentInput}
+                    onChange={(e) => setCommentInput(e.target.value)}
+                    className="flex-1 px-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none"
+                  />
+                  <button type="submit" className="px-3.5 py-1.5 bg-brand-600 text-white rounded-lg text-xs font-semibold">
+                    Post
+                  </button>
+                </form>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-white rounded-xl border border-slate-200 p-12 text-center text-slate-400 text-xs">
+              Select a submission from the queue to inspect.
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

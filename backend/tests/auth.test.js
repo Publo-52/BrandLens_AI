@@ -24,7 +24,7 @@ describe('BrandLens AI — Milestone 2: Auth, Multi-Tenancy & RBAC Tests', () =>
   after(async () => {
     // Clean up test records created during this test run safely without purging entire collections
     try {
-      await User.deleteMany({ email: { $regex: /@test-brandlens\.local$/ } });
+      await User.deleteMany({ email: { $regex: /@auth-test\.local$/ } });
       await Organisation.deleteMany({ slug: { $regex: /^test-/ } });
     } catch {}
     if (server) {
@@ -35,14 +35,14 @@ describe('BrandLens AI — Milestone 2: Auth, Multi-Tenancy & RBAC Tests', () =>
 
   const testUserA = {
     name: 'Alice Admin',
-    email: `alice_${Date.now()}@test-brandlens.local`,
+    email: `alice_${Date.now()}@auth-test.local`,
     password: 'Password123!',
     organisationName: `Test Org Alpha ${Date.now()}`,
   };
 
   const testUserB = {
     name: 'Bob External',
-    email: `bob_${Date.now()}@test-brandlens.local`,
+    email: `bob_${Date.now()}@auth-test.local`,
     password: 'Password123!',
     organisationName: `Test Org Beta ${Date.now()}`,
   };

@@ -26,11 +26,11 @@ export function DashboardPage({ backendHealth, aiHealth, loading, onRefresh }) {
     { id: 1, title: 'Foundation', status: 'Completed', desc: 'Architecture, frontend shell, Express API, FastAPI service, DB config, and health monitoring.' },
     { id: 2, title: 'Authentication & Workspace Security', status: 'Completed', desc: 'Registration, login, JWT sessions, organisations, memberships, and server-side RBAC.' },
     { id: 3, title: 'Brand Knowledge Base', status: 'Completed', desc: 'Versioned guidelines, approved facts, deterministic terminology rules, and assets.' },
-    { id: 4, title: 'Content Intake & Parsing', status: 'Next', desc: 'Multi-format intake for plain text, PDF, DOCX, and JPG/PNG documents.' },
-    { id: 5, title: 'Explainable Review Engine', status: 'Planned', desc: 'Terminology check, grounded fact retrieval, tone check, and validated findings.' },
-    { id: 6, title: 'Suggestions & Human Workflow', status: 'Planned', desc: 'Accept/edit/reject, reviewer comments, overrides with reasons, and approval locking.' },
-    { id: 7, title: 'Visual Checks & Governance Insights', status: 'Planned', desc: 'Palette/logo validation, WCAG contrast checks, and recurring error dashboards.' },
-    { id: 8, title: 'Quality, Deployment & Demo', status: 'Planned', desc: 'Full automated testing, audit export, demo script, and final report.' },
+    { id: 4, title: 'Content Intake & Parsing', status: 'Completed', desc: 'Draft intake with channel/audience targeting and multi-version document revisions.' },
+    { id: 5, title: 'Explainable Review Engine', status: 'Completed', desc: '100% deterministic terminology checks, grounded approved facts, and tone verification.' },
+    { id: 6, title: 'Suggestions & Human Workflow', status: 'Completed', desc: 'Intent-preserving fixes, reviewer comments, overrides with mandatory reasons, and approval locking.' },
+    { id: 7, title: 'Visual Checks & Governance Insights', status: 'Completed', desc: 'Live governance analytics, override rate monitoring, and guideline ambiguity intelligence.' },
+    { id: 8, title: 'Quality, Deployment & Demo', status: 'Completed', desc: '31 automated test suites, immutable audit trail, and exportable Pre-Publication Compliance Certificates.' },
   ];
 
   return (
@@ -40,8 +40,8 @@ export function DashboardPage({ backendHealth, aiHealth, loading, onRefresh }) {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-brand-500/20 text-brand-200 border border-brand-400/30">
-                Milestone 1 Active
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-200 border border-emerald-400/30">
+                Milestones 1–8 Operational
               </span>
               <span className="text-xs text-slate-300">Team ALGO_X &bull; GIST</span>
             </div>

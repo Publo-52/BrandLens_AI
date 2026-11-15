@@ -208,4 +208,118 @@ export const api = {
     if (!res.ok) throw new Error(data.error?.message || 'Failed to seed demo brand pack');
     return data;
   },
+
+  // Content Submissions & Reviews
+  async getContents(orgId, token, params = {}) {
+    const url = new URL(`${API_BASE}/api/organisations/${orgId}/contents`);
+    if (params.status) url.searchParams.append('status', params.status);
+    const res = await fetch(url.toString(), { headers: getHeaders(token) });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error?.message || 'Failed to list contents');
+    return data;
+  },
+
+  async getContent(orgId, contentId, token) {
+    const res = await fetch(`${API_BASE}/api/organisations/${orgId}/contents/${contentId}`, {
+      headers: getHeaders(token),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error?.message || 'Failed to get content details');
+    return data;
+  },
+
+  async createContent(orgId, { title, channel, audience, text }, token) {
+    const res = await fetch(`${API_BASE}/api/organisations/${orgId}/contents`, {
+      method: 'POST',
+      headers: getHeaders(token),
+      body: JSON.stringify({ title, channel, audience, text }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error?.message || 'Failed to submit content');
+    return data;
+  },
+
+  async submitNewVersion(orgId, contentId, { text, changeSummary }, token) {
+    const res = await fetch(`${API_BASE}/api/organisations/${orgId}/contents/${contentId}/versions`, {
+      method: 'POST',
+      headers: getHeaders(token),
+      body: JSON.stringify({ text, changeSummary }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error?.message || 'Failed to submit revised version');
+    return data;
+  },
+
+  async updateFindingDecision(orgId, contentId, findingId, decisionData, token) {
+    const res = await fetch(`${API_BASE}/api/organisations/${orgId}/contents/${contentId}/findings/${findingId}`, {
+      method: 'PATCH',
+      headers: getHeaders(token),
+      body: JSON.stringify(decisionData),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error?.message || 'Failed to update finding decision');
+    return data;
+  },
+
+  // Approvals & Workflow
+  async requestApproval(orgId, contentId, token) {
+    const res = await fetch(`${API_BASE}/api/organisations/${orgId}/contents/${contentId}/approval-request`, {
+      method: 'POST',
+      headers: getHeaders(token),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error?.message || 'Failed to request approval');
+    return data;
+  },
+
+  async submitApprovalDecision(orgId, contentId, { decision, reason }, token) {
+    const res = await fetch(`${API_BASE}/api/organisations/${orgId}/contents/${contentId}/decision`, {
+      method: 'POST',
+      headers: getHeaders(token),
+      body: JSON.stringify({ decision, reason }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error?.message || 'Failed to submit decision');
+    return data;
+  },
+
+  // Comments
+  async getComments(orgId, contentId, token) {
+    const res = await fetch(`${API_BASE}/api/organisations/${orgId}/contents/${contentId}/comments`, {
+      headers: getHeaders(token),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error?.message || 'Failed to get comments');
+    return data;
+  },
+
+  async addComment(orgId, contentId, { body, findingId }, token) {
+    const res = await fetch(`${API_BASE}/api/organisations/${orgId}/contents/${contentId}/comments`, {
+      method: 'POST',
+      headers: getHeaders(token),
+      body: JSON.stringify({ body, findingId }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error?.message || 'Failed to add comment');
+    return data;
+  },
+
+  // Governance Insights & Audit Logs
+  async getInsights(orgId, token) {
+    const res = await fetch(`${API_BASE}/api/organisations/${orgId}/insights`, {
+      headers: getHeaders(token),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error?.message || 'Failed to get insights');
+    return data;
+  },
+
+  async getAuditLogs(orgId, token) {
+    const res = await fetch(`${API_BASE}/api/organisations/${orgId}/audit-logs`, {
+      headers: getHeaders(token),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error?.message || 'Failed to get audit logs');
+    return data;
+  },
 };

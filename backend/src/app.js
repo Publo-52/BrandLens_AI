@@ -13,6 +13,9 @@ import factRoutes from './modules/facts/fact.routes.js';
 import terminologyRoutes from './modules/terminology/terminology.routes.js';
 import assetRoutes from './modules/assets/asset.routes.js';
 import knowledgeRoutes from './modules/brand-knowledge/knowledge.routes.js';
+import contentRoutes from './modules/contents/content.routes.js';
+import approvalRoutes from './modules/approvals/approval.routes.js';
+import auditRoutes from './modules/audit/audit.routes.js';
 
 const app = express();
 
@@ -100,6 +103,11 @@ app.use('/api/organisations/:organisationId/facts', factRoutes);
 app.use('/api/organisations/:organisationId/terminology', terminologyRoutes);
 app.use('/api/organisations/:organisationId/assets', assetRoutes);
 app.use('/api/organisations/:organisationId/knowledge', knowledgeRoutes);
+
+// Milestones 4, 5 & 6 Content Intake, Explainable Review & Workflow Routes
+app.use('/api/organisations/:organisationId/contents/:contentId', approvalRoutes);
+app.use('/api/organisations/:organisationId/contents', contentRoutes);
+app.use('/api/organisations/:organisationId', auditRoutes);
 
 // 404 & Error Handlers
 app.use(notFoundHandler);

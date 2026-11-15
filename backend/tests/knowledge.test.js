@@ -31,7 +31,7 @@ describe('BrandLens AI — Milestone 3: Brand Knowledge Base Tests', () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         name: 'KB Test Admin',
-        email: `kb_admin_${Date.now()}@test-brandlens.local`,
+        email: `kb_admin_${Date.now()}@kb-test.local`,
         password: 'Password123!',
         organisationName: `KB Workspace ${Date.now()}`,
       }),
@@ -43,7 +43,7 @@ describe('BrandLens AI — Milestone 3: Brand Knowledge Base Tests', () => {
 
   after(async () => {
     try {
-      await User.deleteMany({ email: { $regex: /@test-brandlens\.local$/ } });
+      await User.deleteMany({ email: { $regex: /@kb-test\.local$/ } });
       await Organisation.deleteMany({ slug: { $regex: /^kb-workspace-/ } });
       await Guideline.deleteMany({ organisationId: orgId });
       await ApprovedFact.deleteMany({ organisationId: orgId });
