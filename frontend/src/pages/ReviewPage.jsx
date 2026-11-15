@@ -15,10 +15,12 @@ import {
   Lock, 
   ArrowRight, 
   RefreshCw, 
-  Share2 
+  Share2,
+  GitCompare 
 } from 'lucide-react';
 import { useAuth } from '../features/auth/AuthContext';
 import { api } from '../services/api';
+import { DiffViewer } from '../components/common/DiffViewer';
 
 const SAMPLE_DEMO_DRAFT = `Experience Nova Cloud today! We guarantee a 100% risk-free platform with automated scheduled backups across regions.`;
 
@@ -46,6 +48,7 @@ export function ReviewPage() {
   const [workingText, setWorkingText] = useState('');
   const [revisionSummary, setRevisionSummary] = useState('');
   const [submittingRevision, setSubmittingRevision] = useState(false);
+  const [showDiff, setShowDiff] = useState(false);
 
   // Overrides / Comments
   const [commentInput, setCommentInput] = useState('');
@@ -347,21 +350,50 @@ export function ReviewPage() {
                 )}
               </div>
 
-              {/* Version History Tabs */}
-              <div className="flex items-center gap-2 border-b border-slate-100 pb-2 text-xs">
-                <span className="text-slate-400 font-medium flex items-center gap-1">
-                  <History className="w-3.5 h-3.5" /> Versions:
-                </span>
-                {versions.map((v) => (
+              {/* Version History Tabs & Visual Diff Toggle */}
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2 text-xs">
+                <div className="flex items-center gap-1.5 overflow-x-auto">
+                  <span className="text-slate-400 font-medium flex items-center gap-1">
+                    <History className="w-3.5 h-3.5" /> Versions:
+                  </span>
+                  {versions.map((v) => (
+                    <button
+                      key={v._id}
+                      onClick={() => setWorkingText(v.text)}
+                      className="px-2.5 py-1 bg-slate-50 hover:bg-brand-50 border border-slate-200 rounded text-slate-700 hover:text-brand-700 font-mono transition-colors"
+                    >
+                      v{v.versionNumber} ({v.changeSummary})
+                    </button>
+                  ))}
+                </div>
+
+                {versions.length > 0 && (
                   <button
-                    key={v._id}
-                    onClick={() => setWorkingText(v.text)}
-                    className="px-2.5 py-1 bg-slate-50 hover:bg-brand-50 border border-slate-200 rounded text-slate-700 hover:text-brand-700 font-mono transition-colors"
+                    type="button"
+                    onClick={() => setShowDiff((prev) => !prev)}
+                    className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold border transition-all ${
+                      showDiff 
+                        ? 'bg-brand-600 text-white border-brand-700 shadow-sm' 
+                        : 'bg-white hover:bg-brand-50 text-slate-700 hover:text-brand-700 border-slate-300'
+                    }`}
                   >
-                    v{v.versionNumber} ({v.changeSummary})
+                    <GitCompare className="w-3.5 h-3.5" />
+                    <span>{showDiff ? 'Hide Visual Diff' : 'Compare Visual Diff'}</span>
                   </button>
-                ))}
+                )}
               </div>
+
+              {/* Visual Diff Viewer */}
+              {showDiff && (
+                <div className="my-2 animate-in fade-in duration-200">
+                  <DiffViewer
+                    oldText={versions[0]?.text || ''}
+                    newText={workingText}
+                    oldLabel="Base Version (v1)"
+                    newLabel={`Active Editor (v${selectedContent?.currentVersionNumber || versions.length})`}
+                  />
+                </div>
+              )}
 
               {/* Content Editor / Draft Box */}
               <form onSubmit={handleSubmitRevision} className="space-y-4">

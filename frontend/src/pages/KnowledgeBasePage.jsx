@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../features/auth/AuthContext';
 import { api } from '../services/api';
+import { ContrastChecker } from '../components/common/ContrastChecker';
 
 const CATEGORIES = ['ALL', 'TONE', 'MESSAGING', 'VISUAL', 'ACCESSIBILITY', 'LEGAL', 'OTHER'];
 const SEVERITIES = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
@@ -517,7 +518,8 @@ export function KnowledgeBasePage() {
 
       {/* Tab 4: Assets & Palettes */}
       {activeTab === 'assets' && (
-        <div className="space-y-4">
+        <div className="space-y-6">
+          <ContrastChecker />
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {assets.length > 0 ? (
               assets.map((a) => (

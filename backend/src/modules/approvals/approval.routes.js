@@ -149,4 +149,59 @@ router.post('/comments', authenticate, requireOrgAccess(), async (req, res, next
   }
 });
 
+// POST /api/organisations/:organisationId/contents/:contentId/publish - Safe publishing (Requires APPROVED status)
+router.post('/publish', authenticate, requireOrgAccess([ROLES.ADMIN, ROLES.MANAGER]), async (req, res, next) => {
+  try {
+    const { destination, liveUrl } = req.body;
+    const { contentId, organisationId } = req.params;
+
+    const content = await Content.findOne({ _id: contentId, organisationId });
+    if (!content) {
+      return res.status(404).json({
+        success: false,
+        error: { message: 'Content not found.', statusCode: 404 },
+      });
+    }
+
+    if (content.status !== CONTENT_STATUS.APPROVED) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          message: `Safe Publishing Blocked: Content must have APPROVED status before publishing. Current status: ${content.status}`,
+          statusCode: 400,
+        },
+      });
+    }
+
+    content.status = CONTENT_STATUS.PUBLISHED;
+    await content.save();
+
+    const certId = `BL-CERT-${contentId.slice(-6).toUpperCase()}-${Date.now().toString(36).toUpperCase()}`;
+
+    await AuditLog.create({
+      organisationId,
+      actorId: req.user._id,
+      action: 'CONTENT_PUBLISHED',
+      entityType: 'CONTENT',
+      entityId: String(contentId),
+      details: {
+        destination: destination || 'Live Production Hub',
+        liveUrl: liveUrl || `https://publish.brandlens.ai/p/${contentId}`,
+        certificateId: certId,
+        versionNumber: content.currentVersionNumber,
+        publishedBy: req.user.name,
+      },
+    });
+
+    res.json({
+      success: true,
+      content,
+      certificateId: certId,
+      message: `Content successfully published to ${destination || 'live channel'}!`,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 export default router;

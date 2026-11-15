@@ -263,6 +263,14 @@ export const api = {
     });
   },
 
+  async publishContent(orgId, contentId, { destination, liveUrl }, token) {
+    return await request(`${API_BASE}/api/organisations/${orgId}/contents/${contentId}/publish`, {
+      method: 'POST',
+      headers: getHeaders(token),
+      body: JSON.stringify({ destination, liveUrl }),
+    });
+  },
+
   // Comments
   async getComments(orgId, contentId, token) {
     return await request(`${API_BASE}/api/organisations/${orgId}/contents/${contentId}/comments`, {
