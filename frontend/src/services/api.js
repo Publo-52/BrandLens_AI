@@ -1,8 +1,8 @@
 // Dynamically resolve API base URL:
-// 1. If VITE_API_BASE_URL is specified, use it.
+// 1. If VITE_API_BASE_URL is specified, use it (e.g. from .env or .env.production).
 // 2. In local dev, dynamically connect to the current host's IP/domain on port 5000.
 //    (Enables seamless sign-in and testing from other devices on the LAN, e.g. mobile or tablet).
-// 3. In production (e.g. Vercel deployment), use '' (relative /api path) for Vercel multi-service rewrites.
+// 3. In production, default to the live Render backend: https://brandlens-backend-ghtd.onrender.com.
 const getDevApiBase = () => {
   if (typeof window !== 'undefined' && window.location?.hostname) {
     return `${window.location.protocol}//${window.location.hostname}:5000`;
@@ -10,9 +10,10 @@ const getDevApiBase = () => {
   return 'http://localhost:5000';
 };
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL !== undefined
-  ? import.meta.env.VITE_API_BASE_URL
-  : (import.meta.env.DEV ? getDevApiBase() : '');
+const API_BASE = (
+  import.meta.env.VITE_API_BASE_URL ||
+  (import.meta.env.DEV ? getDevApiBase() : 'https://brandlens-backend-ghtd.onrender.com')
+).replace(/\/+$/, '');
 
 function getHeaders(token) {
   const headers = { 'Content-Type': 'application/json' };
