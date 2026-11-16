@@ -185,9 +185,13 @@ export function ApprovalsPage() {
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-brand-600' : ''}`} />
           </button>
-          <span className="text-xs font-bold px-3 py-1 bg-gradient-to-r from-amber-50 to-amber-100/70 text-amber-800 border border-amber-200 rounded-full shadow-xs flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-            <span>{pendingQueue.length} Awaiting Sign-off</span>
+          <span className={`text-xs font-bold px-3 py-1 rounded-full shadow-xs flex items-center gap-1.5 border ${
+            pendingQueue.length > 0 
+              ? 'bg-gradient-to-r from-amber-50 to-amber-100/70 text-amber-800 border-amber-200' 
+              : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+          }`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${pendingQueue.length > 0 ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500'}`} />
+            <span>{pendingQueue.length > 0 ? `${pendingQueue.length} Awaiting Sign-off` : 'All Caught Up'}</span>
           </span>
         </div>
       </div>
@@ -220,51 +224,74 @@ export function ApprovalsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Left: Queue Items List (4 cols) */}
         <div className="lg:col-span-4 space-y-4">
-          <div className="bg-white rounded-2xl border border-slate-200/90 p-4.5 shadow-xs space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                Review Queue
-              </h3>
-              <span className="text-[11px] text-slate-400 font-mono">{contents.length} items</span>
+          <div className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-sm space-y-4 overflow-hidden">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 gap-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 whitespace-nowrap">
+                  Review Queue
+                </h3>
+                <span className="text-[11px] font-mono font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200/80 shrink-0">
+                  {contents.length} {contents.length === 1 ? 'item' : 'items'}
+                </span>
+              </div>
+              {pendingQueue.length > 0 && (
+                <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200/80 shrink-0">
+                  {pendingQueue.length} pending
+                </span>
+              )}
             </div>
 
             <div className="space-y-2 max-h-[280px] lg:max-h-[600px] overflow-y-auto touch-scroll pr-0.5">
-              {contents.map((item) => {
-                const isSelected = item._id === selectedId;
-                const isInReview = item.status === 'IN_REVIEW';
-                const isApproved = item.status === 'APPROVED';
+              {contents.length === 0 ? (
+                <div className="py-12 px-4 text-center space-y-3">
+                  <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-center text-slate-400 mx-auto">
+                    <CheckSquare2 className="w-5 h-5 text-slate-300 stroke-[1.8]" />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-xs font-bold text-slate-700">Review Queue is Empty</p>
+                    <p className="text-[11px] text-slate-400 max-w-[210px] mx-auto leading-relaxed">
+                      No submissions currently awaiting review sign-off.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                contents.map((item) => {
+                  const isSelected = item._id === selectedId;
+                  const isInReview = item.status === 'IN_REVIEW';
+                  const isApproved = item.status === 'APPROVED';
 
-                return (
-                  <button
-                    key={item._id}
-                    onClick={() => setSelectedId(item._id)}
-                    className={`w-full text-left p-3.5 rounded-xl border transition-all duration-150 relative ${
-                      isSelected
-                        ? 'border-brand-500 bg-gradient-to-r from-brand-50/80 to-indigo-50/30 shadow-xs ring-1 ring-brand-500/20'
-                        : 'border-slate-200/80 hover:border-slate-300 bg-white hover:bg-slate-50/60'
-                    }`}
-                  >
-                    <div className="flex items-start justify-between gap-2 mb-1.5">
-                      <span className="font-bold text-slate-900 text-xs truncate max-w-[170px]">
-                        {item.title}
-                      </span>
-                      <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full border ${
-                        isApproved
-                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                          : isInReview
-                          ? 'bg-purple-50 text-purple-700 border-purple-200'
-                          : 'bg-amber-50 text-amber-700 border-amber-200'
-                      }`}>
-                        {item.status}
-                      </span>
-                    </div>
-                    <div className="text-[11px] text-slate-500 flex justify-between font-medium">
-                      <span>{item.channel}</span>
-                      <span className="font-mono text-slate-400">v{item.currentVersionNumber || 1}</span>
-                    </div>
-                  </button>
-                );
-              })}
+                  return (
+                    <button
+                      key={item._id}
+                      onClick={() => setSelectedId(item._id)}
+                      className={`w-full text-left p-3.5 rounded-xl border transition-all duration-150 relative ${
+                        isSelected
+                          ? 'border-brand-500 bg-gradient-to-r from-brand-50/80 to-indigo-50/30 shadow-xs ring-1 ring-brand-500/20'
+                          : 'border-slate-200/80 hover:border-slate-300 bg-white hover:bg-slate-50/60'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-2 mb-1.5">
+                        <span className="font-bold text-slate-900 text-xs truncate max-w-[170px]">
+                          {item.title}
+                        </span>
+                        <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full border ${
+                          isApproved
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            : isInReview
+                            ? 'bg-purple-50 text-purple-700 border-purple-200'
+                            : 'bg-amber-50 text-amber-700 border-amber-200'
+                        }`}>
+                          {item.status}
+                        </span>
+                      </div>
+                      <div className="text-[11px] text-slate-500 flex justify-between font-medium">
+                        <span>{item.channel}</span>
+                        <span className="font-mono text-slate-400">v{item.currentVersionNumber || 1}</span>
+                      </div>
+                    </button>
+                  );
+                })
+              )}
             </div>
           </div>
         </div>
@@ -503,9 +530,20 @@ export function ApprovalsPage() {
                 </form>
               </div>
             </div>
+          ) : contents.length === 0 ? (
+            <div className="bg-white rounded-2xl border border-slate-200/90 p-12 text-center space-y-3 shadow-xs">
+              <div className="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-200/60 flex items-center justify-center text-amber-600 mx-auto">
+                <CheckSquare2 className="w-6 h-6 stroke-[2]" />
+              </div>
+              <h3 className="text-base font-bold text-slate-800">No Submissions in Approval Queue</h3>
+              <p className="text-xs text-slate-400 max-w-md mx-auto leading-relaxed">
+                All submitted brand drafts have been reviewed and approved, or no content has been submitted for sign-off yet. Create or evaluate drafts in the <strong className="text-slate-600">Compliance Review</strong> studio to populate this queue.
+              </p>
+            </div>
           ) : (
-            <div className="bg-white rounded-xl border border-slate-200 p-12 text-center text-slate-400 text-xs">
-              Select a submission from the queue to inspect.
+            <div className="bg-white rounded-2xl border border-slate-200/90 p-12 text-center space-y-2 shadow-xs text-slate-400 text-xs">
+              <p className="font-semibold text-slate-600">Select a submission from the queue</p>
+              <p className="text-[11px]">Click any item on the left to inspect rule findings and issue manager sign-off.</p>
             </div>
           )}
         </div>
