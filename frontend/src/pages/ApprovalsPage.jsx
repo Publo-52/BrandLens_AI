@@ -220,11 +220,15 @@ export function ApprovalsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Left: Queue Items List (4 cols) */}
         <div className="lg:col-span-4 space-y-4">
-          <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm space-y-3">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">
-              Submissions in Review Queue
-            </h3>
-            <div className="space-y-2 max-h-[280px] lg:max-h-[600px] overflow-y-auto touch-scroll">
+          <div className="bg-white rounded-2xl border border-slate-200/90 p-4.5 shadow-xs space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                Review Queue
+              </h3>
+              <span className="text-[11px] text-slate-400 font-mono">{contents.length} items</span>
+            </div>
+
+            <div className="space-y-2 max-h-[280px] lg:max-h-[600px] overflow-y-auto touch-scroll pr-0.5">
               {contents.map((item) => {
                 const isSelected = item._id === selectedId;
                 const isInReview = item.status === 'IN_REVIEW';
@@ -234,29 +238,29 @@ export function ApprovalsPage() {
                   <button
                     key={item._id}
                     onClick={() => setSelectedId(item._id)}
-                    className={`w-full text-left p-3 rounded-xl border transition-all ${
+                    className={`w-full text-left p-3.5 rounded-xl border transition-all duration-150 relative ${
                       isSelected
-                        ? 'border-brand-500 bg-brand-50/50 shadow-sm'
-                        : 'border-slate-200 hover:border-slate-300 bg-white'
+                        ? 'border-brand-500 bg-gradient-to-r from-brand-50/80 to-indigo-50/30 shadow-xs ring-1 ring-brand-500/20'
+                        : 'border-slate-200/80 hover:border-slate-300 bg-white hover:bg-slate-50/60'
                     }`}
                   >
-                    <div className="flex items-start justify-between gap-2 mb-1">
-                      <span className="font-semibold text-slate-900 text-xs truncate max-w-[170px]">
+                    <div className="flex items-start justify-between gap-2 mb-1.5">
+                      <span className="font-bold text-slate-900 text-xs truncate max-w-[170px]">
                         {item.title}
                       </span>
-                      <span className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded ${
+                      <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full border ${
                         isApproved
-                          ? 'bg-emerald-100 text-emerald-800'
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                           : isInReview
-                          ? 'bg-purple-100 text-purple-800'
-                          : 'bg-amber-100 text-amber-800'
+                          ? 'bg-purple-50 text-purple-700 border-purple-200'
+                          : 'bg-amber-50 text-amber-700 border-amber-200'
                       }`}>
                         {item.status}
                       </span>
                     </div>
-                    <div className="text-[11px] text-slate-500 flex justify-between">
+                    <div className="text-[11px] text-slate-500 flex justify-between font-medium">
                       <span>{item.channel}</span>
-                      <span>v{item.currentVersionNumber || 1}</span>
+                      <span className="font-mono text-slate-400">v{item.currentVersionNumber || 1}</span>
                     </div>
                   </button>
                 );
@@ -268,24 +272,26 @@ export function ApprovalsPage() {
         {/* Right: Inspection & Approval Sign-off Box (8 cols) */}
         <div className="lg:col-span-8 space-y-5">
           {selectedContent ? (
-            <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm space-y-6">
+            <div className="bg-white rounded-2xl border border-slate-200/90 p-6 shadow-xs space-y-6">
               {/* Submission Details Header */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
                 <div>
                   <div className="flex items-center gap-2">
-                    <h3 className="font-bold text-slate-900 text-base">{selectedContent.title}</h3>
-                    <span className="text-[10px] font-mono bg-slate-100 text-slate-700 px-2 py-0.5 rounded">
+                    <h3 className="font-extrabold text-slate-900 text-base">{selectedContent.title}</h3>
+                    <span className="text-[10px] font-mono bg-slate-100 text-slate-700 px-2 py-0.5 rounded-md font-bold">
                       v{selectedContent.currentVersionNumber}
                     </span>
                   </div>
-                  <div className="text-xs text-slate-500 mt-1 flex items-center gap-3">
-                    <span>Submitted By: <strong>{selectedContent.createdBy?.name || 'Creator'}</strong></span>
-                    <span>Channel: <strong>{selectedContent.channel}</strong></span>
-                    <span>Audience: <strong>{selectedContent.audience}</strong></span>
+                  <div className="text-xs text-slate-500 mt-1 flex flex-wrap items-center gap-2.5">
+                    <span>Submitted By: <strong className="text-slate-700">{selectedContent.createdBy?.name || 'Creator'}</strong></span>
+                    <span>&bull;</span>
+                    <span>Channel: <strong className="text-slate-700">{selectedContent.channel}</strong></span>
+                    <span>&bull;</span>
+                    <span>Audience: <strong className="text-slate-700">{selectedContent.audience}</strong></span>
                   </div>
                 </div>
 
-                <div className={`px-3 py-1 rounded-full text-xs font-bold uppercase border ${
+                <div className={`px-3 py-1 rounded-full text-xs font-bold uppercase border self-start sm:self-auto ${
                   selectedContent.status === 'APPROVED'
                     ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                     : selectedContent.status === 'IN_REVIEW'
@@ -298,15 +304,15 @@ export function ApprovalsPage() {
 
               {/* Reviewed Text Preview & Visual Diff */}
               <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider text-[10px]">
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider text-[10px]">
                     Submitted Content Body (Version {selectedContent.currentVersionNumber})
                   </label>
                   {versions.length > 1 && (
                     <button
                       type="button"
                       onClick={() => setShowDiff((prev) => !prev)}
-                      className="text-xs font-semibold text-brand-600 hover:text-brand-700 flex items-center gap-1 transition-colors"
+                      className="text-xs font-bold text-brand-600 hover:text-brand-700 flex items-center gap-1.5 transition-colors px-2.5 py-1 rounded-lg hover:bg-brand-50"
                     >
                       <GitCompare className="w-3.5 h-3.5" />
                       <span>{showDiff ? 'Hide Version Diff' : 'Compare with v1 Diff'}</span>
@@ -324,36 +330,38 @@ export function ApprovalsPage() {
                     />
                   </div>
                 ) : (
-                  <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-800 leading-relaxed font-sans">
+                  <div className="p-4 bg-slate-50/80 rounded-2xl border border-slate-200/80 text-xs text-slate-800 leading-relaxed font-sans shadow-inner">
                     {selectedContent.currentVersionId?.text || 'No text content available'}
                   </div>
                 )}
               </div>
 
               {/* Findings Summary for Reviewer */}
-              <div className="p-4 bg-slate-50/70 rounded-xl border border-slate-200 space-y-2">
-                <div className="flex items-center justify-between text-xs font-semibold text-slate-800">
+              <div className="p-4.5 bg-slate-50/70 rounded-2xl border border-slate-200/80 space-y-2.5">
+                <div className="flex items-center justify-between text-xs font-bold text-slate-800">
                   <span className="flex items-center gap-1.5">
                     <FileCheck2 className="w-4 h-4 text-brand-600" />
                     Review Findings Checklist ({latestReview?.findings?.length || 0})
                   </span>
-                  <span className="text-[11px] text-slate-500 font-normal">
-                    Execution Time: {latestReview?.processingMetadata?.executionTimeMs || 0}ms
+                  <span className="text-[11px] text-slate-500 font-mono font-medium">
+                    {latestReview?.processingMetadata?.executionTimeMs || 0}ms check time
                   </span>
                 </div>
-                <div className="space-y-1.5 text-xs text-slate-600">
+                <div className="space-y-2 text-xs text-slate-600">
                   {latestReview?.findings?.map((f) => (
-                    <div key={f._id} className="flex items-start justify-between gap-2 p-2 bg-white rounded border border-slate-100">
+                    <div key={f._id} className="flex items-start justify-between gap-3 p-3 bg-white rounded-xl border border-slate-200/70 shadow-2xs">
                       <div>
-                        <span className="font-semibold text-slate-800">[{f.type}]</span> {f.explanation}
+                        <span className="font-bold text-slate-800">[{f.type}]</span> {f.explanation}
                         {f.reviewStatus === 'OVERRIDDEN' && (
-                          <span className="ml-2 text-[10px] text-amber-700 font-bold bg-amber-50 px-1.5 py-0.2 rounded border border-amber-200">
+                          <div className="mt-1 text-[11px] text-amber-800 font-semibold bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200 w-fit">
                             Overridden: "{f.overrideReason}"
-                          </span>
+                          </div>
                         )}
                       </div>
-                      <span className={`text-[10px] font-bold uppercase px-1.5 py-0.2 rounded ${
-                        f.reviewStatus === 'ACCEPTED' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'
+                      <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full shrink-0 border ${
+                        f.reviewStatus === 'ACCEPTED' 
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
+                          : 'bg-slate-100 text-slate-600 border-slate-200'
                       }`}>
                         {f.reviewStatus}
                       </span>
@@ -364,10 +372,20 @@ export function ApprovalsPage() {
 
               {/* Manager Approval Controls */}
               {canApprove && selectedContent.status !== 'APPROVED' ? (
-                <div className="p-5 bg-gradient-to-r from-slate-900 to-brand-950 text-white rounded-xl space-y-4">
-                  <div className="flex items-center gap-2">
-                    <CheckSquare2 className="w-5 h-5 text-brand-400" />
-                    <h4 className="font-bold text-sm">Manager Sign-off & Release Decision</h4>
+                <div className="p-5 bg-gradient-to-br from-slate-900 via-slate-900 to-brand-950 text-white rounded-2xl shadow-lg border border-slate-800 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-brand-500/20 text-brand-400 flex items-center justify-center border border-brand-400/30">
+                        <CheckSquare2 className="w-4 h-4 stroke-[2.2]" />
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-sm text-white">Manager Sign-off & Release Decision</h4>
+                        <p className="text-[11px] text-slate-400">Human governance authority gate before release</p>
+                      </div>
+                    </div>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-brand-500/10 text-brand-300 border border-brand-500/30 hidden sm:inline-block">
+                      RBAC VERIFIED
+                    </span>
                   </div>
                   <div>
                     <input
@@ -375,24 +393,24 @@ export function ApprovalsPage() {
                       placeholder="Decision notes (e.g. Verified claims against published SLA whitepaper)..."
                       value={decisionReason}
                       onChange={(e) => setDecisionReason(e.target.value)}
-                      className="w-full px-3 py-2 text-xs bg-slate-800 border border-slate-700 text-white rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none placeholder-slate-400"
+                      className="w-full px-3.5 py-2.5 text-xs bg-slate-800/90 border border-slate-700 text-white rounded-xl focus:ring-2 focus:ring-brand-500 focus:outline-none placeholder-slate-400 transition-all"
                     />
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex flex-col sm:flex-row items-center gap-3">
                     <button
                       type="button"
                       disabled={submittingDecision}
                       onClick={() => handleDecision('APPROVED')}
-                      className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white rounded-lg text-xs font-semibold shadow-sm transition-colors flex items-center justify-center gap-1.5"
+                      className="w-full sm:flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:scale-98 disabled:opacity-60 text-white rounded-xl text-xs font-bold shadow-md shadow-emerald-600/20 transition-all flex items-center justify-center gap-1.5"
                     >
-                      <Check className="w-4 h-4" />
+                      <Check className="w-4 h-4 stroke-[2.5]" />
                       <span>Approve Publication (Lock Version)</span>
                     </button>
                     <button
                       type="button"
                       disabled={submittingDecision}
                       onClick={() => handleDecision('CHANGES_REQUESTED')}
-                      className="py-2.5 px-4 bg-amber-600 hover:bg-amber-700 disabled:opacity-60 text-white rounded-lg text-xs font-semibold shadow-sm transition-colors flex items-center gap-1.5"
+                      className="w-full sm:w-auto py-2.5 px-4 bg-amber-600 hover:bg-amber-700 active:scale-98 disabled:opacity-60 text-white rounded-xl text-xs font-bold shadow-md shadow-amber-600/20 transition-all flex items-center justify-center gap-1.5"
                     >
                       <RotateCcw className="w-4 h-4" />
                       <span>Request Changes</span>
@@ -401,7 +419,7 @@ export function ApprovalsPage() {
                       type="button"
                       disabled={submittingDecision}
                       onClick={() => handleDecision('REJECTED')}
-                      className="py-2.5 px-4 bg-rose-600 hover:bg-rose-700 disabled:opacity-60 text-white rounded-lg text-xs font-semibold shadow-sm transition-colors flex items-center gap-1.5"
+                      className="w-full sm:w-auto py-2.5 px-4 bg-rose-600 hover:bg-rose-700 active:scale-98 disabled:opacity-60 text-white rounded-xl text-xs font-bold shadow-md shadow-rose-600/20 transition-all flex items-center justify-center gap-1.5"
                     >
                       <X className="w-4 h-4" />
                       <span>Reject</span>
@@ -409,20 +427,26 @@ export function ApprovalsPage() {
                   </div>
                 </div>
               ) : selectedContent.status === 'APPROVED' ? (
-                <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-900 space-y-3">
+                <div className="p-5 bg-gradient-to-r from-emerald-50 to-teal-50/60 border border-emerald-200/90 rounded-2xl text-xs text-emerald-900 space-y-3.5 shadow-xs">
                   <div className="flex items-center gap-3">
-                    <Lock className="w-5 h-5 text-emerald-600 shrink-0" />
+                    <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                      <Lock className="w-4 h-4" />
+                    </div>
                     <div>
-                      <strong>Official Pre-Publication Sign-off Granted:</strong> This content is officially approved and locked. Compliant for publication.
+                      <strong className="text-emerald-950 font-bold block text-sm">Pre-Publication Sign-off Granted</strong>
+                      <span className="text-emerald-700">This content version is officially approved and locked. Tamper-evident ledger record committed.</span>
                     </div>
                   </div>
                   {canApprove && (
-                    <div className="pt-2 border-t border-emerald-200/60 flex flex-wrap items-center justify-between gap-2">
-                      <span className="text-[11px] text-emerald-700 font-medium">Pre-Publication Compliance Verified</span>
+                    <div className="pt-3 border-t border-emerald-200/70 flex flex-wrap items-center justify-between gap-3">
+                      <span className="text-[11px] text-emerald-700 font-semibold flex items-center gap-1.5">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                        Compliance Verification Passed
+                      </span>
                       <button
                         type="button"
                         onClick={() => setShowPublishModal(true)}
-                        className="px-3.5 py-1.5 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-xs font-semibold shadow-sm transition-colors flex items-center gap-1.5"
+                        className="px-4 py-2 bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-700 hover:to-indigo-700 text-white rounded-xl text-xs font-bold shadow-md shadow-brand-600/25 transition-all hover:scale-[1.02] active:scale-98 flex items-center gap-2"
                       >
                         <Rocket className="w-3.5 h-3.5" />
                         <span>Publish to Production Channel</span>

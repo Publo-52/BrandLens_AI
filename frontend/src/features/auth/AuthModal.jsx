@@ -1,5 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { X, ShieldCheck, UserCheck, AlertCircle, Sparkles, Loader2 } from 'lucide-react';
+import { 
+  X, 
+  ShieldCheck, 
+  UserCheck, 
+  AlertCircle, 
+  Sparkles, 
+  Loader2, 
+  Mail, 
+  Lock, 
+  User, 
+  Building2,
+  Shield,
+  ArrowRight
+} from 'lucide-react';
 import { useAuth } from './AuthContext';
 
 export function AuthModal({ isOpen, onClose }) {
@@ -19,9 +32,8 @@ export function AuthModal({ isOpen, onClose }) {
 
   // Esc key listener to close modal without page refresh
   useEffect(() => {
-    if (!isOpen) return;
     const handleKeyDown = (e) => {
-      if (e.key === 'Escape') {
+      if (e.key === 'Escape' && isOpen) {
         onClose();
       }
     };
@@ -78,7 +90,7 @@ export function AuthModal({ isOpen, onClose }) {
         clearTimeout(wakeTimer);
         onClose();
       } catch {
-        // If demo user does not exist in the database yet, register them on the fly!
+        // If demo user does not exist in the database yet, register them on the fly
         await register({
           name: `NovaTech ${roleName}`,
           email: demoEmail,
@@ -102,127 +114,201 @@ export function AuthModal({ isOpen, onClose }) {
   return (
     <div 
       onClick={onClose}
-      className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
+      className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
       role="dialog"
       aria-modal="true"
     >
       <div 
         onClick={(e) => e.stopPropagation()}
-        className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-md max-h-[92vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200"
+        className="bg-white rounded-3xl shadow-2xl border border-slate-200/80 w-full max-w-md max-h-[92vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200"
       >
         {/* Header */}
-        <div className="bg-gradient-to-r from-brand-900 via-brand-800 to-slate-900 p-6 text-white relative">
+        <div className="bg-gradient-to-r from-slate-900 via-brand-950 to-slate-900 p-6 text-white relative border-b border-white/10">
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 p-1.5 text-slate-300 hover:text-white rounded-lg hover:bg-white/10 transition-colors"
+            className="absolute top-4 right-4 p-2 text-slate-400 hover:text-white rounded-xl hover:bg-white/10 transition-colors"
+            title="Close modal (Esc)"
+            aria-label="Close modal"
           >
             <X className="w-5 h-5" />
           </button>
+          
           <div className="flex items-center gap-2.5 mb-2">
-            <div className="w-8 h-8 rounded-lg bg-brand-500/30 flex items-center justify-center border border-brand-400/30">
-              <ShieldCheck className="w-5 h-5 text-brand-300" />
+            <div className="w-9 h-9 rounded-xl bg-brand-500/20 flex items-center justify-center border border-brand-400/30 text-brand-300">
+              <ShieldCheck className="w-5 h-5" />
             </div>
-            <span className="text-xs font-semibold uppercase tracking-wider text-brand-300">
-              BrandLens Access
+            <span className="text-[11px] font-bold uppercase tracking-wider text-brand-300">
+              BrandLens AI Access
             </span>
           </div>
-          <h3 className="text-xl font-bold text-white">
-            {isRegister ? 'Create Organisation Account' : 'Sign in to Workspace'}
+
+          <h3 className="text-xl font-extrabold text-white tracking-tight">
+            {isRegister ? 'Create Brand Workspace' : 'Sign In to Workspace'}
           </h3>
-          <p className="text-xs text-slate-300 mt-1">
+          <p className="text-xs text-slate-300 mt-1 leading-relaxed">
             {isRegister
-              ? 'Set up your organisation and start governing brand content.'
-              : 'Access your team brand guidelines, reviews, and approval queue.'}
+              ? 'Launch your multi-tenant governance workspace in seconds.'
+              : 'Access your team guidelines, compliance reviews, and approval queue.'}
           </p>
+
+          {/* Segmented Tab Switcher */}
+          <div className="flex bg-white/10 p-1 rounded-xl mt-4 text-xs font-semibold">
+            <button
+              type="button"
+              onClick={() => { setIsRegister(false); setError(null); }}
+              className={`flex-1 py-1.5 rounded-lg transition-all ${
+                !isRegister 
+                  ? 'bg-white text-slate-900 shadow-sm' 
+                  : 'text-slate-300 hover:text-white'
+              }`}
+            >
+              Sign In
+            </button>
+            <button
+              type="button"
+              onClick={() => { setIsRegister(true); setError(null); }}
+              className={`flex-1 py-1.5 rounded-lg transition-all ${
+                isRegister 
+                  ? 'bg-white text-slate-900 shadow-sm' 
+                  : 'text-slate-300 hover:text-white'
+              }`}
+            >
+              New Workspace
+            </button>
+          </div>
         </div>
 
-        {/* Content */}
-        <div className="p-6 space-y-5">
+        {/* Content Body */}
+        <div className="p-6 space-y-4">
           {error && (
-            <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-lg text-xs flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 shrink-0 text-rose-500" />
-              <span>{error}</span>
+            <div className="p-3.5 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0 text-rose-500" />
+                <span>{error}</span>
+              </div>
+              <button onClick={() => setError(null)} className="font-semibold text-rose-600 hover:underline">
+                Dismiss
+              </button>
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-3.5">
             {isRegister && (
               <>
                 <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1">Your Full Name</label>
-                  <input
-                    type="text"
-                    name="name"
-                    required
-                    value={formData.name}
-                    onChange={handleChange}
-                    placeholder="e.g. Sukhen Das"
-                    className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
-                  />
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                    Your Full Name
+                  </label>
+                  <div className="relative">
+                    <User className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                    <input
+                      type="text"
+                      name="name"
+                      required
+                      value={formData.name}
+                      onChange={handleChange}
+                      placeholder="e.g. Sukhen Das"
+                      className="w-full pl-9 pr-3.5 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white"
+                    />
+                  </div>
                 </div>
+
                 <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1">Workspace / Brand Name</label>
-                  <input
-                    type="text"
-                    name="organisationName"
-                    required
-                    value={formData.organisationName}
-                    onChange={handleChange}
-                    placeholder="e.g. NovaTech Global"
-                    className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
-                  />
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                    Workspace / Brand Name
+                  </label>
+                  <div className="relative">
+                    <Building2 className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                    <input
+                      type="text"
+                      name="organisationName"
+                      required
+                      value={formData.organisationName}
+                      onChange={handleChange}
+                      placeholder="e.g. NovaTech Global"
+                      className="w-full pl-9 pr-3.5 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white"
+                    />
+                  </div>
                 </div>
               </>
             )}
 
             <div>
-              <label className="block text-xs font-medium text-slate-700 mb-1">Email Address</label>
-              <input
-                type="email"
-                name="email"
-                required
-                value={formData.email}
-                onChange={handleChange}
-                placeholder="name@company.com"
-                className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
-              />
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                Email Address
+              </label>
+              <div className="relative">
+                <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                <input
+                  type="email"
+                  name="email"
+                  required
+                  value={formData.email}
+                  onChange={handleChange}
+                  placeholder="name@novatech.com"
+                  className="w-full pl-9 pr-3.5 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white"
+                />
+              </div>
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-700 mb-1">Password</label>
-              <input
-                type="password"
-                name="password"
-                required
-                minLength={6}
-                value={formData.password}
-                onChange={handleChange}
-                placeholder="Minimum 6 characters"
-                className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
-              />
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                Password
+              </label>
+              <div className="relative">
+                <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                <input
+                  type="password"
+                  name="password"
+                  required
+                  minLength={6}
+                  value={formData.password}
+                  onChange={handleChange}
+                  placeholder="Minimum 6 characters"
+                  className="w-full pl-9 pr-3.5 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white"
+                />
+              </div>
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-2.5 px-4 bg-brand-600 hover:bg-brand-700 disabled:opacity-60 text-white font-medium text-sm rounded-lg shadow-sm transition-colors"
+              className="w-full py-2.5 px-4 bg-gradient-to-r from-brand-600 to-brand-700 hover:from-brand-700 hover:to-brand-800 disabled:opacity-60 text-white font-bold text-xs rounded-xl shadow-xs hover:shadow transition-all flex items-center justify-center gap-2"
             >
-              {loading ? 'Processing...' : isRegister ? 'Create Account & Workspace' : 'Sign In'}
+              {loading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Processing...</span>
+                </>
+              ) : isRegister ? (
+                <>
+                  <span>Create Workspace & Sign In</span>
+                  <ArrowRight className="w-4 h-4" />
+                </>
+              ) : (
+                <>
+                  <span>Sign In</span>
+                  <ArrowRight className="w-4 h-4" />
+                </>
+              )}
             </button>
           </form>
 
-          {/* Quick Demo Logins */}
+          {/* Quick Demo Role Logins */}
           {!isRegister && (
             <div className="pt-3 border-t border-slate-100">
-              <div className="flex items-center gap-1 text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2">
-                <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                <span>Quick Role Demo Logins</span>
+              <div className="flex items-center justify-between mb-2">
+                <span className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                  1-Click Role Logins
+                </span>
+                <span className="text-[10px] text-slate-400 font-mono">Pre-Configured</span>
               </div>
 
               {isWakingServer && (
-                <div className="mb-2 p-2 bg-amber-50 border border-amber-200 rounded text-[11px] text-amber-800 flex items-center gap-2 animate-pulse">
+                <div className="mb-2.5 p-2.5 bg-amber-50 border border-amber-200 rounded-xl text-[11px] text-amber-800 flex items-center gap-2 animate-pulse">
                   <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-600 shrink-0" />
-                  <span>Waking up free cloud server on Render (~30s on cold start)...</span>
+                  <span>Waking up free cloud backend on Render (~30s on cold start)...</span>
                 </div>
               )}
 
@@ -231,55 +317,43 @@ export function AuthModal({ isOpen, onClose }) {
                   type="button"
                   disabled={loading}
                   onClick={() => handleDemoLogin('Admin', 'admin@novatech.com', 'DemoPass123!')}
-                  className="px-2.5 py-1.5 bg-slate-50 hover:bg-brand-50 border border-slate-200 hover:border-brand-300 rounded text-slate-700 hover:text-brand-700 text-left font-medium transition-colors disabled:opacity-50 relative flex flex-col justify-center"
+                  className="p-3 bg-gradient-to-br from-purple-50 to-slate-50 hover:from-purple-100 hover:to-purple-50 border border-purple-200 rounded-xl text-left transition-all disabled:opacity-50 relative flex flex-col justify-between group shadow-2xs"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="font-semibold">NovaTech Admin</span>
-                    {activeDemoRole === 'Admin' && <Loader2 className="w-3 h-3 animate-spin text-brand-600" />}
+                    <span className="font-bold text-purple-900">NovaTech Admin</span>
+                    {activeDemoRole === 'Admin' ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-purple-600" />
+                    ) : (
+                      <Shield className="w-3.5 h-3.5 text-purple-500 group-hover:scale-110 transition-transform" />
+                    )}
                   </div>
-                  <div className="text-[10px] text-slate-400">ADMIN Role</div>
+                  <div className="text-[10px] text-purple-700 font-mono mt-1">ADMIN Role &bull; Full Access</div>
                 </button>
+
                 <button
                   type="button"
                   disabled={loading}
                   onClick={() => handleDemoLogin('Manager', 'manager@novatech.com', 'DemoPass123!')}
-                  className="px-2.5 py-1.5 bg-slate-50 hover:bg-brand-50 border border-slate-200 hover:border-brand-300 rounded text-slate-700 hover:text-brand-700 text-left font-medium transition-colors disabled:opacity-50 relative flex flex-col justify-center"
+                  className="p-3 bg-gradient-to-br from-indigo-50 to-slate-50 hover:from-indigo-100 hover:to-indigo-50 border border-indigo-200 rounded-xl text-left transition-all disabled:opacity-50 relative flex flex-col justify-between group shadow-2xs"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="font-semibold">NovaTech Manager</span>
-                    {activeDemoRole === 'Manager' && <Loader2 className="w-3 h-3 animate-spin text-brand-600" />}
+                    <span className="font-bold text-indigo-900">NovaTech Manager</span>
+                    {activeDemoRole === 'Manager' ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-600" />
+                    ) : (
+                      <ShieldCheck className="w-3.5 h-3.5 text-indigo-500 group-hover:scale-110 transition-transform" />
+                    )}
                   </div>
-                  <div className="text-[10px] text-slate-400">MANAGER Role</div>
+                  <div className="text-[10px] text-indigo-700 font-mono mt-1">MANAGER Role &bull; Release Approver</div>
                 </button>
               </div>
             </div>
           )}
 
-          {/* Switch tab */}
-          <div className="text-center text-xs text-slate-500 pt-2 border-t border-slate-100">
-            {isRegister ? (
-              <span>
-                Already have an account?{' '}
-                <button
-                  type="button"
-                  onClick={() => { setIsRegister(false); setError(null); }}
-                  className="text-brand-600 hover:underline font-semibold"
-                >
-                  Sign In
-                </button>
-              </span>
-            ) : (
-              <span>
-                Don't have an account?{' '}
-                <button
-                  type="button"
-                  onClick={() => { setIsRegister(true); setError(null); }}
-                  className="text-brand-600 hover:underline font-semibold"
-                >
-                  Create one now
-                </button>
-              </span>
-            )}
+          {/* Security guarantee footer */}
+          <div className="pt-2 text-center text-[10px] text-slate-400 flex items-center justify-center gap-1.5">
+            <ShieldCheck className="w-3 h-3 text-emerald-500" />
+            <span>Strict Multi-Tenant Isolation &bull; JWT Authentication</span>
           </div>
         </div>
       </div>

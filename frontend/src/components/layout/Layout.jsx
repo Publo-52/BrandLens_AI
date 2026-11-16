@@ -4,7 +4,9 @@ import {
   FileCheck2, 
   BookOpen, 
   CheckSquare2, 
-  Menu 
+  History, 
+  BarChart3, 
+  Settings 
 } from 'lucide-react';
 import { Navbar } from './Navbar';
 import { Sidebar } from './Sidebar';
@@ -19,6 +21,11 @@ export const Layout = memo(function Layout({ children, currentTab, onSelectTab }
   const closeMobileMenu = useCallback(() => {
     setIsMobileMenuOpen(false);
   }, []);
+
+  const handleSelectTab = useCallback((tabId) => {
+    onSelectTab(tabId);
+    setIsMobileMenuOpen(false);
+  }, [onSelectTab]);
 
   const mobileNavItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -36,7 +43,7 @@ export const Layout = memo(function Layout({ children, currentTab, onSelectTab }
       <div className="flex flex-1 pt-16">
         <Sidebar
           currentTab={currentTab}
-          onSelectTab={onSelectTab}
+          onSelectTab={handleSelectTab}
           isOpen={isMobileMenuOpen}
           onClose={closeMobileMenu}
         />
@@ -73,25 +80,10 @@ export const Layout = memo(function Layout({ children, currentTab, onSelectTab }
               </button>
             );
           })}
-
-          {/* More / Menu Drawer Toggle */}
-          <button
-            onClick={toggleMobileMenu}
-            className={`flex flex-col items-center justify-center py-1.5 px-2 rounded-xl transition-all ${
-              isMobileMenuOpen 
-                ? 'text-brand-600 font-bold' 
-                : 'text-slate-500 hover:text-slate-800'
-            }`}
-          >
-            <div className={`p-1 rounded-lg transition-transform ${
-              isMobileMenuOpen ? 'bg-brand-50 scale-110' : ''
-            }`}>
-              <Menu className="w-4 h-4 stroke-[1.8]" />
-            </div>
-            <span className="text-[10px] tracking-tight mt-0.5">More</span>
-          </button>
         </div>
       </nav>
     </div>
   );
 });
+
+export default Layout;

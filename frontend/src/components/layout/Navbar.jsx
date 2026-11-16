@@ -1,35 +1,38 @@
 import React, { useState } from 'react';
 import { 
   ShieldCheck, 
-  Building2, 
+  User, 
   LogOut, 
-  LogIn, 
+  Building2, 
   ChevronDown, 
-  Check, 
+  Menu, 
+  X, 
   Sparkles,
-  Zap,
-  Menu,
-  X
+  Shield,
+  Layers,
+  CheckCircle2
 } from 'lucide-react';
 import { useAuth } from '../../features/auth/AuthContext';
 import { AuthModal } from '../../features/auth/AuthModal';
 
-export function Navbar({ onToggleMobileMenu, isMobileMenuOpen }) {
-  const { user, memberships, activeOrg, activeRole, logout, switchOrg } = useAuth();
+export function Navbar({ onToggleMobileMenu, isMobileMenuOpen = false }) {
+  const { user, activeOrg, activeRole, logout, switchOrganisation } = useAuth();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showOrgDropdown, setShowOrgDropdown] = useState(false);
+  const [showUserDropdown, setShowUserDropdown] = useState(false);
 
   const getRoleBadgeColor = (role) => {
     switch (role) {
       case 'ADMIN':
-        return 'bg-purple-50 text-purple-700 border-purple-200 ring-1 ring-purple-400/20';
+        return 'bg-purple-100 text-purple-800 border-purple-200';
       case 'MANAGER':
-        return 'bg-blue-50 text-blue-700 border-blue-200 ring-1 ring-blue-400/20';
+        return 'bg-blue-100 text-blue-800 border-blue-200';
       case 'REVIEWER':
-        return 'bg-amber-50 text-amber-700 border-amber-200 ring-1 ring-amber-400/20';
+        return 'bg-amber-100 text-amber-800 border-amber-200';
       case 'CREATOR':
+        return 'bg-emerald-100 text-emerald-800 border-emerald-200';
       default:
-        return 'bg-emerald-50 text-emerald-700 border-emerald-200 ring-1 ring-emerald-400/20';
+        return 'bg-slate-100 text-slate-700 border-slate-200';
     }
   };
 
@@ -96,91 +99,94 @@ export function Navbar({ onToggleMobileMenu, isMobileMenuOpen }) {
               </button>
 
               {showOrgDropdown && (
-                <div className="absolute right-0 mt-2 w-64 max-w-[calc(100vw-1.5rem)] bg-white/95 backdrop-blur-md border border-slate-200 rounded-2xl shadow-xl shadow-slate-900/10 p-2 z-40 animate-in fade-in slide-in-from-top-2 duration-150">
-                  <div className="flex items-center justify-between px-2.5 py-1.5 mb-1">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                      Workspaces
-                    </span>
-                    <span className="text-[10px] text-slate-400 font-medium">{memberships.length} active</span>
+                <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-xl border border-slate-200/90 py-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
+                  <div className="px-3.5 py-2 border-b border-slate-100 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                    Your Workspaces
                   </div>
-                  <div className="space-y-1">
-                    {memberships.map((m) => {
-                      const org = m.organisationId;
-                      if (!org) return null;
-                      const isSelected = org._id === activeOrg?._id;
-                      return (
-                        <button
-                          key={org._id}
-                          onClick={() => {
-                            switchOrg(org._id);
-                            setShowOrgDropdown(false);
-                          }}
-                          className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs transition-all ${
-                            isSelected
-                              ? 'bg-gradient-to-r from-brand-50 to-indigo-50/50 text-brand-800 font-semibold border border-brand-200/60 shadow-xs'
-                              : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-                          }`}
-                        >
-                          <div className="text-left truncate">
-                            <div className="truncate font-medium">{org.name}</div>
-                            <div className="text-[10px] text-slate-400 capitalize">{m.role.toLowerCase()}</div>
-                          </div>
-                          {isSelected && (
-                            <div className="w-5 h-5 rounded-full bg-brand-600 text-white flex items-center justify-center shrink-0 shadow-xs">
-                              <Check className="w-3 h-3 stroke-[3]" />
-                            </div>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
+                  {user.memberships?.map((m) => (
+                    <button
+                      key={m.organisationId?._id || m.organisationId}
+                      onClick={() => {
+                        switchOrganisation(m.organisationId?._id || m.organisationId);
+                        setShowOrgDropdown(false);
+                      }}
+                      className="w-full px-3.5 py-2.5 text-left text-xs hover:bg-brand-50/70 flex items-center justify-between transition-colors"
+                    >
+                      <span className="font-semibold text-slate-800 truncate">
+                        {m.organisationId?.name || 'Unnamed Org'}
+                      </span>
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full border font-bold ${getRoleBadgeColor(m.role)}`}>
+                        {m.role}
+                      </span>
+                    </button>
+                  ))}
                 </div>
               )}
             </div>
           )}
 
-          {/* User profile & auth controls */}
+          {/* User profile / Login */}
           {user ? (
-            <div className="flex items-center gap-1.5 sm:gap-3 pl-1.5 sm:pl-3 border-l border-slate-200">
-              <div className="flex items-center gap-2 text-left">
-                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-gradient-to-tr from-slate-900 via-slate-800 to-slate-700 text-white flex items-center justify-center text-[10px] sm:text-xs font-bold shadow-sm ring-2 ring-slate-100 shrink-0">
-                  {user.name?.slice(0, 2).toUpperCase() || 'US'}
+            <div className="relative">
+              <button
+                onClick={() => setShowUserDropdown((prev) => !prev)}
+                className="flex items-center gap-2 p-1 pl-1.5 pr-2 sm:pr-3 bg-white hover:bg-slate-50 border border-slate-200/90 rounded-xl transition-all shadow-xs"
+              >
+                <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-brand-600 to-indigo-600 text-white flex items-center justify-center font-bold text-xs shadow-xs">
+                  {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
                 </div>
-                <div className="hidden md:block">
-                  <div className="text-xs font-bold text-slate-800 leading-tight truncate max-w-[120px]">
+                <div className="text-left hidden sm:block">
+                  <div className="text-xs font-bold text-slate-800 truncate max-w-[100px]">
                     {user.name}
                   </div>
-                  <span
-                    className={`inline-block text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${getRoleBadgeColor(
-                      activeRole
-                    )}`}
-                  >
+                  <div className="text-[10px] text-slate-400 font-mono -mt-0.5">
                     {activeRole}
-                  </span>
+                  </div>
                 </div>
-              </div>
-
-              <button
-                onClick={logout}
-                title="Sign out"
-                className="p-1.5 sm:p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 active:bg-rose-100 rounded-xl transition-colors border border-transparent hover:border-rose-100 shrink-0"
-              >
-                <LogOut className="w-4 h-4" />
+                <ChevronDown className="w-3 h-3 text-slate-400 hidden sm:block" />
               </button>
+
+              {showUserDropdown && (
+                <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-xl border border-slate-200/90 py-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
+                  <div className="px-3.5 py-2.5 border-b border-slate-100">
+                    <p className="text-xs font-bold text-slate-900">{user.name}</p>
+                    <p className="text-[11px] text-slate-500 font-mono truncate">{user.email}</p>
+                    <div className="mt-1.5">
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full border font-bold ${getRoleBadgeColor(activeRole)}`}>
+                        {activeRole} Role
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => {
+                      logout();
+                      setShowUserDropdown(false);
+                    }}
+                    className="w-full px-3.5 py-2 text-left text-xs text-rose-600 hover:bg-rose-50 flex items-center gap-2 font-medium transition-colors"
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                    <span>Sign Out</span>
+                  </button>
+                </div>
+              )}
             </div>
           ) : (
             <button
               onClick={() => setShowAuthModal(true)}
-              className="flex items-center gap-1 sm:gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-700 hover:to-indigo-700 text-white text-xs font-bold rounded-xl shadow-xs hover:shadow-md transition-all active:scale-95 shrink-0"
+              className="flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-brand-600 to-brand-700 hover:from-brand-700 hover:to-brand-800 text-white rounded-xl text-xs font-bold shadow-sm hover:shadow transition-all"
             >
-              <LogIn className="w-3.5 h-3.5" />
-              <span>Sign In</span>
+              <User className="w-3.5 h-3.5" />
+              <span>Sign In / Demo</span>
             </button>
           )}
         </div>
       </header>
 
-      <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
+      {/* Auth Modal */}
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+      />
     </>
   );
 }
