@@ -68,6 +68,17 @@ export function AuditPage() {
     loadAuditData();
   }, [loadAuditData]);
 
+  // Esc key listener to close modal without page refresh
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && showCertModal) {
+        setShowCertModal(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showCertModal]);
+
   const filteredLogs = useMemo(() => {
     return logs.filter((log) => {
       if (actionFilter !== 'ALL' && log.action !== actionFilter) return false;
@@ -357,8 +368,16 @@ export function AuditPage() {
 
       {/* Pre-Publication Compliance Certificate Modal (Milestone 8) */}
       {showCertModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-2xl overflow-hidden max-h-[90vh] flex flex-col animate-in fade-in zoom-in-95 duration-200">
+        <div 
+          onClick={() => setShowCertModal(false)}
+          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-2xl overflow-hidden max-h-[90vh] flex flex-col animate-in fade-in zoom-in-95 duration-200"
+          >
             {/* Modal Header */}
             <div className="bg-gradient-to-r from-brand-900 via-brand-800 to-slate-900 p-5 text-white flex items-center justify-between">
               <div className="flex items-center gap-2.5">
@@ -371,8 +390,11 @@ export function AuditPage() {
                 </div>
               </div>
               <button
+                type="button"
                 onClick={() => setShowCertModal(false)}
                 className="p-1.5 text-slate-300 hover:text-white rounded-lg hover:bg-white/10 transition-colors"
+                title="Close modal (Esc)"
+                aria-label="Close modal"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -531,6 +553,13 @@ export function AuditPage() {
               </div>
 
               <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowCertModal(false)}
+                  className="px-3.5 py-2 border border-slate-300 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold transition-colors"
+                >
+                  Close
+                </button>
                 <button
                   onClick={handleDownloadCertificate}
                   disabled={!selectedCertContent}

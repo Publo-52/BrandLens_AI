@@ -69,6 +69,17 @@ export function ApprovalsPage() {
     loadData();
   }, [loadData]);
 
+  // Esc key listener to close modal without page refresh
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && showPublishModal) {
+        setShowPublishModal(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showPublishModal]);
+
   const loadDetails = useCallback(async (cId) => {
     if (!activeOrg?._id || !token || !cId) return;
     try {
@@ -213,7 +224,7 @@ export function ApprovalsPage() {
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">
               Submissions in Review Queue
             </h3>
-            <div className="space-y-2 max-h-[600px] overflow-y-auto">
+            <div className="space-y-2 max-h-[280px] lg:max-h-[600px] overflow-y-auto touch-scroll">
               {contents.map((item) => {
                 const isSelected = item._id === selectedId;
                 const isInReview = item.status === 'IN_REVIEW';
@@ -477,15 +488,29 @@ export function ApprovalsPage() {
       </div>
       {/* Safe One-Click Publishing Modal */}
       {showPublishModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+        <div 
+          onClick={() => setShowPublishModal(false)}
+          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-md max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200"
+          >
             <div className="bg-gradient-to-r from-brand-900 via-brand-800 to-slate-900 p-5 text-white flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Rocket className="w-5 h-5 text-emerald-400" />
                 <h3 className="font-bold text-sm">Publish to Live Production</h3>
               </div>
-              <button onClick={() => setShowPublishModal(false)} className="text-slate-300 hover:text-white p-1">
-                <X className="w-4 h-4" />
+              <button 
+                type="button"
+                onClick={() => setShowPublishModal(false)} 
+                className="p-1.5 text-slate-300 hover:text-white rounded-lg hover:bg-white/10 transition-colors"
+                title="Close modal (Esc)"
+                aria-label="Close modal"
+              >
+                <X className="w-5 h-5" />
               </button>
             </div>
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, ShieldCheck, UserCheck, AlertCircle, Sparkles, Loader2 } from 'lucide-react';
 import { useAuth } from './AuthContext';
 
@@ -16,6 +16,18 @@ export function AuthModal({ isOpen, onClose }) {
     password: '',
     organisationName: '',
   });
+
+  // Esc key listener to close modal without page refresh
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -88,8 +100,16 @@ export function AuthModal({ isOpen, onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+    <div 
+      onClick={onClose}
+      className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
+      role="dialog"
+      aria-modal="true"
+    >
+      <div 
+        onClick={(e) => e.stopPropagation()}
+        className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-md max-h-[92vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200"
+      >
         {/* Header */}
         <div className="bg-gradient-to-r from-brand-900 via-brand-800 to-slate-900 p-6 text-white relative">
           <button
