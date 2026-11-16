@@ -1,5 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Eye, CheckCircle2, XCircle, Sparkles, Sliders } from 'lucide-react';
+
+const PRESET_PALETTES = [
+  { label: 'Nova Primary Dark', bg: '#0F172A', text: '#F8FAFC' },
+  { label: 'Nova Brand Blue', bg: '#2563EB', text: '#FFFFFF' },
+  { label: 'Nova Light Surface', bg: '#FFFFFF', text: '#1E293B' },
+  { label: 'Warning Accent', bg: '#FEF3C7', text: '#92400E' },
+  { label: 'Low Contrast Failure', bg: '#E2E8F0', text: '#94A3B8' },
+];
 
 function hexToRgb(hex) {
   const clean = hex.replace('#', '');
@@ -36,19 +44,16 @@ export function ContrastChecker() {
   const [textColor, setTextColor] = useState('#F8FAFC'); // Slate-50
   const [sampleText, setSampleText] = useState('Experience reliable enterprise cloud governance.');
 
-  const ratio = Number(calculateContrastRatio(bgColor, textColor).toFixed(2));
+  const ratio = useMemo(() => {
+    return Number(calculateContrastRatio(bgColor, textColor).toFixed(2));
+  }, [bgColor, textColor]);
+
   const passAANormal = ratio >= 4.5;
   const passAAANormal = ratio >= 7.0;
   const passAALarge = ratio >= 3.0;
   const passAAALarge = ratio >= 4.5;
 
-  const presetPalettes = [
-    { label: 'Nova Primary Dark', bg: '#0F172A', text: '#F8FAFC' },
-    { label: 'Nova Brand Blue', bg: '#2563EB', text: '#FFFFFF' },
-    { label: 'Nova Light Surface', bg: '#FFFFFF', text: '#1E293B' },
-    { label: 'Warning Accent', bg: '#FEF3C7', text: '#92400E' },
-    { label: 'Low Contrast Failure', bg: '#E2E8F0', text: '#94A3B8' },
-  ];
+  const presetPalettes = PRESET_PALETTES;
 
   return (
     <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm space-y-6">

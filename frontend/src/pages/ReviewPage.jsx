@@ -62,16 +62,15 @@ export function ReviewPage() {
     setLoading(true);
     try {
       const data = await api.getContents(activeOrg._id, token);
-      setContents(data.contents || []);
-      if (!selectedContentId && data.contents && data.contents.length > 0) {
-        setSelectedContentId(data.contents[0]._id);
-      }
+      const items = data.contents || [];
+      setContents(items);
+      setSelectedContentId((prev) => prev || (items[0]?._id ?? null));
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
-  }, [activeOrg, token, selectedContentId]);
+  }, [activeOrg, token]);
 
   useEffect(() => {
     loadContents();
@@ -236,11 +235,16 @@ export function ReviewPage() {
   return (
     <div className="space-y-6">
       {/* Top Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200/80">
         <div>
-          <h2 className="text-xl font-bold text-slate-900">Content Review Workspace</h2>
-          <p className="text-xs text-slate-500">
-            Submit drafts, inspect source-cited findings, apply intent-preserving fixes, and route to approval.
+          <h2 className="text-xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
+            <span>Content Review Studio</span>
+            <span className="text-[10px] font-bold tracking-wide uppercase px-2 py-0.5 rounded-full bg-brand-50 text-brand-700 border border-brand-200">
+              Interactive
+            </span>
+          </h2>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Submit marketing copy, verify grounded factual claims, apply deterministic terminology fixes, and request sign-offs.
           </p>
         </div>
         <div className="flex items-center gap-2.5">
@@ -252,16 +256,16 @@ export function ReviewPage() {
               setNewText(SAMPLE_DEMO_DRAFT);
               setShowNewModal(true);
             }}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-700 hover:to-indigo-700 text-white rounded-lg text-xs font-semibold shadow-sm transition-all"
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-brand-600 via-brand-500 to-indigo-600 hover:from-brand-700 hover:to-indigo-700 text-white rounded-xl text-xs font-bold shadow-sm shadow-brand-500/20 hover:shadow-md transition-all active:scale-95"
           >
             <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-            <span>Test Demo Draft</span>
+            <span>Load Demo Sample</span>
           </button>
           <button
             onClick={() => setShowNewModal(true)}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-xs font-semibold shadow-sm transition-colors"
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold shadow-sm transition-all active:scale-95"
           >
-            <Plus className="w-3.5 h-3.5" />
+            <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
             <span>New Submission</span>
           </button>
         </div>
@@ -296,8 +300,8 @@ export function ReviewPage() {
         {/* Left Column: Submissions List & Active Editor (7 cols) */}
         <div className="lg:col-span-7 space-y-6">
           {/* Submissions Switcher Bar */}
-          <div className="bg-white rounded-xl border border-slate-200 p-3 shadow-sm flex items-center gap-2 overflow-x-auto">
-            <span className="text-xs font-semibold text-slate-400 shrink-0 px-2 uppercase tracking-wider text-[10px]">
+          <div className="bg-white/90 backdrop-blur-xs rounded-2xl border border-slate-200/90 p-2.5 shadow-xs flex items-center gap-2 overflow-x-auto">
+            <span className="text-[10px] font-bold text-slate-400 shrink-0 px-2.5 uppercase tracking-wider">
               Submissions:
             </span>
             {contents.map((c) => {
@@ -306,15 +310,15 @@ export function ReviewPage() {
                 <button
                   key={c._id}
                   onClick={() => setSelectedContentId(c._id)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium shrink-0 transition-colors flex items-center gap-2 ${
+                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold shrink-0 transition-all flex items-center gap-2 ${
                     isSelected
-                      ? 'bg-brand-600 text-white shadow-sm'
-                      : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200'
+                      ? 'bg-slate-900 text-white shadow-sm ring-1 ring-slate-800'
+                      : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200/80'
                   }`}
                 >
                   <span className="truncate max-w-[130px]">{c.title}</span>
-                  <span className={`text-[10px] uppercase font-bold px-1.5 py-0.2 rounded ${
-                    c.status === 'APPROVED' ? 'bg-emerald-500 text-white' : 'bg-black/10'
+                  <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded-md ${
+                    isSelected ? 'bg-white/20 text-white' : 'bg-slate-200/70 text-slate-600'
                   }`}>
                     v{c.currentVersionNumber || 1}
                   </span>
@@ -324,7 +328,7 @@ export function ReviewPage() {
           </div>
 
           {selectedContent && (
-            <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm space-y-5">
+            <div className="bg-white rounded-2xl border border-slate-200/90 p-6 shadow-xs space-y-5">
               {/* Submission Header */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
                 <div>
@@ -485,17 +489,19 @@ export function ReviewPage() {
 
         {/* Right Column: Explainable Findings Panel (5 cols) */}
         <div className="lg:col-span-5 space-y-4">
-          <div className="bg-slate-900 text-white rounded-xl p-4 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <FileCheck2 className="w-5 h-5 text-brand-400" />
+          <div className="bg-gradient-to-r from-slate-950 via-slate-900 to-brand-950 text-white rounded-2xl p-4.5 flex items-center justify-between border border-slate-800 shadow-md">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-brand-500/20 text-brand-400 flex items-center justify-center border border-brand-400/30">
+                <FileCheck2 className="w-5 h-5 stroke-[2.2]" />
+              </div>
               <div>
-                <h3 className="font-semibold text-sm">Review Findings</h3>
+                <h3 className="font-bold text-sm text-white">Review Findings</h3>
                 <p className="text-[11px] text-slate-400">
                   {latestReview?.findings?.length || 0} checks completed &bull; Explainable citations
                 </p>
               </div>
             </div>
-            <span className="text-[10px] font-mono text-brand-300 bg-brand-950 px-2 py-1 rounded border border-brand-800">
+            <span className="text-[10px] font-mono font-bold text-brand-300 bg-brand-950/80 px-2.5 py-1 rounded-lg border border-brand-800">
               {latestReview?.processingMetadata?.executionTimeMs || 0}ms
             </span>
           </div>
@@ -510,16 +516,16 @@ export function ReviewPage() {
                 return (
                   <div
                     key={f._id}
-                    className={`bg-white rounded-xl border p-4 shadow-sm space-y-3 transition-all ${
+                    className={`bg-white rounded-2xl border p-4.5 shadow-xs space-y-3.5 transition-all duration-200 hover:shadow-md ${
                       isOverridden
                         ? 'border-slate-300 opacity-60 bg-slate-50'
                         : f.type === 'CLAIM_UNSUPPORTED'
-                        ? 'border-purple-200 bg-purple-50/20'
+                        ? 'border-purple-200 bg-purple-50/20 hover:border-purple-300'
                         : f.type === 'TERMINOLOGY'
-                        ? 'border-rose-200'
+                        ? 'border-rose-200 hover:border-rose-300'
                         : f.type === 'CLAIM_SUPPORTED'
-                        ? 'border-emerald-200'
-                        : 'border-amber-200'
+                        ? 'border-emerald-200 hover:border-emerald-300'
+                        : 'border-amber-200 hover:border-amber-300'
                     }`}
                   >
                     {/* Header Badges */}

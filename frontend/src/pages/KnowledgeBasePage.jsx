@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { 
   BookOpen, 
   Sparkles, 
@@ -224,8 +224,9 @@ export function KnowledgeBasePage() {
     }
   };
 
-  const filteredGuidelines = guidelines.filter(
-    (g) => selectedCategory === 'ALL' || g.category === selectedCategory
+  const filteredGuidelines = useMemo(
+    () => guidelines.filter((g) => selectedCategory === 'ALL' || g.category === selectedCategory),
+    [guidelines, selectedCategory]
   );
 
   const getSeverityBadge = (severity) => {
@@ -314,46 +315,70 @@ export function KnowledgeBasePage() {
         </div>
       )}
 
-      {/* Navigation Tabs */}
-      <div className="flex items-center border-b border-slate-200 gap-6 text-sm font-semibold">
+      {/* Modern Segmented Navigation Tabs */}
+      <div className="flex items-center gap-1.5 p-1.5 bg-slate-100/90 rounded-2xl border border-slate-200/80 text-xs font-bold w-fit overflow-x-auto max-w-full">
         <button
           onClick={() => setActiveTab('guidelines')}
-          className={`pb-3 relative transition-colors ${
-            activeTab === 'guidelines' ? 'text-brand-600' : 'text-slate-500 hover:text-slate-900'
+          className={`px-4 py-2 rounded-xl transition-all duration-150 flex items-center gap-2 shrink-0 ${
+            activeTab === 'guidelines'
+              ? 'bg-white text-slate-900 shadow-sm border border-slate-200/80'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
           }`}
         >
-          <span>Brand Guidelines ({guidelines.length})</span>
-          {activeTab === 'guidelines' && <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand-600" />}
+          <span>Brand Guidelines</span>
+          <span className={`text-[10px] px-1.5 py-0.5 rounded-md ${
+            activeTab === 'guidelines' ? 'bg-brand-50 text-brand-700' : 'bg-slate-200/70 text-slate-600'
+          }`}>
+            {guidelines.length}
+          </span>
         </button>
 
         <button
           onClick={() => setActiveTab('facts')}
-          className={`pb-3 relative transition-colors ${
-            activeTab === 'facts' ? 'text-brand-600' : 'text-slate-500 hover:text-slate-900'
+          className={`px-4 py-2 rounded-xl transition-all duration-150 flex items-center gap-2 shrink-0 ${
+            activeTab === 'facts'
+              ? 'bg-white text-slate-900 shadow-sm border border-slate-200/80'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
           }`}
         >
-          <span>Approved Facts ({facts.length})</span>
-          {activeTab === 'facts' && <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand-600" />}
+          <span>Approved Facts</span>
+          <span className={`text-[10px] px-1.5 py-0.5 rounded-md ${
+            activeTab === 'facts' ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-200/70 text-slate-600'
+          }`}>
+            {facts.length}
+          </span>
         </button>
 
         <button
           onClick={() => setActiveTab('terminology')}
-          className={`pb-3 relative transition-colors ${
-            activeTab === 'terminology' ? 'text-brand-600' : 'text-slate-500 hover:text-slate-900'
+          className={`px-4 py-2 rounded-xl transition-all duration-150 flex items-center gap-2 shrink-0 ${
+            activeTab === 'terminology'
+              ? 'bg-white text-slate-900 shadow-sm border border-slate-200/80'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
           }`}
         >
-          <span>Terminology Rules ({terminology.length})</span>
-          {activeTab === 'terminology' && <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand-600" />}
+          <span>Terminology Rules</span>
+          <span className={`text-[10px] px-1.5 py-0.5 rounded-md ${
+            activeTab === 'terminology' ? 'bg-indigo-50 text-indigo-700' : 'bg-slate-200/70 text-slate-600'
+          }`}>
+            {terminology.length}
+          </span>
         </button>
 
         <button
           onClick={() => setActiveTab('assets')}
-          className={`pb-3 relative transition-colors ${
-            activeTab === 'assets' ? 'text-brand-600' : 'text-slate-500 hover:text-slate-900'
+          className={`px-4 py-2 rounded-xl transition-all duration-150 flex items-center gap-2 shrink-0 ${
+            activeTab === 'assets'
+              ? 'bg-white text-slate-900 shadow-sm border border-slate-200/80'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
           }`}
         >
-          <span>Visual Brand Assets ({assets.length})</span>
-          {activeTab === 'assets' && <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand-600" />}
+          <span>Visual Brand Assets</span>
+          <span className={`text-[10px] px-1.5 py-0.5 rounded-md ${
+            activeTab === 'assets' ? 'bg-purple-50 text-purple-700' : 'bg-slate-200/70 text-slate-600'
+          }`}>
+            {assets.length}
+          </span>
         </button>
       </div>
 

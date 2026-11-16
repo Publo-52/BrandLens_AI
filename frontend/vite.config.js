@@ -11,6 +11,7 @@ export default defineConfig({
     target: 'esnext',
     minify: 'esbuild',
     cssMinify: true,
+    sourcemap: false,
     rollupOptions: {
       output: {
         manualChunks: {
@@ -20,5 +21,9 @@ export default defineConfig({
       },
     },
     chunkSizeWarningLimit: 600,
+  },
+  // Pre-warm frequently imported modules for faster HMR
+  optimizeDeps: {
+    include: ['react', 'react-dom', 'lucide-react'],
   },
 });

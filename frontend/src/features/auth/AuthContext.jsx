@@ -1,7 +1,11 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { api } from '../../services/api';
 
 const AuthContext = createContext(null);
+
+function extractOrgId(org) {
+  return typeof org === 'object' ? org?._id : org;
+}
 
 export function AuthProvider({ children }) {
   const [token, setToken] = useState(() => localStorage.getItem('brandlens_token'));
@@ -10,6 +14,11 @@ export function AuthProvider({ children }) {
   const [activeOrgId, setActiveOrgId] = useState(() => localStorage.getItem('brandlens_active_org_id'));
   const [loading, setLoading] = useState(true);
 
+  const persistOrg = useCallback((id) => {
+    setActiveOrgId(id);
+    if (id) localStorage.setItem('brandlens_active_org_id', id);
+  }, []);
+
   const initAuth = useCallback(async () => {
     let savedToken = localStorage.getItem('brandlens_token');
 
@@ -17,7 +26,7 @@ export function AuthProvider({ children }) {
     if (!savedToken) {
       try {
         const loginData = await api.login({
-          email: 'admin@novatech.demo',
+          email: 'admin@novatech.com',
           password: 'DemoPass123!',
         });
         if (loginData?.token) {
@@ -26,13 +35,8 @@ export function AuthProvider({ children }) {
           setToken(loginData.token);
           setUser(loginData.user);
           setMemberships(loginData.memberships || []);
-
-          const firstOrg = loginData.memberships?.[0]?.organisationId;
-          const firstOrgId = typeof firstOrg === 'object' ? firstOrg?._id : firstOrg;
-          if (firstOrgId) {
-            setActiveOrgId(firstOrgId);
-            localStorage.setItem('brandlens_active_org_id', firstOrgId);
-          }
+          const firstOrgId = extractOrgId(loginData.memberships?.[0]?.organisationId);
+          if (firstOrgId) persistOrg(firstOrgId);
           setLoading(false);
           return;
         }
@@ -51,22 +55,15 @@ export function AuthProvider({ children }) {
       setUser(data.user);
       setMemberships(data.memberships || []);
 
-      // Determine active organisation
       const savedOrgId = localStorage.getItem('brandlens_active_org_id');
-      const validOrg = data.memberships?.find((m) => {
-        const id = typeof m.organisationId === 'object' ? m.organisationId?._id : m.organisationId;
-        return id === savedOrgId;
-      });
+      const validOrg = data.memberships?.find(
+        (m) => extractOrgId(m.organisationId) === savedOrgId
+      );
 
       if (validOrg) {
         setActiveOrgId(savedOrgId);
-      } else if (data.memberships && data.memberships.length > 0) {
-        const firstOrg = data.memberships[0].organisationId;
-        const firstOrgId = typeof firstOrg === 'object' ? firstOrg?._id : firstOrg;
-        setActiveOrgId(firstOrgId);
-        if (firstOrgId) {
-          localStorage.setItem('brandlens_active_org_id', firstOrgId);
-        }
+      } else if (data.memberships?.length > 0) {
+        persistOrg(extractOrgId(data.memberships[0].organisationId));
       }
     } catch (err) {
       console.warn('Session expired or invalid:', err.message);
@@ -79,98 +76,90 @@ export function AuthProvider({ children }) {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [persistOrg]);
 
   useEffect(() => {
     initAuth();
   }, [initAuth]);
 
-  const login = async (email, password) => {
+  const login = useCallback(async (email, password) => {
     const data = await api.login({ email, password });
     localStorage.setItem('brandlens_token', data.token);
     setToken(data.token);
     setUser(data.user);
     setMemberships(data.memberships || []);
-
-    if (data.memberships && data.memberships.length > 0) {
-      const firstOrg = data.memberships[0].organisationId;
-      const firstOrgId = typeof firstOrg === 'object' ? firstOrg?._id : firstOrg;
-      setActiveOrgId(firstOrgId);
-      if (firstOrgId) {
-        localStorage.setItem('brandlens_active_org_id', firstOrgId);
-      }
+    if (data.memberships?.length > 0) {
+      persistOrg(extractOrgId(data.memberships[0].organisationId));
     }
     return data;
-  };
+  }, [persistOrg]);
 
-  const register = async ({ name, email, password, organisationName }) => {
+  const register = useCallback(async ({ name, email, password, organisationName }) => {
     const data = await api.register({ name, email, password, organisationName });
     localStorage.setItem('brandlens_token', data.token);
     setToken(data.token);
     setUser(data.user);
-
-    const initialMembership = {
-      ...data.membership,
-      organisationId: data.organisation,
-    };
+    const initialMembership = { ...data.membership, organisationId: data.organisation };
     setMemberships([initialMembership]);
     const newOrgId = data.organisation?._id;
     setActiveOrgId(newOrgId);
-    if (newOrgId) {
-      localStorage.setItem('brandlens_active_org_id', newOrgId);
-    }
+    if (newOrgId) localStorage.setItem('brandlens_active_org_id', newOrgId);
     return data;
-  };
+  }, []);
 
-  const logout = () => {
+  const logout = useCallback(() => {
     localStorage.removeItem('brandlens_token');
     localStorage.removeItem('brandlens_active_org_id');
     setToken(null);
     setUser(null);
     setMemberships([]);
     setActiveOrgId(null);
-  };
+  }, []);
 
-  const switchOrg = (orgId) => {
-    const exists = memberships.find((m) => {
-      const id = typeof m.organisationId === 'object' ? m.organisationId?._id : m.organisationId;
-      return id === orgId;
-    });
-    if (exists) {
-      setActiveOrgId(orgId);
-      localStorage.setItem('brandlens_active_org_id', orgId);
-    }
-  };
+  const switchOrg = useCallback((orgId) => {
+    const exists = memberships.find((m) => extractOrgId(m.organisationId) === orgId);
+    if (exists) persistOrg(orgId);
+  }, [memberships, persistOrg]);
 
-  const activeMembership =
-    memberships.find((m) => {
-      const id = typeof m.organisationId === 'object' ? m.organisationId?._id : m.organisationId;
-      return id === activeOrgId;
-    }) || memberships[0] || null;
+  // Memoize derived values to avoid re-renders in consumers
+  const activeMembership = useMemo(
+    () =>
+      memberships.find((m) => extractOrgId(m.organisationId) === activeOrgId) ||
+      memberships[0] ||
+      null,
+    [memberships, activeOrgId]
+  );
 
-  const activeOrg =
-    activeMembership && typeof activeMembership.organisationId === 'object'
-      ? activeMembership.organisationId
-      : null;
+  const activeOrg = useMemo(
+    () =>
+      activeMembership && typeof activeMembership.organisationId === 'object'
+        ? activeMembership.organisationId
+        : null,
+    [activeMembership]
+  );
+
   const activeRole = activeMembership?.role || 'CREATOR';
 
+  const contextValue = useMemo(
+    () => ({
+      token,
+      user,
+      memberships,
+      activeOrg,
+      activeOrgId,
+      activeRole,
+      loading,
+      login,
+      register,
+      logout,
+      switchOrg,
+      refreshSession: initAuth,
+    }),
+    [token, user, memberships, activeOrg, activeOrgId, activeRole, loading, login, register, logout, switchOrg, initAuth]
+  );
+
   return (
-    <AuthContext.Provider
-      value={{
-        token,
-        user,
-        memberships,
-        activeOrg,
-        activeOrgId,
-        activeRole,
-        loading,
-        login,
-        register,
-        logout,
-        switchOrg,
-        refreshSession: initAuth,
-      }}
-    >
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );

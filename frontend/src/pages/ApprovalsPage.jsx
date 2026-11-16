@@ -55,15 +55,15 @@ export function ApprovalsPage() {
       setContents(all);
 
       const inReviewFirst = all.find((c) => c.status === 'IN_REVIEW') || all[0];
-      if (inReviewFirst && !selectedId) {
-        setSelectedId(inReviewFirst._id);
+      if (inReviewFirst) {
+        setSelectedId((prev) => prev || inReviewFirst._id);
       }
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
-  }, [activeOrg, token, selectedId]);
+  }, [activeOrg, token]);
 
   useEffect(() => {
     loadData();
@@ -154,23 +154,29 @@ export function ApprovalsPage() {
   return (
     <div className="space-y-6">
       {/* Top Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200/80">
         <div>
-          <h2 className="text-xl font-bold text-slate-900">Formal Approval Queue</h2>
-          <p className="text-xs text-slate-500">
-            Authorized human sign-off, change requests, and tamper-evident publication locking.
+          <h2 className="text-xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
+            <span>Formal Approval Queue</span>
+            <span className="text-[10px] font-bold tracking-wide uppercase px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
+              Governance Gate
+            </span>
+          </h2>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Authorized human sign-off, change requests, policy overrides, and tamper-evident publication locking.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5">
           <button
             onClick={loadData}
             title="Reload queue"
-            className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors"
+            className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-xl border border-slate-200 transition-colors"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-brand-600' : ''}`} />
           </button>
-          <span className="text-xs font-semibold px-2.5 py-1 bg-purple-50 text-purple-700 border border-purple-200 rounded-full">
-            {pendingQueue.length} Awaiting Sign-off
+          <span className="text-xs font-bold px-3 py-1 bg-gradient-to-r from-amber-50 to-amber-100/70 text-amber-800 border border-amber-200 rounded-full shadow-xs flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+            <span>{pendingQueue.length} Awaiting Sign-off</span>
           </span>
         </div>
       </div>

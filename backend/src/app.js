@@ -20,20 +20,38 @@ import auditRoutes from './modules/audit/audit.routes.js';
 
 const app = express();
 
-// Security and middleware
-app.use(helmet());
-app.use(cors({
-  origin: true,
-  credentials: true,
+// ── Security ─────────────────────────────────────────────────────────────────
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
 }));
+
+const allowedOrigins = [
+  config.frontendOrigin,
+  'http://localhost:5173',
+  'http://localhost:4173',
+].filter(Boolean);
+
+app.use(cors({
+  origin: (origin, cb) => {
+    // Allow requests with no origin (mobile apps, curl, Postman)
+    if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
+    cb(null, true); // Permissive in dev; tighten in prod if needed
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
+
+// ── Body Parsing ──────────────────────────────────────────────────────────────
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+// ── Logging ───────────────────────────────────────────────────────────────────
 if (config.env !== 'test') {
-  app.use(morgan('dev'));
+  app.use(morgan(config.env === 'production' ? 'combined' : 'dev'));
 }
 
-// Root service endpoint
+// ── Root service endpoint ─────────────────────────────────────────────────────
 app.get(['/', '/api'], (req, res) => {
   res.json({
     name: 'BrandLens AI Application API',
@@ -46,13 +64,11 @@ app.get(['/', '/api'], (req, res) => {
   });
 });
 
-// Primary backend health check
+// ── Health Checks ─────────────────────────────────────────────────────────────
 app.get('/api/health', (req, res) => {
   const dbHealth = getDatabaseHealth();
-  const isHealthy = true; // Service is running; DB status reported transparently
-
   res.status(200).json({
-    status: isHealthy ? 'healthy' : 'degraded',
+    status: 'healthy',
     service: 'backend',
     version: '1.0.0',
     timestamp: new Date().toISOString(),
@@ -62,56 +78,39 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// AI Service proxy health check (communicates via Vercel service binding AI_SERVICE_URL)
 app.get('/api/health/ai', async (req, res) => {
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 3000);
     const targetUrl = new URL('health', config.aiServiceUrl.endsWith('/') ? config.aiServiceUrl : `${config.aiServiceUrl}/`).toString();
-    const aiResponse = await fetch(targetUrl, {
-      signal: controller.signal,
-    });
+    const aiResponse = await fetch(targetUrl, { signal: controller.signal });
     clearTimeout(timeoutId);
 
-    if (!aiResponse.ok) {
-      throw new Error(`AI service responded with HTTP ${aiResponse.status}`);
-    }
+    if (!aiResponse.ok) throw new Error(`AI service responded with HTTP ${aiResponse.status}`);
 
     const aiData = await aiResponse.json();
-    res.json({
-      success: true,
-      aiServiceUrl: config.aiServiceUrl,
-      aiServiceStatus: 'reachable',
-      details: aiData,
-    });
+    res.json({ success: true, aiServiceUrl: config.aiServiceUrl, aiServiceStatus: 'reachable', details: aiData });
   } catch (error) {
-    res.status(503).json({
-      success: false,
-      aiServiceUrl: config.aiServiceUrl,
-      aiServiceStatus: 'unreachable',
-      error: error.message,
-    });
+    res.status(503).json({ success: false, aiServiceUrl: config.aiServiceUrl, aiServiceStatus: 'unreachable', error: error.message });
   }
 });
 
-// Milestone 2 Authentication, Organisations & RBAC Routes
+// ── API Routes ────────────────────────────────────────────────────────────────
 app.use('/api/auth', authRoutes);
 app.use('/api/organisations/:organisationId/members', membershipRoutes);
 app.use('/api/organisations', organisationRoutes);
 
-// Milestone 3 Brand Knowledge Base Routes
 app.use('/api/organisations/:organisationId/guidelines', guidelineRoutes);
 app.use('/api/organisations/:organisationId/facts', factRoutes);
 app.use('/api/organisations/:organisationId/terminology', terminologyRoutes);
 app.use('/api/organisations/:organisationId/assets', assetRoutes);
 app.use('/api/organisations/:organisationId/knowledge', knowledgeRoutes);
 
-// Milestones 4, 5 & 6 Content Intake, Explainable Review & Workflow Routes
 app.use('/api/organisations/:organisationId/contents/:contentId', approvalRoutes);
 app.use('/api/organisations/:organisationId/contents', contentRoutes);
 app.use('/api/organisations/:organisationId', auditRoutes);
 
-// 404 & Error Handlers
+// ── Error Handlers ────────────────────────────────────────────────────────────
 app.use(notFoundHandler);
 app.use(errorHandler);
 

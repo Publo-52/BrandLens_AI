@@ -33,24 +33,26 @@ export function computeWordDiff(oldText = '', newText = '') {
     }
   }
 
-  // Backtrack to assemble diff tokens
+  // Backtrack to assemble diff tokens (using push + reverse for O(N) performance vs O(N^2) unshift)
   const rawDiff = [];
   let i = m;
   let j = n;
 
   while (i > 0 || j > 0) {
     if (i > 0 && j > 0 && words1[i - 1] === words2[j - 1]) {
-      rawDiff.unshift({ type: 'common', value: words1[i - 1] });
+      rawDiff.push({ type: 'common', value: words1[i - 1] });
       i--;
       j--;
     } else if (j > 0 && (i === 0 || dp[i][j - 1] >= dp[i - 1][j])) {
-      rawDiff.unshift({ type: 'added', value: words2[j - 1] });
+      rawDiff.push({ type: 'added', value: words2[j - 1] });
       j--;
     } else if (i > 0) {
-      rawDiff.unshift({ type: 'removed', value: words1[i - 1] });
+      rawDiff.push({ type: 'removed', value: words1[i - 1] });
       i--;
     }
   }
+
+  rawDiff.reverse();
 
   // Group consecutive tokens of same type
   const grouped = [];

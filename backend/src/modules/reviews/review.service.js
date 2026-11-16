@@ -194,30 +194,32 @@ export async function runGroundedChecks(text, organisationId, channel, audience)
 export async function executeReview({ contentId, contentVersionId, organisationId }) {
   const startTime = Date.now();
 
-  const version = await ContentVersion.findOne({
-    _id: contentVersionId,
-    contentId,
-    organisationId,
-  });
+  // Fetch version and content concurrently
+  const [version, content] = await Promise.all([
+    ContentVersion.findOne({
+      _id: contentVersionId,
+      contentId,
+      organisationId,
+    }),
+    Content.findById(contentId),
+  ]);
 
   if (!version) {
     throw new Error('Content version not found');
   }
 
-  const content = await Content.findById(contentId);
+  // Run deterministic and grounded checks concurrently for minimal latency
+  const [deterministicFindings, groundedFindings] = await Promise.all([
+    runDeterministicChecks(version.text, organisationId),
+    runGroundedChecks(
+      version.text,
+      organisationId,
+      content?.channel,
+      content?.audience
+    ),
+  ]);
 
-  // Run deterministic checks first
-  const deterministicFindings = await runDeterministicChecks(version.text, organisationId);
-
-  // Run grounded checks second
-  const groundedFindings = await runGroundedChecks(
-    version.text,
-    organisationId,
-    content?.channel,
-    content?.audience
-  );
-
-  // Combine and deduplicate
+  // Combine findings
   const allFindings = [...deterministicFindings, ...groundedFindings];
 
   const review = await Review.create({

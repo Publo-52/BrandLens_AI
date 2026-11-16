@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, ShieldCheck, UserCheck, AlertCircle, Sparkles } from 'lucide-react';
+import { X, ShieldCheck, UserCheck, AlertCircle, Sparkles, Loader2 } from 'lucide-react';
 import { useAuth } from './AuthContext';
 
 export function AuthModal({ isOpen, onClose }) {
@@ -7,6 +7,8 @@ export function AuthModal({ isOpen, onClose }) {
   const [isRegister, setIsRegister] = useState(false);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [activeDemoRole, setActiveDemoRole] = useState(null);
+  const [isWakingServer, setIsWakingServer] = useState(false);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -49,10 +51,19 @@ export function AuthModal({ isOpen, onClose }) {
   // Quick Demo Seed/Login helper
   const handleDemoLogin = async (roleName, demoEmail, demoPass) => {
     setLoading(true);
+    setActiveDemoRole(roleName);
     setError(null);
+    setIsWakingServer(false);
+
+    // Render free-tier cold starts take 30-50s if the service is asleep
+    const wakeTimer = setTimeout(() => {
+      setIsWakingServer(true);
+    }, 2500);
+
     try {
       try {
         await login(demoEmail, demoPass);
+        clearTimeout(wakeTimer);
         onClose();
       } catch {
         // If demo user does not exist in the database yet, register them on the fly!
@@ -62,12 +73,17 @@ export function AuthModal({ isOpen, onClose }) {
           password: demoPass,
           organisationName: 'NovaTech Global',
         });
+        clearTimeout(wakeTimer);
         onClose();
       }
     } catch (err) {
+      clearTimeout(wakeTimer);
       setError(err.message);
     } finally {
+      clearTimeout(wakeTimer);
       setLoading(false);
+      setActiveDemoRole(null);
+      setIsWakingServer(false);
     }
   };
 
@@ -182,22 +198,38 @@ export function AuthModal({ isOpen, onClose }) {
                 <Sparkles className="w-3.5 h-3.5 text-amber-500" />
                 <span>Quick Role Demo Logins</span>
               </div>
+
+              {isWakingServer && (
+                <div className="mb-2 p-2 bg-amber-50 border border-amber-200 rounded text-[11px] text-amber-800 flex items-center gap-2 animate-pulse">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-600 shrink-0" />
+                  <span>Waking up free cloud server on Render (~30s on cold start)...</span>
+                </div>
+              )}
+
               <div className="grid grid-cols-2 gap-2 text-xs">
                 <button
                   type="button"
-                  onClick={() => handleDemoLogin('Admin', 'admin@novatech.demo', 'DemoPass123!')}
-                  className="px-2.5 py-1.5 bg-slate-50 hover:bg-brand-50 border border-slate-200 hover:border-brand-300 rounded text-slate-700 hover:text-brand-700 text-left font-medium transition-colors"
+                  disabled={loading}
+                  onClick={() => handleDemoLogin('Admin', 'admin@novatech.com', 'DemoPass123!')}
+                  className="px-2.5 py-1.5 bg-slate-50 hover:bg-brand-50 border border-slate-200 hover:border-brand-300 rounded text-slate-700 hover:text-brand-700 text-left font-medium transition-colors disabled:opacity-50 relative flex flex-col justify-center"
                 >
-                  <div className="font-semibold">NovaTech Admin</div>
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold">NovaTech Admin</span>
+                    {activeDemoRole === 'Admin' && <Loader2 className="w-3 h-3 animate-spin text-brand-600" />}
+                  </div>
                   <div className="text-[10px] text-slate-400">ADMIN Role</div>
                 </button>
                 <button
                   type="button"
-                  onClick={() => handleDemoLogin('Creator', 'creator@novatech.demo', 'DemoPass123!')}
-                  className="px-2.5 py-1.5 bg-slate-50 hover:bg-brand-50 border border-slate-200 hover:border-brand-300 rounded text-slate-700 hover:text-brand-700 text-left font-medium transition-colors"
+                  disabled={loading}
+                  onClick={() => handleDemoLogin('Manager', 'manager@novatech.com', 'DemoPass123!')}
+                  className="px-2.5 py-1.5 bg-slate-50 hover:bg-brand-50 border border-slate-200 hover:border-brand-300 rounded text-slate-700 hover:text-brand-700 text-left font-medium transition-colors disabled:opacity-50 relative flex flex-col justify-center"
                 >
-                  <div className="font-semibold">NovaTech Creator</div>
-                  <div className="text-[10px] text-slate-400">CREATOR Role</div>
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold">NovaTech Manager</span>
+                    {activeDemoRole === 'Manager' && <Loader2 className="w-3 h-3 animate-spin text-brand-600" />}
+                  </div>
+                  <div className="text-[10px] text-slate-400">MANAGER Role</div>
                 </button>
               </div>
             </div>

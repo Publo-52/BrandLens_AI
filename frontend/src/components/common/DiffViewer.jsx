@@ -1,17 +1,20 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { computeWordDiff } from '../../utils/diff';
 import { GitCompare, Columns, AlignJustify } from 'lucide-react';
 
 export function DiffViewer({ oldText = '', newText = '', oldLabel = 'Original Draft (v1)', newLabel = 'Revised Draft (v2)' }) {
   const [viewMode, setViewMode] = useState('inline'); // 'inline' | 'split'
-  const diffTokens = computeWordDiff(oldText, newText);
 
-  let addedCount = 0;
-  let removedCount = 0;
-  diffTokens.forEach((t) => {
-    if (t.type === 'added') addedCount += t.value.trim().split(/\s+/).filter(Boolean).length;
-    if (t.type === 'removed') removedCount += t.value.trim().split(/\s+/).filter(Boolean).length;
-  });
+  const { diffTokens, addedCount, removedCount } = useMemo(() => {
+    const tokens = computeWordDiff(oldText, newText);
+    let added = 0;
+    let removed = 0;
+    tokens.forEach((t) => {
+      if (t.type === 'added') added += t.value.trim().split(/\s+/).filter(Boolean).length;
+      if (t.type === 'removed') removed += t.value.trim().split(/\s+/).filter(Boolean).length;
+    });
+    return { diffTokens: tokens, addedCount: added, removedCount: removed };
+  }, [oldText, newText]);
 
   return (
     <div className="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-sm">

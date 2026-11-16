@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { 
   History, 
   Search, 
@@ -68,18 +68,20 @@ export function AuditPage() {
     loadAuditData();
   }, [loadAuditData]);
 
-  const filteredLogs = logs.filter((log) => {
-    if (actionFilter !== 'ALL' && log.action !== actionFilter) return false;
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      const actorName = log.actorId?.name?.toLowerCase() || '';
-      const actorEmail = log.actorId?.email?.toLowerCase() || '';
-      const actionName = log.action?.toLowerCase() || '';
-      const reason = log.details?.reason?.toLowerCase() || '';
-      return actorName.includes(q) || actorEmail.includes(q) || actionName.includes(q) || reason.includes(q);
-    }
-    return true;
-  });
+  const filteredLogs = useMemo(() => {
+    return logs.filter((log) => {
+      if (actionFilter !== 'ALL' && log.action !== actionFilter) return false;
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const actorName = log.actorId?.name?.toLowerCase() || '';
+        const actorEmail = log.actorId?.email?.toLowerCase() || '';
+        const actionName = log.action?.toLowerCase() || '';
+        const reason = log.details?.reason?.toLowerCase() || '';
+        return actorName.includes(q) || actorEmail.includes(q) || actionName.includes(q) || reason.includes(q);
+      }
+      return true;
+    });
+  }, [logs, actionFilter, searchQuery]);
 
   const getActionBadge = (action) => {
     switch (action) {

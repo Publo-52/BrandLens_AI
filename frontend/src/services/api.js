@@ -204,6 +204,9 @@ export const api = {
       headers: getHeaders(token),
     });
   },
+  async seedDemoBrandPack(orgId, token) {
+    return this.seedDemoKnowledge(orgId, token);
+  },
 
   // Content Intake & Review
   async getContents(orgId, token, filters = {}) {
