@@ -1,6 +1,6 @@
 import os
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.health import router as health_router
 
@@ -30,10 +30,24 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Normalize Vercel Serverless Function rewritten paths
+@app.middleware("http")
+async def normalize_vercel_paths(request: Request, call_next):
+    raw_path = request.scope.get("path", "")
+    for prefix in ["/api/index.py", "/api/index", "/main.py"]:
+        if raw_path.startswith(prefix):
+            stripped = raw_path[len(prefix):]
+            request.scope["path"] = stripped if stripped.startswith("/") else ("/" + stripped)
+            break
+    return await call_next(request)
+
 # Include routers
 app.include_router(health_router, tags=["Health"])
 
 @app.get("/", tags=["Root"])
+@app.get("/api/index.py", tags=["Root"], include_in_schema=False)
+@app.get("/api/index", tags=["Root"], include_in_schema=False)
+@app.get("/main.py", tags=["Root"], include_in_schema=False)
 async def root():
     return {
         "service": "BrandLens AI Analysis Engine",
