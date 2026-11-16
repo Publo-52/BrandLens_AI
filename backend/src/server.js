@@ -1,3 +1,4 @@
+// BrandLens AI Server Entrypoint
 import app from './app.js';
 import { config } from './config/env.js';
 import { connectDB } from './config/db.js';
@@ -10,6 +11,16 @@ async function startServer() {
   const server = app.listen(config.port, '0.0.0.0', () => {
     logger.info(`BrandLens AI Backend running on port ${config.port} on 0.0.0.0 (${config.env})`);
     logger.info(`Health check accessible at http://localhost:${config.port}/api/health`);
+  });
+
+  server.on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+      logger.error(`Port ${config.port} is already in use by another running server instance.`);
+      logger.info(`Run 'npx kill-port ${config.port}' to free it, or terminate other running Node processes.`);
+    } else {
+      logger.error('Server error:', err);
+    }
+    process.exit(1);
   });
 
   const shutdown = async (signal) => {
