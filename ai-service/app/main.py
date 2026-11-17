@@ -9,6 +9,7 @@ except ImportError:
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.health import router as health_router
+from app.api.extract import router as extract_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -49,6 +50,7 @@ async def normalize_vercel_paths(request: Request, call_next):
 
 # Include routers
 app.include_router(health_router, tags=["Health"])
+app.include_router(extract_router, tags=["Extraction & Visual Checks"])
 
 @app.get("/", tags=["Root"])
 @app.get("/api/index.py", tags=["Root"], include_in_schema=False)

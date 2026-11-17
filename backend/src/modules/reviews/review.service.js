@@ -219,8 +219,29 @@ export async function executeReview({ contentId, contentVersionId, organisationI
     ),
   ]);
 
-  // Combine findings
-  const allFindings = [...deterministicFindings, ...groundedFindings];
+  // Combine findings: deterministic text + grounded facts + visual/accessibility checks
+  const visualFindings = [];
+  if (version.fileReferences && version.fileReferences.length > 0) {
+    for (const fileRef of version.fileReferences) {
+      if (fileRef.visualChecks?.findings && Array.isArray(fileRef.visualChecks.findings)) {
+        for (const vf of fileRef.visualChecks.findings) {
+          visualFindings.push({
+            type: vf.type || FINDING_TYPES.ACCESSIBILITY,
+            severity: vf.severity || FINDING_SEVERITY.MEDIUM,
+            confidence: vf.confidence || 0.95,
+            location: { start: 0, end: 0, page: 1 },
+            originalText: vf.originalText || `[File: ${fileRef.originalName}]`,
+            explanation: vf.explanation || 'Visual or accessibility compliance finding.',
+            suggestedCorrection: vf.suggestedCorrection || '',
+            checkMethod: vf.checkMethod || CHECK_METHOD.DETERMINISTIC,
+            sourceReferences: vf.sourceReferences || [],
+          });
+        }
+      }
+    }
+  }
+
+  const allFindings = [...deterministicFindings, ...groundedFindings, ...visualFindings];
 
   const review = await Review.create({
     organisationId,

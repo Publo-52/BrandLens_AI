@@ -4,8 +4,10 @@ import { Content, CONTENT_STATUS, CHANNELS } from './content.model.js';
 import { ContentVersion } from './contentVersion.model.js';
 import { Review, REVIEW_STATUS } from '../reviews/review.model.js';
 import { executeReview } from '../reviews/review.service.js';
+import { BrandAsset, ASSET_TYPES } from '../assets/asset.model.js';
 import { authenticate, requireOrgAccess } from '../../middleware/auth.js';
 import { uploadToCloudinary } from '../../utils/cloudinary.js';
+import { extractAndAnalyzeFile } from '../../services/extractionService.js';
 
 const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
@@ -29,17 +31,82 @@ router.post('/', authenticate, requireOrgAccess(), upload.array('files', 5), asy
     let submittedText = text ? text.trim() : '';
     const fileReferences = [];
 
-    // Extract text from uploaded files (Milestone 4 multi-format intake)
+    // Parse alt texts mapping (keyed by originalName or index)
+    let altTextsMap = {};
+    try {
+      if (typeof req.body.altTexts === 'string') {
+        altTextsMap = JSON.parse(req.body.altTexts);
+      } else if (typeof req.body.altTexts === 'object' && req.body.altTexts !== null) {
+        altTextsMap = req.body.altTexts;
+      }
+    } catch {
+      altTextsMap = {};
+    }
+
+    // Retrieve active brand palette for visual compliance checks
+    const paletteAssets = await BrandAsset.find({
+      organisationId: orgId,
+      type: ASSET_TYPES.PALETTE,
+      isActive: true,
+    }).lean();
+    const brandPalette = paletteAssets.flatMap((a) => a.metadata?.hexColors || []);
+
+    const allowedMimes = [
+      'application/pdf',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/msword',
+      'image/jpeg',
+      'image/jpg',
+      'image/png',
+      'image/webp',
+      'text/plain',
+    ];
+
+    const allowedExts = /\.(pdf|docx|doc|jpg|jpeg|png|webp|txt)$/i;
+
+    // Extract text and visual checks from uploaded files (Multi-Format Intake)
     if (req.files && req.files.length > 0) {
-      for (const file of req.files) {
-        let extracted = '';
-        if (file.mimetype === 'text/plain') {
-          extracted = file.buffer.toString('utf-8');
-        } else {
-          // For binary formats like PDF/DOCX/Images, simulate/extract textual content
-          extracted = `[Document: ${file.originalname}] ${file.buffer.toString('utf-8', 0, Math.min(file.buffer.length, 500)).replace(/[^\x20-\x7E\t\r\n]/g, ' ')}`;
+      for (let idx = 0; idx < req.files.length; idx++) {
+        const file = req.files[idx];
+
+        // Format validation
+        if (!allowedExts.test(file.originalname) && !allowedMimes.includes(file.mimetype)) {
+          return res.status(400).json({
+            success: false,
+            error: {
+              message: `Unsupported file format for "${file.originalname}". Allowed formats: PDF, DOCX, JPG, and PNG.`,
+              statusCode: 400,
+            },
+          });
         }
 
+        // File size limit check (10MB)
+        if (file.size > 10 * 1024 * 1024) {
+          return res.status(400).json({
+            success: false,
+            error: {
+              message: `File "${file.originalname}" exceeds the 10MB limit (${(file.size / (1024 * 1024)).toFixed(1)}MB).`,
+              statusCode: 400,
+            },
+          });
+        }
+
+        const fileAltText =
+          altTextsMap[file.originalname] ||
+          altTextsMap[String(idx)] ||
+          req.body[`altText_${idx}`] ||
+          req.body.altText ||
+          '';
+
+        // Extract text & run visual accessibility checks via extraction engine
+        const analysis = await extractAndAnalyzeFile(file, {
+          altText: fileAltText,
+          brandPalette,
+        });
+
+        const extracted = analysis.extractedText || '';
+
+        // Upload to Cloudinary for durable CDN asset delivery
         let storageKey = `local_uploads/${Date.now()}_${file.originalname}`;
         try {
           const uploadResult = await uploadToCloudinary(file.buffer, {
@@ -50,7 +117,7 @@ router.post('/', authenticate, requireOrgAccess(), upload.array('files', 5), asy
             storageKey = uploadResult.secure_url;
           }
         } catch {
-          // Fallback to local storage identifier if Cloudinary is offline or in mock test mode
+          // Graceful fallback to local reference
         }
 
         fileReferences.push({
@@ -59,10 +126,14 @@ router.post('/', authenticate, requireOrgAccess(), upload.array('files', 5), asy
           size: file.size,
           storageKey,
           extractedText: extracted,
+          altText: fileAltText,
+          visualChecks: analysis.visualChecks,
         });
 
         if (!submittedText && extracted) {
           submittedText = extracted;
+        } else if (submittedText && extracted && !submittedText.includes(extracted)) {
+          submittedText = `${submittedText}\n\n[Extracted from ${file.originalname}]:\n${extracted}`;
         }
       }
     }

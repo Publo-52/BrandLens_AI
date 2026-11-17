@@ -222,13 +222,16 @@ export const api = {
     });
   },
 
-  async createContent(orgId, { title, channel, audience, text, files }, token) {
+  async createContent(orgId, { title, channel, audience, text, files, altTexts }, token) {
     inFlightRequests.clear();
     const formData = new FormData();
     formData.append('title', title);
     if (channel) formData.append('channel', channel);
     if (audience) formData.append('audience', audience);
     if (text) formData.append('text', text);
+    if (altTexts) {
+      formData.append('altTexts', typeof altTexts === 'string' ? altTexts : JSON.stringify(altTexts));
+    }
 
     if (files && files.length > 0) {
       Array.from(files).forEach((file) => {

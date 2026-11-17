@@ -30,6 +30,8 @@ const contentVersionSchema = new mongoose.Schema(
         size: Number,
         storageKey: String,
         extractedText: String,
+        altText: { type: String, default: '' },
+        visualChecks: { type: mongoose.Schema.Types.Mixed, default: null },
       },
     ],
     changeSummary: {

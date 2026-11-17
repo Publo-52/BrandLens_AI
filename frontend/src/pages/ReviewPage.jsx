@@ -16,7 +16,14 @@ import {
   ArrowRight, 
   RefreshCw, 
   Share2,
-  GitCompare 
+  GitCompare,
+  UploadCloud,
+  FileText,
+  Image as ImageIcon,
+  Trash2,
+  Eye,
+  ShieldCheck,
+  Palette
 } from 'lucide-react';
 import { useAuth } from '../features/auth/AuthContext';
 import { api } from '../services/api';
@@ -43,6 +50,9 @@ export function ReviewPage() {
   const [newChannel, setNewChannel] = useState('Social Media');
   const [newAudience, setNewAudience] = useState('Enterprise Customers');
   const [newText, setNewText] = useState('');
+  const [uploadedFiles, setUploadedFiles] = useState([]);
+  const [fileAltTexts, setFileAltTexts] = useState({});
+  const [fileError, setFileError] = useState(null);
 
   // Editing / Version Revision in workspace
   const [workingText, setWorkingText] = useState('');
@@ -113,9 +123,52 @@ export function ReviewPage() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [showNewModal, overrideModalFinding, rejectModalFinding]);
 
+  const handleFileSelect = (e) => {
+    const selected = Array.from(e.target.files || []);
+    setFileError(null);
+    if (!selected.length) return;
+
+    const allowedExts = /\.(pdf|docx|doc|jpg|jpeg|png|webp|txt)$/i;
+    const valid = [];
+
+    for (const f of selected) {
+      if (!allowedExts.test(f.name)) {
+        setFileError(`"${f.name}" has an unsupported format. Please upload PDF, DOCX, JPG, or PNG.`);
+        return;
+      }
+      if (f.size > 10 * 1024 * 1024) {
+        setFileError(`"${f.name}" exceeds the 10MB limit (${(f.size / (1024 * 1024)).toFixed(1)}MB).`);
+        return;
+      }
+      valid.push(f);
+    }
+
+    setUploadedFiles((prev) => [...prev, ...valid].slice(0, 5));
+  };
+
+  const handleRemoveFile = (index) => {
+    setUploadedFiles((prev) => {
+      const updated = [...prev];
+      const removed = updated.splice(index, 1)[0];
+      if (removed && fileAltTexts[removed.name]) {
+        const nextAlt = { ...fileAltTexts };
+        delete nextAlt[removed.name];
+        setFileAltTexts(nextAlt);
+      }
+      return updated;
+    });
+  };
+
   const handleCreateSubmission = async (e) => {
     e.preventDefault();
-    if (!newTitle.trim() || !newText.trim()) return;
+    if (!newTitle.trim()) {
+      setFileError('Please enter a content title.');
+      return;
+    }
+    if (!newText.trim() && uploadedFiles.length === 0) {
+      setFileError('Please provide draft copy or upload a supported document (.pdf, .docx, or image).');
+      return;
+    }
 
     if (!activeOrg?._id || !token) {
       setError('Please sign in or select an organisation workspace before submitting draft content.');
@@ -124,16 +177,26 @@ export function ReviewPage() {
 
     setSubmitting(true);
     setError(null);
+    setFileError(null);
     try {
       const res = await api.createContent(
         activeOrg._id,
-        { title: newTitle, channel: newChannel, audience: newAudience, text: newText },
+        {
+          title: newTitle,
+          channel: newChannel,
+          audience: newAudience,
+          text: newText,
+          files: uploadedFiles,
+          altTexts: fileAltTexts,
+        },
         token
       );
       setSuccessMsg('Content submitted and automated review completed!');
       setShowNewModal(false);
       setNewTitle('');
       setNewText('');
+      setUploadedFiles([]);
+      setFileAltTexts({});
       if (res?.content?._id) {
         setSelectedContentId(res.content._id);
         await loadContents();
@@ -143,6 +206,7 @@ export function ReviewPage() {
       }
     } catch (err) {
       setError(err.message || 'Failed to submit draft content');
+      setFileError(err.message || 'Extraction or submission error');
     } finally {
       setSubmitting(false);
     }
@@ -426,6 +490,51 @@ export function ReviewPage() {
                 </div>
               )}
 
+              {/* Attached Media & Documents Strip */}
+              {versions[versions.length - 1]?.fileReferences?.length > 0 && (
+                <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                      <FileCheck2 className="w-4 h-4 text-brand-600" />
+                      <span>Attached Documents & Media ({versions[versions.length - 1].fileReferences.length})</span>
+                    </span>
+                    <span className="text-[11px] text-slate-400">OCR & Accessibility Verified</span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {versions[versions.length - 1].fileReferences.map((fRef, fIdx) => (
+                      <div key={fIdx} className="p-2.5 bg-white border border-slate-200 rounded-lg flex items-start gap-2.5 shadow-2xs">
+                        {fRef.mimeType?.startsWith('image/') || fRef.storageKey?.includes('image') || /\.(jpg|jpeg|png|webp)$/i.test(fRef.originalName) ? (
+                          <div className="w-10 h-10 rounded bg-slate-100 overflow-hidden border border-slate-200 shrink-0 flex items-center justify-center">
+                            {fRef.storageKey?.startsWith('http') ? (
+                              <img src={fRef.storageKey} alt={fRef.altText || fRef.originalName} className="w-full h-full object-cover" />
+                            ) : (
+                              <ImageIcon className="w-5 h-5 text-indigo-500" />
+                            )}
+                          </div>
+                        ) : (
+                          <div className="w-10 h-10 rounded bg-brand-50 text-brand-600 flex items-center justify-center shrink-0 border border-brand-200">
+                            <FileText className="w-5 h-5" />
+                          </div>
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-semibold text-slate-800 truncate" title={fRef.originalName}>
+                            {fRef.originalName}
+                          </p>
+                          <p className="text-[10px] text-slate-500 truncate">
+                            {fRef.altText ? `Alt: "${fRef.altText}"` : 'No Alt Text'}
+                          </p>
+                          {fRef.visualChecks?.contrast && (
+                            <p className="text-[10px] font-mono text-slate-600 mt-0.5">
+                              Contrast: <strong>{fRef.visualChecks.contrast.ratio}:1</strong> ({fRef.visualChecks.contrast.rating})
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Content Editor / Draft Box */}
               <form onSubmit={handleSubmitRevision} className="space-y-4">
                 <div>
@@ -553,6 +662,10 @@ export function ReviewPage() {
                             ? 'bg-purple-50 text-purple-700 border-purple-200'
                             : f.type === 'CLAIM_SUPPORTED'
                             ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            : f.type === 'CONTRAST_FAIL'
+                            ? 'bg-orange-50 text-orange-700 border-orange-200'
+                            : f.type === 'ALT_TEXT_MISSING' || f.type === 'ACCESSIBILITY'
+                            ? 'bg-blue-50 text-blue-700 border-blue-200'
                             : 'bg-slate-50 text-slate-700 border-slate-200'
                         }`}>
                           {f.type}
@@ -727,14 +840,161 @@ export function ReviewPage() {
                   />
                 </div>
               </div>
+              {/* File Attachment / Multi-Format Document Intake */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-semibold text-slate-700">
+                    Upload Documents or Images (Optional)
+                  </label>
+                  <span className="text-[11px] text-slate-400">
+                    PDF, DOCX, JPG, PNG (Max 10MB)
+                  </span>
+                </div>
+
+                {/* Dropzone */}
+                <div className="border-2 border-dashed border-slate-200 hover:border-brand-400 rounded-xl p-4 text-center transition-colors bg-slate-50/50 hover:bg-slate-50 cursor-pointer relative">
+                  <input
+                    type="file"
+                    multiple
+                    accept=".pdf,.docx,.doc,.jpg,.jpeg,.png,.webp,.txt"
+                    onChange={handleFileSelect}
+                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                  />
+                  <div className="flex flex-col items-center justify-center gap-1 pointer-events-none">
+                    <div className="w-8 h-8 rounded-full bg-brand-50 text-brand-600 flex items-center justify-center">
+                      <UploadCloud className="w-4 h-4" />
+                    </div>
+                    <p className="text-xs font-semibold text-slate-700">
+                      Click or drag files here to attach
+                    </p>
+                    <p className="text-[10px] text-slate-400">
+                      Supports <strong className="text-slate-600">.pdf, .docx, .jpg, .png</strong> &bull; Automatic text extraction & WCAG contrast checks
+                    </p>
+                  </div>
+                </div>
+
+                {/* Extraction / Format Error Alert */}
+                {fileError && (
+                  <div className="p-2.5 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
+                    <span>{fileError}</span>
+                  </div>
+                )}
+
+                {/* Uploaded Files Queue */}
+                {uploadedFiles.length > 0 && (
+                  <div className="space-y-2 pt-1">
+                    {uploadedFiles.map((file, idx) => {
+                      const isImage = file.type.startsWith('image/') || /\.(jpg|jpeg|png|webp)$/i.test(file.name);
+                      const isPdf = file.name.toLowerCase().endsWith('.pdf');
+                      const altVal = fileAltTexts[file.name] || '';
+
+                      return (
+                        <div
+                          key={idx}
+                          className="p-3 bg-white border border-slate-200 rounded-xl shadow-2xs space-y-2"
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              {isImage ? (
+                                <div className="w-9 h-9 rounded-lg overflow-hidden bg-slate-100 shrink-0 border border-slate-200 flex items-center justify-center">
+                                  <img
+                                    src={URL.createObjectURL(file)}
+                                    alt={file.name}
+                                    className="w-full h-full object-cover"
+                                  />
+                                </div>
+                              ) : isPdf ? (
+                                <div className="w-9 h-9 rounded-lg bg-rose-50 text-rose-600 border border-rose-200 flex items-center justify-center shrink-0">
+                                  <FileText className="w-4 h-4" />
+                                </div>
+                              ) : (
+                                <div className="w-9 h-9 rounded-lg bg-blue-50 text-blue-600 border border-blue-200 flex items-center justify-center shrink-0">
+                                  <FileText className="w-4 h-4" />
+                                </div>
+                              )}
+                              <div className="min-w-0">
+                                <p className="text-xs font-semibold text-slate-800 truncate">
+                                  {file.name}
+                                </p>
+                                <p className="text-[10px] text-slate-400">
+                                  {(file.size / 1024).toFixed(0)} KB &bull; {isImage ? 'Image' : isPdf ? 'PDF Document' : 'DOCX Document'}
+                                </p>
+                              </div>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveFile(idx)}
+                              className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors"
+                              title="Remove file"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+
+                          {/* Image Alt-Text Input for WCAG Accessibility */}
+                          {isImage && (
+                            <div className="pt-2 border-t border-slate-100 space-y-1">
+                              <div className="flex items-center justify-between">
+                                <label className="text-[11px] font-semibold text-slate-600">
+                                  Image Alt-Text (WCAG Accessibility)
+                                </label>
+                                {altVal.trim().length >= 8 ? (
+                                  <span className="text-[10px] text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded font-medium border border-emerald-200">
+                                    Accessible ✓
+                                  </span>
+                                ) : altVal.trim().length > 0 ? (
+                                  <span className="text-[10px] text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded font-medium border border-amber-200">
+                                    Too brief (&lt; 8 chars)
+                                  </span>
+                                ) : (
+                                  <span className="text-[10px] text-rose-700 bg-rose-50 px-1.5 py-0.5 rounded font-medium border border-rose-200">
+                                    Missing Alt-Text
+                                  </span>
+                                )}
+                              </div>
+                              <input
+                                type="text"
+                                value={altVal}
+                                onChange={(e) =>
+                                  setFileAltTexts((prev) => ({
+                                    ...prev,
+                                    [file.name]: e.target.value,
+                                  }))
+                                }
+                                placeholder="Describe image context for screen readers & accessibility..."
+                                className="w-full px-2.5 py-1.5 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none"
+                              />
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
               <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1">Draft Copy</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-medium text-slate-700">
+                    Draft Copy {uploadedFiles.length > 0 ? '(Optional if text is in uploaded files)' : ''}
+                  </label>
+                  {uploadedFiles.length > 0 && (
+                    <span className="text-[11px] text-brand-600 font-medium">
+                      Copy will be auto-extracted from document
+                    </span>
+                  )}
+                </div>
                 <textarea
-                  required
-                  rows={5}
+                  rows={4}
                   value={newText}
                   onChange={(e) => setNewText(e.target.value)}
-                  placeholder="Paste marketing copy or text to review..."
+                  placeholder={
+                    uploadedFiles.length > 0
+                      ? 'You can leave this empty to auto-extract text from your uploaded file, or paste draft copy here...'
+                      : 'Paste marketing copy or text to review...'
+                  }
                   className="w-full p-3 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none leading-relaxed"
                 />
               </div>
@@ -755,7 +1015,7 @@ export function ReviewPage() {
                   {submitting ? (
                     <>
                       <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                      <span>Analyzing Draft...</span>
+                      <span>Extracting & Analyzing...</span>
                     </>
                   ) : (
                     <>

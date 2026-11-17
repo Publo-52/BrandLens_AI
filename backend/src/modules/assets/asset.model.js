@@ -72,3 +72,4 @@ assetSchema.methods.toJSON = function () {
 };
 
 export const Asset = mongoose.model('Asset', assetSchema);
+export const BrandAsset = Asset;
