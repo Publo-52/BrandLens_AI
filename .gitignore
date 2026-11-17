@@ -20,6 +20,7 @@ eggs/
 .eggs/
 lib/
 lib64/
+!frontend/src/lib/
 parts/
 sdist/
 var/
@@ -46,6 +47,8 @@ build/
 .env.test.local
 .env.production.local
 *.pem
+*-firebase-adminsdk-*.json
+firebase-adminsdk*.json
 
 # IDE & Editor files
 .idea/

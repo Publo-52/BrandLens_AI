@@ -3,6 +3,12 @@ import bcrypt from 'bcryptjs';
 
 const userSchema = new mongoose.Schema(
   {
+    firebaseUid: {
+      type: String,
+      unique: true,
+      sparse: true,
+      index: true,
+    },
     name: {
       type: String,
       required: [true, 'Name is required'],
@@ -16,10 +22,15 @@ const userSchema = new mongoose.Schema(
       lowercase: true,
       trim: true,
       match: [/^\S+@\S+\.\S+$/, 'Please provide a valid email address'],
+      index: true,
     },
     passwordHash: {
       type: String,
-      required: [true, 'Password hash is required'],
+      default: null,
+    },
+    avatarUrl: {
+      type: String,
+      default: '',
     },
     isActive: {
       type: Boolean,
@@ -31,8 +42,9 @@ const userSchema = new mongoose.Schema(
   }
 );
 
-// Method to compare password
+// Method to compare password (for local / demo fallback accounts)
 userSchema.methods.comparePassword = async function (candidatePassword) {
+  if (!this.passwordHash) return false;
   return bcrypt.compare(candidatePassword, this.passwordHash);
 };
 
@@ -50,4 +62,5 @@ userSchema.methods.toJSON = function () {
   return obj;
 };
 
-export const User = mongoose.model('User', userSchema);
+export const User = mongoose.models.User || mongoose.model('User', userSchema);
+export default User;

@@ -24,7 +24,14 @@ const membershipSchema = new mongoose.Schema(
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      required: [true, 'User ID is required'],
+      default: null,
+      index: true,
+    },
+    invitedEmail: {
+      type: String,
+      lowercase: true,
+      trim: true,
+      default: null,
       index: true,
     },
     role: {
@@ -45,8 +52,16 @@ const membershipSchema = new mongoose.Schema(
   }
 );
 
-// Enforce unique user per organisation
-membershipSchema.index({ organisationId: 1, userId: 1 }, { unique: true });
+// Unique compound indexes
+membershipSchema.index(
+  { organisationId: 1, userId: 1 },
+  { unique: true, partialFilterExpression: { userId: { $type: 'objectId' } } }
+);
+
+membershipSchema.index(
+  { organisationId: 1, invitedEmail: 1 },
+  { unique: true, partialFilterExpression: { invitedEmail: { $type: 'string' } } }
+);
 
 membershipSchema.methods.toJSON = function () {
   const obj = this.toObject();
@@ -54,4 +69,5 @@ membershipSchema.methods.toJSON = function () {
   return obj;
 };
 
-export const Membership = mongoose.model('Membership', membershipSchema);
+export const Membership = mongoose.models.Membership || mongoose.model('Membership', membershipSchema);
+export default Membership;

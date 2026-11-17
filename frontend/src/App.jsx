@@ -1,6 +1,6 @@
 import React, { useState, lazy, Suspense } from 'react';
 import { Layout } from './components/layout/Layout';
-import { AuthProvider } from './features/auth/AuthContext';
+import { AuthProvider, useAuth } from './features/auth/AuthContext';
 import { Loader2 } from 'lucide-react';
 
 // Code-split pages for instant initial load and optimal browser caching
@@ -14,15 +14,27 @@ const SettingsPage = lazy(() => import('./pages/SettingsPage').then((m) => ({ de
 
 function PageLoadingFallback() {
   return (
-    <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-3">
-      <Loader2 className="w-6 h-6 text-brand-600 animate-spin" />
-      <span className="text-xs text-slate-400 font-medium tracking-wide">Loading workspace...</span>
+    <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-3">
+      <Loader2 className="w-7 h-7 text-teal-600 animate-spin" />
+      <span className="text-xs text-slate-400 font-medium tracking-wide">Loading BrandLens AI...</span>
     </div>
   );
 }
 
-function AppContent() {
+function MainApp() {
+  const { loading } = useAuth();
   const [currentTab, setCurrentTab] = useState('dashboard');
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center space-y-3">
+        <Loader2 className="w-8 h-8 text-teal-400 animate-spin" />
+        <span className="text-xs text-teal-300 font-medium tracking-wider uppercase">
+          Loading BrandLens AI...
+        </span>
+      </div>
+    );
+  }
 
   const renderContent = () => {
     switch (currentTab) {
@@ -46,10 +58,7 @@ function AppContent() {
   };
 
   return (
-    <Layout
-      currentTab={currentTab}
-      onSelectTab={setCurrentTab}
-    >
+    <Layout currentTab={currentTab} onSelectTab={setCurrentTab}>
       <Suspense fallback={<PageLoadingFallback />}>
         {renderContent()}
       </Suspense>
@@ -60,7 +69,7 @@ function AppContent() {
 export function App() {
   return (
     <AuthProvider>
-      <AppContent />
+      <MainApp />
     </AuthProvider>
   );
 }

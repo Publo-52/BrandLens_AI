@@ -10,14 +10,17 @@ import {
   Sparkles,
   Shield,
   Layers,
-  CheckCircle2
+  CheckCircle2,
+  Plus
 } from 'lucide-react';
 import { useAuth } from '../../features/auth/AuthContext';
 import { AuthModal } from '../../features/auth/AuthModal';
+import { CreateWorkspaceModal } from '../CreateWorkspaceModal';
 
 export function Navbar({ onToggleMobileMenu, isMobileMenuOpen = false }) {
-  const { user, activeOrg, activeRole, logout, switchOrganisation } = useAuth();
+  const { user, activeOrg, activeRole, workspaces, logout, switchOrg } = useAuth();
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const [showOrgDropdown, setShowOrgDropdown] = useState(false);
   const [showUserDropdown, setShowUserDropdown] = useState(false);
 
@@ -83,7 +86,7 @@ export function Navbar({ onToggleMobileMenu, isMobileMenuOpen = false }) {
         {/* Right side controls */}
         <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
           {/* Workspace selector */}
-          {user && (
+          {(activeOrg || user) && (
             <div className="relative">
               <button
                 onClick={() => setShowOrgDropdown((prev) => !prev)}
@@ -92,34 +95,73 @@ export function Navbar({ onToggleMobileMenu, isMobileMenuOpen = false }) {
                 <div className="w-5 h-5 rounded-lg bg-white shadow-xs border border-slate-200/60 flex items-center justify-center shrink-0">
                   <Building2 className="w-3 h-3 text-brand-600" />
                 </div>
-                <span className="font-semibold max-w-[80px] xs:max-w-[110px] sm:max-w-[140px] truncate text-slate-800 text-[11px] sm:text-xs">
-                  {activeOrg?.name || 'Workspace'}
-                </span>
+                <div className="flex flex-col text-left">
+                  <span className="font-semibold max-w-[80px] xs:max-w-[110px] sm:max-w-[140px] truncate text-slate-800 text-[11px] sm:text-xs leading-tight">
+                    {activeOrg?.name || 'Workspace'}
+                  </span>
+                  <span className={`text-[9px] font-bold uppercase tracking-wider ${
+                    activeRole === 'ADMIN' ? 'text-purple-600' :
+                    activeRole === 'MANAGER' ? 'text-blue-600' :
+                    activeRole === 'REVIEWER' ? 'text-amber-600' : 'text-emerald-600'
+                  }`}>
+                    {activeRole}
+                  </span>
+                </div>
                 <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 shrink-0 ${showOrgDropdown ? 'rotate-180' : ''}`} />
               </button>
 
               {showOrgDropdown && (
-                <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-xl border border-slate-200/90 py-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
-                  <div className="px-3.5 py-2 border-b border-slate-100 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                    Your Workspaces
+                <div className="absolute right-0 mt-2 w-72 bg-white rounded-2xl shadow-xl border border-slate-200/90 py-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
+                  <div className="px-3.5 py-2 border-b border-slate-100 flex items-center justify-between">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                      Your Workspaces ({workspaces?.length || 0})
+                    </span>
+                    <span className="text-[10px] font-mono text-slate-400">Multi-Tenant</span>
                   </div>
-                  {user.memberships?.map((m) => (
+
+                  <div className="max-h-60 overflow-y-auto py-1">
+                    {workspaces?.map((w) => {
+                      const orgId = String(w._id || w.id);
+                      const isActive = String(activeOrg?._id || activeOrg?.id) === orgId;
+                      return (
+                        <button
+                          key={orgId}
+                          onClick={() => {
+                            switchOrg(orgId);
+                            setShowOrgDropdown(false);
+                          }}
+                          className={`w-full px-3.5 py-2.5 text-left text-xs flex items-center justify-between transition-colors ${
+                            isActive ? 'bg-brand-50/80 text-brand-900 font-bold' : 'hover:bg-slate-50 text-slate-700'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            {isActive ? (
+                              <CheckCircle2 className="w-3.5 h-3.5 text-brand-600 shrink-0" />
+                            ) : (
+                              <Building2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                            )}
+                            <span className="truncate">{w.name || 'Unnamed Org'}</span>
+                          </div>
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full border font-bold shrink-0 ${getRoleBadgeColor(w.role)}`}>
+                            {w.role}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <div className="p-1.5 border-t border-slate-100">
                     <button
-                      key={m.organisationId?._id || m.organisationId}
                       onClick={() => {
-                        switchOrganisation(m.organisationId?._id || m.organisationId);
                         setShowOrgDropdown(false);
+                        setShowCreateModal(true);
                       }}
-                      className="w-full px-3.5 py-2.5 text-left text-xs hover:bg-brand-50/70 flex items-center justify-between transition-colors"
+                      className="w-full px-3 py-2 text-left text-xs text-brand-600 hover:bg-brand-50/80 rounded-xl flex items-center gap-2 font-bold transition-colors"
                     >
-                      <span className="font-semibold text-slate-800 truncate">
-                        {m.organisationId?.name || 'Unnamed Org'}
-                      </span>
-                      <span className={`text-[10px] px-2 py-0.5 rounded-full border font-bold ${getRoleBadgeColor(m.role)}`}>
-                        {m.role}
-                      </span>
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>+ Create Workspace</span>
                     </button>
-                  ))}
+                  </div>
                 </div>
               )}
             </div>
@@ -182,10 +224,17 @@ export function Navbar({ onToggleMobileMenu, isMobileMenuOpen = false }) {
         </div>
       </header>
 
-      {/* Auth Modal */}
+      {/* Auth Modal (if triggered while logged out in header) */}
       <AuthModal
         isOpen={showAuthModal}
         onClose={() => setShowAuthModal(false)}
+      />
+
+      {/* Create Workspace Modal */}
+      <CreateWorkspaceModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        canClose={true}
       />
     </>
   );

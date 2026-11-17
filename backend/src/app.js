@@ -8,6 +8,7 @@ import { connectDB, getDatabaseHealth } from './config/db.js';
 import { notFoundHandler, errorHandler } from './middleware/errorHandler.js';
 import authRoutes from './modules/auth/auth.routes.js';
 import organisationRoutes from './modules/organisations/organisation.routes.js';
+import workspaceRoutes from './modules/organisations/workspace.routes.js';
 import membershipRoutes from './modules/members/membership.routes.js';
 import guidelineRoutes from './modules/guidelines/guideline.routes.js';
 import factRoutes from './modules/facts/fact.routes.js';
@@ -39,7 +40,7 @@ app.use(cors({
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-organisation-id', 'X-Organisation-Id'],
 }));
 
 // ── Body Parsing ──────────────────────────────────────────────────────────────
@@ -97,6 +98,7 @@ app.get('/api/health/ai', async (req, res) => {
 
 // ── API Routes ────────────────────────────────────────────────────────────────
 app.use('/api/auth', authRoutes);
+app.use('/api/workspaces', workspaceRoutes);
 app.use('/api/organisations/:organisationId/members', membershipRoutes);
 app.use('/api/organisations', organisationRoutes);
 

@@ -8,6 +8,8 @@ export default {
     extend: {
       spacing: {
         '4.5': '1.125rem',
+        '8.5': '2.125rem',
+        '9.5': '2.375rem',
       },
       boxShadow: {
         'xs': '0 1px 2px 0 rgba(0, 0, 0, 0.05)',

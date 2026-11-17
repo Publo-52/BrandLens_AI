@@ -15,6 +15,12 @@ const organisationSchema = new mongoose.Schema(
       lowercase: true,
       trim: true,
       match: [/^[a-z0-9-]+$/, 'Slug can only contain lowercase letters, numbers, and hyphens'],
+      index: true,
+    },
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null,
     },
     logoAssetId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -43,4 +49,5 @@ organisationSchema.methods.toJSON = function () {
   return obj;
 };
 
-export const Organisation = mongoose.model('Organisation', organisationSchema);
+export const Organisation = mongoose.models.Organisation || mongoose.model('Organisation', organisationSchema);
+export default Organisation;

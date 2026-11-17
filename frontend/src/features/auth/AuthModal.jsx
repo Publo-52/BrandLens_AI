@@ -11,18 +11,21 @@ import {
   User, 
   Building2,
   Shield,
-  ArrowRight
+  ArrowRight,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { useAuth } from './AuthContext';
 
 export function AuthModal({ isOpen, onClose }) {
-  const { login, register, loginWithGoogle } = useAuth();
+  const { login, register, loginWithGoogle, loginWithDemoRole } = useAuth();
   const [isRegister, setIsRegister] = useState(false);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [activeDemoRole, setActiveDemoRole] = useState(null);
   const [isWakingServer, setIsWakingServer] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -54,6 +57,12 @@ export function AuthModal({ isOpen, onClose }) {
     setLoading(true);
     setError(null);
 
+    if (isRegister && formData.password && formData.password.length < 8) {
+      setError('Password must be at least 8 characters long.');
+      setLoading(false);
+      return;
+    }
+
     try {
       if (isRegister) {
         await register({
@@ -67,7 +76,17 @@ export function AuthModal({ isOpen, onClose }) {
       }
       onClose();
     } catch (err) {
-      setError(err.message || 'Authentication failed');
+      let msg = err.message || 'Authentication failed';
+      if (err.code === 'auth/email-already-in-use') {
+        msg = 'This email is already registered. Please sign in instead.';
+      } else if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+        msg = 'Invalid email or password.';
+      } else if (err.code === 'auth/user-not-found') {
+        msg = 'No account found with this email. Please create an account.';
+      } else if (err.code === 'auth/weak-password') {
+        msg = 'Password must be at least 8 characters.';
+      }
+      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -97,42 +116,23 @@ export function AuthModal({ isOpen, onClose }) {
     }
   };
 
-  // Quick Demo Seed/Login helper
-  const handleDemoLogin = async (roleName, demoEmail, demoPass) => {
+  // Quick Demo Role Login helper
+  const handleDemoLogin = async (roleName) => {
     setLoading(true);
     setActiveDemoRole(roleName);
     setError(null);
-    setIsWakingServer(false);
-
-    // Render free-tier cold starts take 30-50s if the service is asleep
-    const wakeTimer = setTimeout(() => {
-      setIsWakingServer(true);
-    }, 2500);
-
     try {
-      try {
-        await login(demoEmail, demoPass);
-        clearTimeout(wakeTimer);
-        onClose();
-      } catch {
-        // If demo user does not exist in the database yet, register them on the fly
-        await register({
-          name: `NovaTech ${roleName}`,
-          email: demoEmail,
-          password: demoPass,
-          organisationName: 'NovaTech Global',
-        });
-        clearTimeout(wakeTimer);
-        onClose();
+      if (loginWithDemoRole) {
+        await loginWithDemoRole(roleName.toUpperCase());
+      } else {
+        await login(`${roleName.toLowerCase()}@novatech.demo`, 'NovaTechDemo2026!');
       }
+      onClose();
     } catch (err) {
-      clearTimeout(wakeTimer);
-      setError(err.message);
+      setError(err.message || `Failed to sign in as ${roleName}`);
     } finally {
-      clearTimeout(wakeTimer);
       setLoading(false);
       setActiveDemoRole(null);
-      setIsWakingServer(false);
     }
   };
 
@@ -323,21 +323,39 @@ export function AuthModal({ isOpen, onClose }) {
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                Password
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  Password
+                </label>
+                {isRegister && (
+                  <span className="text-[10px] text-slate-400 font-medium">Min. 8 characters</span>
+                )}
+              </div>
               <div className="relative">
                 <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
                 <input
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   name="password"
                   required
-                  minLength={6}
+                  minLength={8}
                   value={formData.password}
                   onChange={handleChange}
-                  placeholder="Minimum 6 characters"
-                  className="w-full pl-9 pr-3.5 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white"
+                  placeholder="Minimum 8 characters"
+                  className="w-full pl-9 pr-10 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  className="absolute right-3 top-2.5 p-0.5 text-slate-400 hover:text-slate-600 focus:outline-none transition-colors"
+                  title={showPassword ? 'Hide password' : 'Show password'}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? (
+                    <EyeOff className="w-4 h-4 text-slate-500" />
+                  ) : (
+                    <Eye className="w-4 h-4 text-slate-400" />
+                  )}
+                </button>
               </div>
             </div>
 
@@ -387,35 +405,69 @@ export function AuthModal({ isOpen, onClose }) {
                 <button
                   type="button"
                   disabled={loading}
-                  onClick={() => handleDemoLogin('Admin', 'admin@novatech.com', 'DemoPass123!')}
-                  className="p-3 bg-gradient-to-br from-purple-50 to-slate-50 hover:from-purple-100 hover:to-purple-50 border border-purple-200 rounded-xl text-left transition-all disabled:opacity-50 relative flex flex-col justify-between group shadow-2xs"
+                  onClick={() => handleDemoLogin('ADMIN')}
+                  className="p-2.5 bg-gradient-to-br from-purple-50 to-slate-50 hover:from-purple-100 hover:to-purple-50 border border-purple-200 rounded-xl text-left transition-all disabled:opacity-50 relative flex flex-col justify-between group shadow-2xs"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="font-bold text-purple-900">NovaTech Admin</span>
-                    {activeDemoRole === 'Admin' ? (
+                    <span className="font-bold text-purple-900">Admin</span>
+                    {activeDemoRole === 'ADMIN' ? (
                       <Loader2 className="w-3.5 h-3.5 animate-spin text-purple-600" />
                     ) : (
                       <Shield className="w-3.5 h-3.5 text-purple-500 group-hover:scale-110 transition-transform" />
                     )}
                   </div>
-                  <div className="text-[10px] text-purple-700 font-mono mt-1">ADMIN Role &bull; Full Access</div>
+                  <div className="text-[10px] text-purple-700 font-mono mt-0.5">Full workspace control</div>
                 </button>
 
                 <button
                   type="button"
                   disabled={loading}
-                  onClick={() => handleDemoLogin('Manager', 'manager@novatech.com', 'DemoPass123!')}
-                  className="p-3 bg-gradient-to-br from-indigo-50 to-slate-50 hover:from-indigo-100 hover:to-indigo-50 border border-indigo-200 rounded-xl text-left transition-all disabled:opacity-50 relative flex flex-col justify-between group shadow-2xs"
+                  onClick={() => handleDemoLogin('MANAGER')}
+                  className="p-2.5 bg-gradient-to-br from-indigo-50 to-slate-50 hover:from-indigo-100 hover:to-indigo-50 border border-indigo-200 rounded-xl text-left transition-all disabled:opacity-50 relative flex flex-col justify-between group shadow-2xs"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="font-bold text-indigo-900">NovaTech Manager</span>
-                    {activeDemoRole === 'Manager' ? (
+                    <span className="font-bold text-indigo-900">Manager</span>
+                    {activeDemoRole === 'MANAGER' ? (
                       <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-600" />
                     ) : (
                       <ShieldCheck className="w-3.5 h-3.5 text-indigo-500 group-hover:scale-110 transition-transform" />
                     )}
                   </div>
-                  <div className="text-[10px] text-indigo-700 font-mono mt-1">MANAGER Role &bull; Release Approver</div>
+                  <div className="text-[10px] text-indigo-700 font-mono mt-0.5">Rules & Approvals</div>
+                </button>
+
+                <button
+                  type="button"
+                  disabled={loading}
+                  onClick={() => handleDemoLogin('REVIEWER')}
+                  className="p-2.5 bg-gradient-to-br from-amber-50 to-slate-50 hover:from-amber-100 hover:to-amber-50 border border-amber-200 rounded-xl text-left transition-all disabled:opacity-50 relative flex flex-col justify-between group shadow-2xs"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-amber-900">Reviewer</span>
+                    {activeDemoRole === 'REVIEWER' ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-600" />
+                    ) : (
+                      <UserCheck className="w-3.5 h-3.5 text-amber-500 group-hover:scale-110 transition-transform" />
+                    )}
+                  </div>
+                  <div className="text-[10px] text-amber-700 font-mono mt-0.5">Review queue sign-off</div>
+                </button>
+
+                <button
+                  type="button"
+                  disabled={loading}
+                  onClick={() => handleDemoLogin('CREATOR')}
+                  className="p-2.5 bg-gradient-to-br from-emerald-50 to-slate-50 hover:from-emerald-100 hover:to-emerald-50 border border-emerald-200 rounded-xl text-left transition-all disabled:opacity-50 relative flex flex-col justify-between group shadow-2xs"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-emerald-900">Creator</span>
+                    {activeDemoRole === 'CREATOR' ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-600" />
+                    ) : (
+                      <Building2 className="w-3.5 h-3.5 text-emerald-500 group-hover:scale-110 transition-transform" />
+                    )}
+                  </div>
+                  <div className="text-[10px] text-emerald-700 font-mono mt-0.5">Drafts only (403 restricted)</div>
                 </button>
               </div>
             </div>

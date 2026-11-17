@@ -31,6 +31,7 @@ router.get('/', authenticate, async (req, res, next) => {
 
     res.json({
       success: true,
+      workspaces: organisations,
       organisations,
     });
   } catch (error) {

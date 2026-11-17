@@ -11,14 +11,21 @@ const getDevApiBase = () => {
 };
 
 const API_BASE = (
-  import.meta.env.VITE_API_BASE_URL ||
-  (import.meta.env.DEV ? getDevApiBase() : 'https://brandlens-backend-ghtd.onrender.com')
+  import.meta.env.DEV
+    ? (import.meta.env.VITE_DEV_API_URL || getDevApiBase())
+    : (import.meta.env.VITE_API_BASE_URL || 'https://brandlens-backend-ghtd.onrender.com')
 ).replace(/\/+$/, '');
 
-function getHeaders(token) {
+function getHeaders(token, organisationId) {
   const headers = { 'Content-Type': 'application/json' };
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
+  }
+  const orgId =
+    organisationId ||
+    (typeof window !== 'undefined' ? localStorage.getItem('brandlens_active_org_id') : null);
+  if (orgId) {
+    headers['x-organisation-id'] = orgId;
   }
   return headers;
 }
@@ -126,6 +133,29 @@ export const api = {
     });
   },
 
+  // Workspaces
+  async getWorkspaces(token) {
+    return await request(`${API_BASE}/api/workspaces`, {
+      headers: getHeaders(token),
+    });
+  },
+
+  async createWorkspace({ name, settings }, token) {
+    return await request(`${API_BASE}/api/workspaces`, {
+      method: 'POST',
+      headers: getHeaders(token),
+      body: JSON.stringify({ name, settings }),
+    });
+  },
+
+  async demoLogin(role) {
+    return await request(`${API_BASE}/api/workspaces/demo-login`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ role }),
+    });
+  },
+
   // Organisations
   async getOrganisations(token) {
     return await request(`${API_BASE}/api/organisations`, {
@@ -136,7 +166,7 @@ export const api = {
   async updateOrganisation(orgId, updateData, token) {
     return await request(`${API_BASE}/api/organisations/${orgId}`, {
       method: 'PATCH',
-      headers: getHeaders(token),
+      headers: getHeaders(token, orgId),
       body: JSON.stringify(updateData),
     });
   },
@@ -144,24 +174,40 @@ export const api = {
   // Members & RBAC
   async getMembers(orgId, token) {
     return await request(`${API_BASE}/api/organisations/${orgId}/members`, {
-      headers: getHeaders(token),
+      headers: getHeaders(token, orgId),
     });
   },
 
   async inviteMember(orgId, { email, role, name }, token) {
-    return await request(`${API_BASE}/api/organisations/${orgId}/members`, {
-      method: 'POST',
-      headers: getHeaders(token),
-      body: JSON.stringify({ email, role, name }),
-    });
+    try {
+      return await request(`${API_BASE}/api/workspaces/${orgId}/invite`, {
+        method: 'POST',
+        headers: getHeaders(token, orgId),
+        body: JSON.stringify({ email, role, name }),
+      });
+    } catch (err) {
+      return await request(`${API_BASE}/api/organisations/${orgId}/members`, {
+        method: 'POST',
+        headers: getHeaders(token, orgId),
+        body: JSON.stringify({ email, role, name }),
+      });
+    }
   },
 
   async updateMemberRole(orgId, memberId, role, token) {
-    return await request(`${API_BASE}/api/organisations/${orgId}/members/${memberId}`, {
-      method: 'PATCH',
-      headers: getHeaders(token),
-      body: JSON.stringify({ role }),
-    });
+    try {
+      return await request(`${API_BASE}/api/workspaces/${orgId}/members/${memberId}`, {
+        method: 'PATCH',
+        headers: getHeaders(token, orgId),
+        body: JSON.stringify({ role }),
+      });
+    } catch (err) {
+      return await request(`${API_BASE}/api/organisations/${orgId}/members/${memberId}`, {
+        method: 'PATCH',
+        headers: getHeaders(token, orgId),
+        body: JSON.stringify({ role }),
+      });
+    }
   },
 
   // Guidelines

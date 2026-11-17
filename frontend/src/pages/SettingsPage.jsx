@@ -313,25 +313,25 @@ export function SettingsPage() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
               <div className="relative">
-                <User className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-3" />
+                <User className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                 <input
                   type="text"
                   placeholder="Full Name"
                   value={inviteName}
                   onChange={(e) => setInviteName(e.target.value)}
-                  className="w-full pl-8.5 pr-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white"
+                  className="w-full pl-9.5 sm:pl-10 pr-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white"
                 />
               </div>
 
               <div className="relative">
-                <Mail className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-3" />
+                <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                 <input
                   type="email"
                   required
                   placeholder="colleague@company.com"
                   value={inviteEmail}
                   onChange={(e) => setInviteEmail(e.target.value)}
-                  className="w-full pl-8.5 pr-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white"
+                  className="w-full pl-9.5 sm:pl-10 pr-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white"
                 />
               </div>
 
@@ -380,17 +380,24 @@ export function SettingsPage() {
               {members.map((m) => {
                 const u = m.userId;
                 const isCurrentUser = u?._id === user?._id;
-                const initial = u?.name ? u.name.charAt(0).toUpperCase() : 'U';
+                const nameDisplay = u?.name || (m.invitedEmail ? `Invited (${m.invitedEmail.split('@')[0]})` : 'Pending Teammate');
+                const emailDisplay = u?.email || m.invitedEmail || '—';
+                const initial = nameDisplay ? nameDisplay.charAt(0).toUpperCase() : 'U';
+                const isInvited = m.status === 'INVITED';
                 return (
                   <tr key={m._id} className="hover:bg-slate-50/80 transition-colors">
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-brand-100 to-indigo-100 border border-brand-200 text-brand-700 flex items-center justify-center text-xs font-bold shadow-2xs">
+                        <div className={`w-8 h-8 rounded-xl border flex items-center justify-center text-xs font-bold shadow-2xs ${
+                          isInvited
+                            ? 'bg-amber-50 border-amber-200 text-amber-700'
+                            : 'bg-gradient-to-br from-brand-100 to-indigo-100 border-brand-200 text-brand-700'
+                        }`}>
                           {initial}
                         </div>
                         <div>
                           <div className="font-semibold text-slate-800 flex items-center gap-1.5">
-                            <span>{u?.name || 'Unnamed Collaborator'}</span>
+                            <span>{nameDisplay}</span>
                             {isCurrentUser && (
                               <span className="text-[10px] text-brand-600 font-bold bg-brand-50 px-1.5 py-0.2 rounded-full border border-brand-200">
                                 You
@@ -400,7 +407,7 @@ export function SettingsPage() {
                         </div>
                       </div>
                     </td>
-                    <td className="py-3 px-4 font-mono text-slate-500">{u?.email}</td>
+                    <td className="py-3 px-4 font-mono text-slate-500">{emailDisplay}</td>
                     <td className="py-3 px-4">
                       {isAdmin && !isCurrentUser ? (
                         <select
@@ -419,10 +426,17 @@ export function SettingsPage() {
                       )}
                     </td>
                     <td className="py-3 px-4">
-                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                        {m.status || 'ACTIVE'}
-                      </span>
+                      {isInvited ? (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-700 bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-200">
+                          <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                          INVITED (Pending)
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                          {m.status || 'ACTIVE'}
+                        </span>
+                      )}
                     </td>
                     {isAdmin && (
                       <td className="py-3 px-4 text-right">
