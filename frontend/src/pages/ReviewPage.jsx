@@ -23,7 +23,8 @@ import {
   Trash2,
   Eye,
   ShieldCheck,
-  Palette
+  Palette,
+  Edit3
 } from 'lucide-react';
 import { useAuth } from '../features/auth/AuthContext';
 import { api } from '../services/api';
@@ -60,12 +61,18 @@ export function ReviewPage() {
   const [submittingRevision, setSubmittingRevision] = useState(false);
   const [showDiff, setShowDiff] = useState(false);
 
-  // Overrides / Comments
+  // Overrides / Comments / Rejections / Edits
   const [commentInput, setCommentInput] = useState('');
   const [overrideModalFinding, setOverrideModalFinding] = useState(null);
   const [overrideReason, setOverrideReason] = useState('');
   const [rejectReason, setRejectReason] = useState('');
   const [rejectModalFinding, setRejectModalFinding] = useState(null);
+  const [editModalFinding, setEditModalFinding] = useState(null);
+  const [editedSuggestionText, setEditedSuggestionText] = useState('');
+
+  // Side-by-Side Version Diff comparison
+  const [diffBaseVersionId, setDiffBaseVersionId] = useState('');
+  const [diffTargetVersionId, setDiffTargetVersionId] = useState('current_draft');
 
   const loadContents = useCallback(async () => {
     if (!activeOrg?._id || !token) return;
@@ -117,11 +124,21 @@ export function ReviewPage() {
         if (showNewModal) setShowNewModal(false);
         if (overrideModalFinding) setOverrideModalFinding(null);
         if (rejectModalFinding) setRejectModalFinding(null);
+        if (editModalFinding) setEditModalFinding(null);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [showNewModal, overrideModalFinding, rejectModalFinding]);
+  }, [showNewModal, overrideModalFinding, rejectModalFinding, editModalFinding]);
+
+  // Sync default diff versions whenever versions change
+  useEffect(() => {
+    if (versions.length > 0) {
+      if (!diffBaseVersionId || !versions.some((v) => v._id === diffBaseVersionId)) {
+        setDiffBaseVersionId(versions[0]._id);
+      }
+    }
+  }, [versions, diffBaseVersionId]);
 
   const handleFileSelect = (e) => {
     const selected = Array.from(e.target.files || []);
@@ -212,10 +229,76 @@ export function ReviewPage() {
     }
   };
 
-  const handleApplyFix = (original, suggestion) => {
-    if (!suggestion) return;
+  const handleApplyFix = async (finding) => {
+    if (!finding?.suggestedCorrection) return;
+    const original = finding.originalText;
+    const suggestion = finding.suggestedCorrection;
     setWorkingText((prev) => (prev ? prev.replace(original, suggestion) : suggestion));
     setSuccessMsg(`Applied fix: "${suggestion}"`);
+
+    if (finding._id && activeOrg?._id && selectedContentId && token) {
+      try {
+        await api.updateFindingDecision(
+          activeOrg._id,
+          selectedContentId,
+          finding._id,
+          { reviewStatus: 'ACCEPTED' },
+          token
+        );
+        setLatestReview((prev) => {
+          if (!prev?.findings) return prev;
+          return {
+            ...prev,
+            findings: prev.findings.map((item) =>
+              item._id === finding._id ? { ...item, reviewStatus: 'ACCEPTED' } : item
+            ),
+          };
+        });
+      } catch (err) {
+        console.error('Failed to record accepted finding decision:', err);
+      }
+    }
+  };
+
+  const handleOpenEditModal = (finding) => {
+    setEditModalFinding(finding);
+    setEditedSuggestionText(finding.editedText || finding.suggestedCorrection || '');
+  };
+
+  const handleApplyEditedFix = async () => {
+    if (!editModalFinding || !editedSuggestionText.trim()) return;
+    const original = editModalFinding.originalText;
+    const replacement = editedSuggestionText.trim();
+
+    setWorkingText((prev) => (prev ? prev.replace(original, replacement) : replacement));
+    setSuccessMsg(`Applied custom edited fix: "${replacement}"`);
+
+    if (editModalFinding._id && activeOrg?._id && selectedContentId && token) {
+      try {
+        await api.updateFindingDecision(
+          activeOrg._id,
+          selectedContentId,
+          editModalFinding._id,
+          { reviewStatus: 'EDITED', editedText: replacement },
+          token
+        );
+        setLatestReview((prev) => {
+          if (!prev?.findings) return prev;
+          return {
+            ...prev,
+            findings: prev.findings.map((item) =>
+              item._id === editModalFinding._id
+                ? { ...item, reviewStatus: 'EDITED', editedText: replacement }
+                : item
+            ),
+          };
+        });
+      } catch (err) {
+        console.error('Failed to record edited finding decision:', err);
+      }
+    }
+    setEditModalFinding(null);
+    setEditedSuggestionText('');
   };
 
   const handleSubmitRevision = async (e) => {
@@ -270,9 +353,20 @@ export function ReviewPage() {
         activeOrg._id,
         selectedContentId,
         rejectModalFinding._id,
-        { reviewStatus: 'REJECTED', rejectionReason: rejectReason },
+        { reviewStatus: 'REJECTED', rejectionReason: rejectReason.trim() },
         token
       );
+      setLatestReview((prev) => {
+        if (!prev?.findings) return prev;
+        return {
+          ...prev,
+          findings: prev.findings.map((item) =>
+            item._id === rejectModalFinding._id
+              ? { ...item, reviewStatus: 'REJECTED', rejectionReason: rejectReason.trim() }
+              : item
+          ),
+        };
+      });
       setSuccessMsg('Suggestion rejected with recorded rationale.');
       setRejectModalFinding(null);
       setRejectReason('');
@@ -447,26 +541,40 @@ export function ReviewPage() {
 
               {/* Version History Tabs & Visual Diff Toggle */}
               <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2 text-xs">
-                <div className="flex items-center gap-1.5 overflow-x-auto">
-                  <span className="text-slate-400 font-medium flex items-center gap-1">
+                <div className="flex items-center gap-1.5 overflow-x-auto py-1">
+                  <span className="text-slate-400 font-medium flex items-center gap-1 shrink-0">
                     <History className="w-3.5 h-3.5" /> Versions:
                   </span>
-                  {versions.map((v) => (
-                    <button
-                      key={v._id}
-                      onClick={() => setWorkingText(v.text)}
-                      className="px-2.5 py-1 bg-slate-50 hover:bg-brand-50 border border-slate-200 rounded text-slate-700 hover:text-brand-700 font-mono transition-colors"
-                    >
-                      v{v.versionNumber} ({v.changeSummary})
-                    </button>
-                  ))}
+                  {versions.map((v) => {
+                    const isCurrent = v.versionNumber === selectedContent.currentVersionNumber;
+                    return (
+                      <button
+                        key={v._id}
+                        type="button"
+                        onClick={() => {
+                          if (!isApproved) setWorkingText(v.text);
+                          setDiffBaseVersionId(v._id);
+                          setSuccessMsg(`Loaded copy from version v${v.versionNumber}: "${v.changeSummary}"`);
+                        }}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-mono font-medium border transition-colors shrink-0 flex items-center gap-1 ${
+                          isCurrent
+                            ? 'bg-brand-50 border-brand-300 text-brand-700 font-bold'
+                            : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700'
+                        }`}
+                        title={v.changeSummary || `Version ${v.versionNumber}`}
+                      >
+                        <span>v{v.versionNumber}</span>
+                        {isCurrent && <span className="text-[10px] text-brand-600 font-sans font-semibold">(current)</span>}
+                      </button>
+                    );
+                  })}
                 </div>
 
                 {versions.length > 0 && (
                   <button
                     type="button"
                     onClick={() => setShowDiff((prev) => !prev)}
-                    className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold border transition-all ${
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
                       showDiff 
                         ? 'bg-brand-600 text-white border-brand-700 shadow-sm' 
                         : 'bg-white hover:bg-brand-50 text-slate-700 hover:text-brand-700 border-slate-300'
@@ -478,17 +586,75 @@ export function ReviewPage() {
                 )}
               </div>
 
-              {/* Visual Diff Viewer */}
-              {showDiff && (
-                <div className="my-2 animate-in fade-in duration-200">
-                  <DiffViewer
-                    oldText={versions[0]?.text || ''}
-                    newText={workingText}
-                    oldLabel="Base Version (v1)"
-                    newLabel={`Active Editor (v${selectedContent?.currentVersionNumber || versions.length})`}
-                  />
-                </div>
-              )}
+              {/* Side-by-Side / Unified Visual Diff Viewer */}
+              {showDiff && (() => {
+                const baseVersionObj = versions.find((v) => v._id === diffBaseVersionId) || versions[0] || null;
+                const targetVersionObj = diffTargetVersionId === 'current_draft'
+                  ? null
+                  : (versions.find((v) => v._id === diffTargetVersionId) || null);
+                const diffOldText = baseVersionObj?.text || '';
+                const diffNewText = diffTargetVersionId === 'current_draft'
+                  ? workingText
+                  : (targetVersionObj?.text || '');
+                const diffOldLabel = baseVersionObj
+                  ? `Base v${baseVersionObj.versionNumber} (${baseVersionObj.changeSummary || 'Original Draft'})`
+                  : 'Base Version';
+                const diffNewLabel = diffTargetVersionId === 'current_draft'
+                  ? `Active Editor Draft (v${(selectedContent?.currentVersionNumber || 1) + 1})`
+                  : targetVersionObj
+                  ? `Target v${targetVersionObj.versionNumber} (${targetVersionObj.changeSummary || 'Revision'})`
+                  : 'Target Version';
+
+                return (
+                  <div className="my-3 animate-in fade-in duration-200 space-y-2.5">
+                    <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex flex-wrap items-center justify-between gap-3 text-xs">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-bold text-slate-700">Base Version:</span>
+                        <select
+                          value={diffBaseVersionId || (versions[0]?._id || '')}
+                          onChange={(e) => setDiffBaseVersionId(e.target.value)}
+                          className="px-2.5 py-1 bg-white border border-slate-300 rounded-lg text-xs font-mono font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none"
+                        >
+                          {versions.map((v) => (
+                            <option key={v._id} value={v._id}>
+                              v{v.versionNumber} ({v.changeSummary || `Version ${v.versionNumber}`})
+                            </option>
+                          ))}
+                        </select>
+
+                        <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
+
+                        <span className="font-bold text-slate-700">Compare Target:</span>
+                        <select
+                          value={diffTargetVersionId}
+                          onChange={(e) => setDiffTargetVersionId(e.target.value)}
+                          className="px-2.5 py-1 bg-white border border-slate-300 rounded-lg text-xs font-mono font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none"
+                        >
+                          <option value="current_draft">
+                            Active Editor Draft {workingText !== (selectedContent.currentVersionId?.text || '') ? '(Unsaved Edits)' : ''}
+                          </option>
+                          {versions.map((v) => (
+                            <option key={v._id} value={v._id}>
+                              v{v.versionNumber} ({v.changeSummary || `Version ${v.versionNumber}`})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="text-[11px] text-slate-500">
+                        Toggle between <strong>Side-by-Side</strong> and <strong>Unified</strong> mode inside toolbar below
+                      </div>
+                    </div>
+
+                    <DiffViewer
+                      oldText={diffOldText}
+                      newText={diffNewText}
+                      oldLabel={diffOldLabel}
+                      newLabel={diffNewLabel}
+                    />
+                  </div>
+                );
+              })()}
 
               {/* Attached Media & Documents Strip */}
               {versions[versions.length - 1]?.fileReferences?.length > 0 && (
@@ -535,15 +701,44 @@ export function ReviewPage() {
                 </div>
               )}
 
+              {/* Approval Lock Passport Banner */}
+              {isApproved && (
+                <div className="p-4 bg-gradient-to-r from-emerald-50 via-teal-50/70 to-emerald-50 border border-emerald-300 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                      <Lock className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold text-emerald-950 uppercase tracking-wider flex items-center gap-2">
+                        <span>Approval Sign-off Locked</span>
+                        <span className="text-[10px] font-mono bg-emerald-200 text-emerald-900 px-2 py-0.5 rounded-full font-bold">
+                          v{selectedContent.currentVersionNumber} IMMUTABLE
+                        </span>
+                      </h4>
+                      <p className="text-xs text-emerald-800 mt-0.5">
+                        This content version has received formal management approval and is locked against further edits.
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-[11px] font-bold text-emerald-700 bg-white/90 border border-emerald-300 px-3 py-1.5 rounded-xl shadow-2xs shrink-0 flex items-center gap-1.5 self-end sm:self-center">
+                    <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                    <span>Protected Version</span>
+                  </span>
+                </div>
+              )}
+
               {/* Content Editor / Draft Box */}
               <form onSubmit={handleSubmitRevision} className="space-y-4">
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <label className="text-xs font-semibold text-slate-700">
-                      Draft Body Copy (Live Editor)
+                    <label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                      {isApproved && <Lock className="w-3.5 h-3.5 text-emerald-600" />}
+                      <span>Draft Body Copy {isApproved ? '(Locked)' : '(Live Editor)'}</span>
                     </label>
                     <span className="text-[11px] text-slate-400">
-                      Click "Accept Fix" on any finding card to automatically replace text.
+                      {isApproved
+                        ? 'Approved versions are immutable across all publishing channels'
+                        : 'Click "Accept", "Edit", or "Reject" on findings to manage AI suggestions.'}
                     </span>
                   </div>
                   <textarea
@@ -551,11 +746,11 @@ export function ReviewPage() {
                     disabled={isApproved}
                     value={workingText}
                     onChange={(e) => setWorkingText(e.target.value)}
-                    className="w-full p-3.5 text-sm font-sans border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:outline-none disabled:bg-slate-50 disabled:text-slate-600 leading-relaxed"
+                    className="w-full p-3.5 text-sm font-sans border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:outline-none disabled:bg-slate-100/80 disabled:text-slate-600 disabled:cursor-not-allowed leading-relaxed"
                   />
                 </div>
 
-                {!isApproved && (
+                {!isApproved ? (
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
                     <input
                       type="text"
@@ -571,6 +766,16 @@ export function ReviewPage() {
                     >
                       {submittingRevision ? 'Re-reviewing...' : `Submit Revision (v${(selectedContent.currentVersionNumber || 1) + 1})`}
                     </button>
+                  </div>
+                ) : (
+                  <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between text-xs text-slate-500">
+                    <span className="flex items-center gap-1.5">
+                      <Lock className="w-3.5 h-3.5 text-slate-400" />
+                      <span>Editing disabled for officially approved content.</span>
+                    </span>
+                    <span className="font-mono text-[11px] font-semibold text-slate-600">
+                      Final Version: v{selectedContent.currentVersionNumber}
+                    </span>
                   </div>
                 )}
               </form>
@@ -673,6 +878,31 @@ export function ReviewPage() {
                         <span className="text-[10px] font-medium text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
                           {f.checkMethod === 'DETERMINISTIC' ? '100% Deterministic' : `AI ${Math.round(f.confidence * 100)}%`}
                         </span>
+
+                        {/* Finding Decision Status Badge */}
+                        {f.reviewStatus === 'ACCEPTED' && (
+                          <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 border border-emerald-300 px-2 py-0.5 rounded-full flex items-center gap-1">
+                            <Check className="w-3 h-3 stroke-[2.5]" />
+                            <span>Accepted</span>
+                          </span>
+                        )}
+                        {f.reviewStatus === 'EDITED' && (
+                          <span className="text-[10px] font-bold text-indigo-800 bg-indigo-100 border border-indigo-300 px-2 py-0.5 rounded-full flex items-center gap-1">
+                            <Edit3 className="w-3 h-3" />
+                            <span>Custom Edited</span>
+                          </span>
+                        )}
+                        {f.reviewStatus === 'REJECTED' && (
+                          <span className="text-[10px] font-bold text-rose-800 bg-rose-100 border border-rose-300 px-2 py-0.5 rounded-full flex items-center gap-1">
+                            <X className="w-3 h-3" />
+                            <span>Declined</span>
+                          </span>
+                        )}
+                        {f.reviewStatus === 'OVERRIDDEN' && (
+                          <span className="text-[10px] font-bold text-amber-800 bg-amber-100 border border-amber-300 px-2 py-0.5 rounded-full">
+                            Overridden
+                          </span>
+                        )}
                       </div>
                       <span className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded ${
                         f.severity === 'CRITICAL' ? 'bg-rose-100 text-rose-800' : 'bg-slate-100 text-slate-600'
@@ -712,35 +942,111 @@ export function ReviewPage() {
 
                     {/* Suggested Intent-Preserving Correction */}
                     {f.suggestedCorrection && !isOverridden && (
-                      <div className="p-2.5 bg-emerald-50/70 border border-emerald-200 rounded-lg text-xs space-y-2">
-                        <div className="font-semibold text-emerald-800 text-[11px]">Suggested Fix:</div>
-                        <div className="font-medium text-emerald-900">"{f.suggestedCorrection}"</div>
-                        <div className="flex items-center gap-2 pt-1">
-                          <button
-                            type="button"
-                            onClick={() => handleApplyFix(f.originalText, f.suggestedCorrection)}
-                            className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-[11px] font-semibold flex items-center gap-1 transition-colors"
-                          >
-                            <Check className="w-3 h-3" />
-                            <span>Accept Fix</span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setRejectModalFinding(f)}
-                            className="px-2.5 py-1 bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 rounded text-[11px] font-medium transition-colors"
-                          >
-                            Reject
-                          </button>
-                          {(activeRole === 'ADMIN' || activeRole === 'REVIEWER' || activeRole === 'MANAGER') && (
-                            <button
-                              type="button"
-                              onClick={() => setOverrideModalFinding(f)}
-                              className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-800 rounded text-[11px] font-semibold transition-colors ml-auto"
-                            >
-                              Override Flag
-                            </button>
+                      <div className="p-3 bg-emerald-50/70 border border-emerald-200 rounded-xl text-xs space-y-2.5">
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-emerald-900 text-[11px] flex items-center gap-1.5">
+                            <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+                            Suggested Intent-Preserving Fix:
+                          </span>
+                          {f.reviewStatus === 'ACCEPTED' && (
+                            <span className="text-[10px] text-emerald-700 font-semibold bg-emerald-100 px-2 py-0.5 rounded">
+                              Applied to Draft ✓
+                            </span>
+                          )}
+                          {f.reviewStatus === 'EDITED' && (
+                            <span className="text-[10px] text-indigo-700 font-semibold bg-indigo-100 px-2 py-0.5 rounded">
+                              Custom Edited ✓
+                            </span>
+                          )}
+                          {f.reviewStatus === 'REJECTED' && (
+                            <span className="text-[10px] text-rose-700 font-semibold bg-rose-100 px-2 py-0.5 rounded">
+                              Declined ✕
+                            </span>
                           )}
                         </div>
+
+                        <div className="font-medium text-emerald-950 bg-white/90 p-2.5 rounded-lg border border-emerald-200/80 leading-relaxed">
+                          "{f.suggestedCorrection}"
+                        </div>
+
+                        {/* If user customized this fix */}
+                        {f.reviewStatus === 'EDITED' && f.editedText && (
+                          <div className="p-2.5 bg-indigo-50 border border-indigo-200 rounded-lg text-xs space-y-1">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-800 flex items-center gap-1">
+                              <Edit3 className="w-3 h-3" /> Your Customized Applied Fix:
+                            </span>
+                            <p className="font-semibold text-indigo-950 font-sans">"{f.editedText}"</p>
+                          </div>
+                        )}
+
+                        {/* If declined */}
+                        {f.reviewStatus === 'REJECTED' && f.rejectionReason && (
+                          <div className="p-2 bg-rose-50 border border-rose-200 rounded-lg text-[11px] text-rose-900">
+                            <strong>Declined Reason:</strong> {f.rejectionReason}
+                          </div>
+                        )}
+
+                        {/* Action Buttons: Accept / Edit / Reject */}
+                        {!isApproved ? (
+                          <div className="flex items-center gap-2 pt-1 flex-wrap">
+                            <button
+                              type="button"
+                              onClick={() => handleApplyFix(f)}
+                              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all shadow-xs ${
+                                f.reviewStatus === 'ACCEPTED'
+                                  ? 'bg-emerald-700 text-white ring-2 ring-emerald-400'
+                                  : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                              }`}
+                              title="Auto-apply suggestion to draft copy"
+                            >
+                              <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+                              <span>{f.reviewStatus === 'ACCEPTED' ? 'Accepted' : 'Accept Fix'}</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => handleOpenEditModal(f)}
+                              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all border shadow-xs ${
+                                f.reviewStatus === 'EDITED'
+                                  ? 'bg-indigo-600 text-white border-indigo-700 ring-2 ring-indigo-400'
+                                  : 'bg-white hover:bg-indigo-50 text-indigo-700 border-indigo-300'
+                              }`}
+                              title="Modify suggestion before applying to draft"
+                            >
+                              <Edit3 className="w-3.5 h-3.5" />
+                              <span>{f.reviewStatus === 'EDITED' ? 'Edit Again' : 'Edit'}</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => setRejectModalFinding(f)}
+                              className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all border ${
+                                f.reviewStatus === 'REJECTED'
+                                  ? 'bg-rose-100 text-rose-800 border-rose-300 font-semibold'
+                                  : 'bg-white hover:bg-rose-50 text-slate-700 hover:text-rose-700 border-slate-300'
+                              }`}
+                              title="Decline this suggestion with a reason"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                              <span>{f.reviewStatus === 'REJECTED' ? 'Declined' : 'Reject'}</span>
+                            </button>
+
+                            {(activeRole === 'ADMIN' || activeRole === 'REVIEWER' || activeRole === 'MANAGER') && (
+                              <button
+                                type="button"
+                                onClick={() => setOverrideModalFinding(f)}
+                                className="px-2.5 py-1.5 bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-800 rounded-lg text-[11px] font-semibold transition-colors ml-auto"
+                              >
+                                Override Flag
+                              </button>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="text-[11px] text-slate-400 italic pt-1 flex items-center gap-1">
+                            <Lock className="w-3 h-3 text-slate-400" />
+                            <span>Actions locked upon manager approval</span>
+                          </div>
+                        )}
                       </div>
                     )}
 
@@ -1132,6 +1438,100 @@ export function ReviewPage() {
                 className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-semibold"
               >
                 Confirm Rejection
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Suggestion Modal */}
+      {editModalFinding && (
+        <div 
+          onClick={() => setEditModalFinding(null)}
+          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-lg p-5 sm:p-6 space-y-4 animate-in fade-in zoom-in-95 duration-150"
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-200">
+                  <Edit3 className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900 text-sm">Edit & Customize Fix</h3>
+                  <p className="text-[11px] text-slate-500">Modify the suggested wording before applying it to your draft</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditModalFinding(null)}
+                className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+                title="Close modal (Esc)"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Original Flagged Text */}
+            <div className="space-y-1">
+              <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">
+                Flagged Text to Replace:
+              </label>
+              <div className="font-mono text-xs text-rose-800 bg-rose-50/70 p-2.5 rounded-lg border border-rose-200">
+                "{editModalFinding.originalText}"
+              </div>
+            </div>
+
+            {/* AI Recommendation reference */}
+            {editModalFinding.suggestedCorrection && (
+              <div className="p-2.5 bg-emerald-50/60 border border-emerald-200 rounded-lg text-xs space-y-1">
+                <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider">
+                  AI Suggestion (Reference):
+                </span>
+                <p className="text-emerald-950 font-medium">"{editModalFinding.suggestedCorrection}"</p>
+              </div>
+            )}
+
+            {/* Custom Replacement Input */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-slate-700">
+                  Your Custom Replacement Text:
+                </label>
+                <span className="text-[10px] text-slate-400 font-mono">
+                  {editedSuggestionText.length} chars
+                </span>
+              </div>
+              <textarea
+                rows={3}
+                value={editedSuggestionText}
+                onChange={(e) => setEditedSuggestionText(e.target.value)}
+                placeholder="Enter customized replacement wording..."
+                className="w-full p-3 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:outline-none leading-relaxed"
+                autoFocus
+              />
+            </div>
+
+            <div className="pt-2 flex items-center justify-end gap-2.5">
+              <button
+                type="button"
+                onClick={() => setEditModalFinding(null)}
+                className="px-4 py-2 border border-slate-200 hover:bg-slate-100 text-slate-700 rounded-xl text-xs font-semibold transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={!editedSuggestionText.trim()}
+                onClick={handleApplyEditedFix}
+                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl text-xs font-semibold shadow-sm transition-all flex items-center gap-1.5"
+              >
+                <Check className="w-3.5 h-3.5" />
+                <span>Apply Edited Fix to Draft</span>
               </button>
             </div>
           </div>

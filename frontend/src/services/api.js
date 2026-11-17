@@ -287,6 +287,10 @@ export const api = {
     });
   },
 
+  async submitNewVersion(orgId, contentId, data, token) {
+    return this.createContentVersion(orgId, contentId, data, token);
+  },
+
   async updateFindingDecision(orgId, contentId, findingId, decisionData, token) {
     return await request(`${API_BASE}/api/organisations/${orgId}/contents/${contentId}/findings/${findingId}`, {
       method: 'PATCH',

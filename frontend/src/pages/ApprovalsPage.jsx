@@ -15,7 +15,10 @@ import {
   Send,
   Rocket,
   Globe,
-  GitCompare 
+  GitCompare,
+  ArrowRight,
+  Edit3,
+  ShieldCheck
 } from 'lucide-react';
 import { useAuth } from '../features/auth/AuthContext';
 import { api } from '../services/api';
@@ -40,9 +43,23 @@ export function ApprovalsPage() {
   // Versions, Diff & Safe Publishing
   const [versions, setVersions] = useState([]);
   const [showDiff, setShowDiff] = useState(false);
+  const [approvalDiffBaseId, setApprovalDiffBaseId] = useState('');
+  const [approvalDiffTargetId, setApprovalDiffTargetId] = useState('');
   const [publishing, setPublishing] = useState(false);
   const [publishDestination, setPublishDestination] = useState('Website CMS');
   const [showPublishModal, setShowPublishModal] = useState(false);
+
+  // Sync version comparison selection
+  useEffect(() => {
+    if (versions.length > 0) {
+      if (!approvalDiffBaseId || !versions.some((v) => v._id === approvalDiffBaseId)) {
+        setApprovalDiffBaseId(versions[0]._id);
+      }
+      if (!approvalDiffTargetId || !versions.some((v) => v._id === approvalDiffTargetId)) {
+        setApprovalDiffTargetId(versions[versions.length - 1]._id);
+      }
+    }
+  }, [versions, approvalDiffBaseId, approvalDiffTargetId]);
 
   const canApprove = activeRole === 'ADMIN' || activeRole === 'MANAGER';
 
@@ -342,21 +359,66 @@ export function ApprovalsPage() {
                       className="text-xs font-bold text-brand-600 hover:text-brand-700 flex items-center gap-1.5 transition-colors px-2.5 py-1 rounded-lg hover:bg-brand-50"
                     >
                       <GitCompare className="w-3.5 h-3.5" />
-                      <span>{showDiff ? 'Hide Version Diff' : 'Compare with v1 Diff'}</span>
+                      <span>{showDiff ? 'Hide Version Diff' : 'Compare Version Diffs'}</span>
                     </button>
                   )}
                 </div>
 
-                {showDiff && versions.length > 1 ? (
-                  <div className="mb-3 animate-in fade-in duration-200">
-                    <DiffViewer
-                      oldText={versions[0]?.text || ''}
-                      newText={selectedContent.currentVersionId?.text || versions[versions.length - 1]?.text || ''}
-                      oldLabel="Base Draft (v1)"
-                      newLabel={`Revision (v${selectedContent.currentVersionNumber})`}
-                    />
-                  </div>
-                ) : (
+                {showDiff && versions.length > 1 ? (() => {
+                  const baseV = versions.find((v) => v._id === approvalDiffBaseId) || versions[0] || null;
+                  const targetV = versions.find((v) => v._id === approvalDiffTargetId) || versions[versions.length - 1] || null;
+                  const oldText = baseV?.text || '';
+                  const newText = targetV?.text || '';
+                  const oldLabel = baseV ? `Base v${baseV.versionNumber} (${baseV.changeSummary || 'Original Draft'})` : 'Base Draft';
+                  const newLabel = targetV ? `Target v${targetV.versionNumber} (${targetV.changeSummary || 'Revision'})` : 'Target Revision';
+
+                  return (
+                    <div className="mb-3 animate-in fade-in duration-200 space-y-2.5">
+                      <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex flex-wrap items-center justify-between gap-3 text-xs">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-bold text-slate-700">Base Version:</span>
+                          <select
+                            value={approvalDiffBaseId || (versions[0]?._id || '')}
+                            onChange={(e) => setApprovalDiffBaseId(e.target.value)}
+                            className="px-2.5 py-1 bg-white border border-slate-300 rounded-lg text-xs font-mono font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none"
+                          >
+                            {versions.map((v) => (
+                              <option key={v._id} value={v._id}>
+                                v{v.versionNumber} ({v.changeSummary || `Version ${v.versionNumber}`})
+                              </option>
+                            ))}
+                          </select>
+
+                          <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
+
+                          <span className="font-bold text-slate-700">Compare With:</span>
+                          <select
+                            value={approvalDiffTargetId || (versions[versions.length - 1]?._id || '')}
+                            onChange={(e) => setApprovalDiffTargetId(e.target.value)}
+                            className="px-2.5 py-1 bg-white border border-slate-300 rounded-lg text-xs font-mono font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none"
+                          >
+                            {versions.map((v) => (
+                              <option key={v._id} value={v._id}>
+                                v{v.versionNumber} ({v.changeSummary || `Version ${v.versionNumber}`})
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div className="text-[11px] text-slate-500">
+                          Toggle <strong>Side-by-Side</strong> vs <strong>Unified</strong> mode inside toolbar below
+                        </div>
+                      </div>
+
+                      <DiffViewer
+                        oldText={oldText}
+                        newText={newText}
+                        oldLabel={oldLabel}
+                        newLabel={newLabel}
+                      />
+                    </div>
+                  );
+                })() : (
                   <div className="p-4 bg-slate-50/80 rounded-2xl border border-slate-200/80 text-xs text-slate-800 leading-relaxed font-sans shadow-inner">
                     {selectedContent.currentVersionId?.text || 'No text content available'}
                   </div>
@@ -384,13 +446,29 @@ export function ApprovalsPage() {
                             Overridden: "{f.overrideReason}"
                           </div>
                         )}
+                        {f.reviewStatus === 'EDITED' && (
+                          <div className="mt-1 text-[11px] text-indigo-800 font-semibold bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-200 w-fit">
+                            Custom Edited: "{f.editedText}"
+                          </div>
+                        )}
+                        {f.reviewStatus === 'REJECTED' && (
+                          <div className="mt-1 text-[11px] text-rose-800 font-semibold bg-rose-50 px-2 py-0.5 rounded-md border border-rose-200 w-fit">
+                            Declined: "{f.rejectionReason}"
+                          </div>
+                        )}
                       </div>
                       <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full shrink-0 border ${
                         f.reviewStatus === 'ACCEPTED' 
-                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                          : f.reviewStatus === 'EDITED'
+                          ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
+                          : f.reviewStatus === 'REJECTED'
+                          ? 'bg-rose-50 text-rose-700 border-rose-200'
+                          : f.reviewStatus === 'OVERRIDDEN'
+                          ? 'bg-amber-50 text-amber-700 border-amber-200'
                           : 'bg-slate-100 text-slate-600 border-slate-200'
                       }`}>
-                        {f.reviewStatus}
+                        {f.reviewStatus || 'PENDING'}
                       </span>
                     </div>
                   ))}
