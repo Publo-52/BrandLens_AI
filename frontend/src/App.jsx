@@ -1,6 +1,7 @@
 import React, { useState, lazy, Suspense } from 'react';
 import { Layout } from './components/layout/Layout';
 import { AuthProvider, useAuth } from './features/auth/AuthContext';
+import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { Loader2 } from 'lucide-react';
 
 // Code-split pages for instant initial load and optimal browser caching
@@ -59,9 +60,11 @@ function MainApp() {
 
   return (
     <Layout currentTab={currentTab} onSelectTab={setCurrentTab}>
-      <Suspense fallback={<PageLoadingFallback />}>
-        {renderContent()}
-      </Suspense>
+      <ErrorBoundary onGoHome={() => setCurrentTab('dashboard')}>
+        <Suspense fallback={<PageLoadingFallback />}>
+          {renderContent()}
+        </Suspense>
+      </ErrorBoundary>
     </Layout>
   );
 }

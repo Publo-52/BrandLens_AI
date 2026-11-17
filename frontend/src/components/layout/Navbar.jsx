@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   ShieldCheck, 
   User, 
@@ -23,6 +23,22 @@ export function Navbar({ onToggleMobileMenu, isMobileMenuOpen = false }) {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showOrgDropdown, setShowOrgDropdown] = useState(false);
   const [showUserDropdown, setShowUserDropdown] = useState(false);
+
+  const orgDropdownRef = useRef(null);
+  const userDropdownRef = useRef(null);
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (orgDropdownRef.current && !orgDropdownRef.current.contains(event.target)) {
+        setShowOrgDropdown(false);
+      }
+      if (userDropdownRef.current && !userDropdownRef.current.contains(event.target)) {
+        setShowUserDropdown(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const getRoleBadgeColor = (role) => {
     switch (role) {
@@ -87,7 +103,7 @@ export function Navbar({ onToggleMobileMenu, isMobileMenuOpen = false }) {
         <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
           {/* Workspace selector */}
           {(activeOrg || user) && (
-            <div className="relative">
+            <div ref={orgDropdownRef} className="relative">
               <button
                 onClick={() => setShowOrgDropdown((prev) => !prev)}
                 className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3.5 py-1.5 bg-slate-50 hover:bg-slate-100/90 active:bg-slate-200/70 border border-slate-200/90 rounded-xl text-xs font-medium text-slate-700 transition-all shadow-xs hover:border-slate-300"
@@ -169,7 +185,7 @@ export function Navbar({ onToggleMobileMenu, isMobileMenuOpen = false }) {
 
           {/* User profile / Login */}
           {user ? (
-            <div className="relative">
+            <div ref={userDropdownRef} className="relative">
               <button
                 onClick={() => setShowUserDropdown((prev) => !prev)}
                 className="flex items-center gap-2 p-1 pl-1.5 pr-2 sm:pr-3 bg-white hover:bg-slate-50 border border-slate-200/90 rounded-xl transition-all shadow-xs"

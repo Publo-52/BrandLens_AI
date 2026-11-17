@@ -10,17 +10,26 @@ const PRESET_PALETTES = [
 ];
 
 function hexToRgb(hex) {
-  const clean = hex.replace('#', '');
+  if (typeof hex !== 'string') return { r: 0, g: 0, b: 0 };
+  const clean = hex.replace('#', '').trim();
   if (clean.length === 3) {
     const r = parseInt(clean[0] + clean[0], 16);
     const g = parseInt(clean[1] + clean[1], 16);
     const b = parseInt(clean[2] + clean[2], 16);
-    return { r, g, b };
+    return {
+      r: isNaN(r) ? 0 : r,
+      g: isNaN(g) ? 0 : g,
+      b: isNaN(b) ? 0 : b,
+    };
   }
-  const r = parseInt(clean.substring(0, 2), 16) || 0;
-  const g = parseInt(clean.substring(2, 4), 16) || 0;
-  const b = parseInt(clean.substring(4, 6), 16) || 0;
-  return { r, g, b };
+  const r = parseInt(clean.substring(0, 2), 16);
+  const g = parseInt(clean.substring(2, 4), 16);
+  const b = parseInt(clean.substring(4, 6), 16);
+  return {
+    r: isNaN(r) ? 0 : r,
+    g: isNaN(g) ? 0 : g,
+    b: isNaN(b) ? 0 : b,
+  };
 }
 
 function getLuminance({ r, g, b }) {
@@ -32,11 +41,16 @@ function getLuminance({ r, g, b }) {
 }
 
 function calculateContrastRatio(hex1, hex2) {
-  const lum1 = getLuminance(hexToRgb(hex1));
-  const lum2 = getLuminance(hexToRgb(hex2));
-  const brightest = Math.max(lum1, lum2);
-  const darkest = Math.min(lum1, lum2);
-  return (brightest + 0.05) / (darkest + 0.05);
+  try {
+    const lum1 = getLuminance(hexToRgb(hex1));
+    const lum2 = getLuminance(hexToRgb(hex2));
+    const brightest = Math.max(lum1, lum2);
+    const darkest = Math.min(lum1, lum2);
+    const result = (brightest + 0.05) / (darkest + 0.05);
+    return isNaN(result) || !isFinite(result) ? 1.0 : result;
+  } catch {
+    return 1.0;
+  }
 }
 
 export function ContrastChecker() {

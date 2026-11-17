@@ -161,10 +161,40 @@ export const workspaceApi = {
 
   // 1-Click Demo Login for Hackathon Judges
   async demoLogin(role = 'ADMIN') {
-    return await apiFetch('/api/workspaces/demo-login', {
-      method: 'POST',
-      body: JSON.stringify({ role }),
-    });
+    const normalizedRole = role.toUpperCase();
+    try {
+      return await apiFetch('/api/workspaces/demo-login', {
+        method: 'POST',
+        body: JSON.stringify({ role: normalizedRole }),
+      });
+    } catch (err) {
+      if (err.statusCode === 404 || err.status === 404 || err.message?.includes('404')) {
+        try {
+          return await apiFetch('/api/auth/demo-login', {
+            method: 'POST',
+            body: JSON.stringify({ role: normalizedRole }),
+          });
+        } catch (authDemoErr) {
+          // Final fallback to /api/auth/login with pre-seeded demo credentials
+          const email = `${normalizedRole.toLowerCase()}@novatech.demo`;
+          const loginData = await apiFetch('/api/auth/login', {
+            method: 'POST',
+            body: JSON.stringify({ email, password: 'NovaTechDemo2026!' }),
+          });
+          return {
+            token: loginData.token,
+            user: loginData.user,
+            workspace: loginData.user?.organisations?.[0] || {
+              _id: '6af9d8a604f3ddc6a913904d',
+              name: 'NovaTech Global',
+              slug: 'novatech-global',
+              role: normalizedRole,
+            },
+          };
+        }
+      }
+      throw err;
+    }
   },
 };
 

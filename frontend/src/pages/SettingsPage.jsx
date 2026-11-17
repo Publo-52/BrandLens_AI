@@ -319,7 +319,7 @@ export function SettingsPage() {
                   placeholder="Full Name"
                   value={inviteName}
                   onChange={(e) => setInviteName(e.target.value)}
-                  className="w-full pl-9.5 sm:pl-10 pr-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white"
+                  className="w-full pl-10 pr-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white"
                 />
               </div>
 
@@ -331,7 +331,7 @@ export function SettingsPage() {
                   placeholder="colleague@company.com"
                   value={inviteEmail}
                   onChange={(e) => setInviteEmail(e.target.value)}
-                  className="w-full pl-9.5 sm:pl-10 pr-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white"
+                  className="w-full pl-10 pr-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white"
                 />
               </div>
 

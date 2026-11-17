@@ -95,6 +95,7 @@ export async function seedDemoAccounts() {
     } else {
       user.firebaseUid = demoUser.firebaseUid;
       user.name = demoUser.name;
+      user.passwordHash = await User.hashPassword(demoUser.password);
       if (!user.avatarUrl) {
         user.avatarUrl = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(demoUser.name)}`;
       }

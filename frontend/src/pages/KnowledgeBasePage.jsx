@@ -80,16 +80,21 @@ export function KnowledgeBasePage() {
     setLoading(true);
     setError(null);
     try {
-      const [gData, fData, tData, aData] = await Promise.all([
+      const [gRes, fRes, tRes, aRes] = await Promise.allSettled([
         api.getGuidelines(activeOrg._id, token),
         api.getFacts(activeOrg._id, token),
         api.getTerminology(activeOrg._id, token),
         api.getAssets(activeOrg._id, token),
       ]);
-      setGuidelines(gData.guidelines || []);
-      setFacts(fData.facts || []);
-      setTerminology(tData.rules || []);
-      setAssets(aData.assets || []);
+      setGuidelines(gRes.status === 'fulfilled' ? gRes.value?.guidelines || [] : []);
+      setFacts(fRes.status === 'fulfilled' ? fRes.value?.facts || [] : []);
+      setTerminology(tRes.status === 'fulfilled' ? tRes.value?.rules || [] : []);
+      setAssets(aRes.status === 'fulfilled' ? aRes.value?.assets || [] : []);
+
+      const rejected = [gRes, fRes, tRes, aRes].filter((r) => r.status === 'rejected');
+      if (rejected.length === 4) {
+        setError(rejected[0].reason?.message || 'Failed to connect to brand knowledge services');
+      }
     } catch (err) {
       setError(err.message);
     } finally {

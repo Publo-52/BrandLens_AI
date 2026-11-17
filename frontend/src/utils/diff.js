@@ -3,21 +3,24 @@
  * Returns array of { type: 'added' | 'removed' | 'common', value: string }
  */
 export function computeWordDiff(oldText = '', newText = '') {
-  if (!oldText && !newText) return [];
-  if (!oldText) return [{ type: 'added', value: newText }];
-  if (!newText) return [{ type: 'removed', value: oldText }];
+  const sOld = typeof oldText === 'string' ? oldText : String(oldText || '');
+  const sNew = typeof newText === 'string' ? newText : String(newText || '');
+
+  if (!sOld && !sNew) return [];
+  if (!sOld) return [{ type: 'added', value: sNew }];
+  if (!sNew) return [{ type: 'removed', value: sOld }];
 
   // Tokenize by words and spaces/punctuation
   const tokenize = (str) => str.match(/\S+|\s+/g) || [];
-  const words1 = tokenize(oldText);
-  const words2 = tokenize(newText);
+  const words1 = tokenize(sOld);
+  const words2 = tokenize(sNew);
 
   const m = words1.length;
   const n = words2.length;
 
   // Optimize for identical texts
-  if (oldText === newText) {
-    return [{ type: 'common', value: oldText }];
+  if (sOld === sNew) {
+    return [{ type: 'common', value: sOld }];
   }
 
   // Dynamic programming table for LCS

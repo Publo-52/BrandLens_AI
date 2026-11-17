@@ -26,10 +26,10 @@ router.post('/register', async (req, res, next) => {
       });
     }
 
-    if (password.length < 6) {
+    if (password.length < 8) {
       return res.status(400).json({
         success: false,
-        error: { message: 'Password must be at least 6 characters long.', statusCode: 400 },
+        error: { message: 'Password must be at least 8 characters long.', statusCode: 400 },
       });
     }
 
@@ -249,6 +249,90 @@ router.get('/me', authenticate, async (req, res, next) => {
       success: true,
       user: req.user,
       memberships,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// POST /api/auth/demo-login - 1-Click Judge Demo Role Login
+router.post('/demo-login', async (req, res, next) => {
+  try {
+    const { role = 'ADMIN' } = req.body;
+    const normalizedRole = role.toUpperCase();
+
+    if (!Object.values(ROLES).includes(normalizedRole)) {
+      return res.status(400).json({
+        success: false,
+        error: { message: `Invalid demo role: ${role}`, statusCode: 400 },
+      });
+    }
+
+    const email = `${normalizedRole.toLowerCase()}@novatech.demo`;
+    const name = `NovaTech ${normalizedRole.charAt(0) + normalizedRole.slice(1).toLowerCase()}`;
+
+    // 1. Ensure NovaTech Global organisation exists
+    let org = await Organisation.findOne({ slug: 'novatech-global' });
+    if (!org) {
+      org = await Organisation.create({
+        name: 'NovaTech Global',
+        slug: 'novatech-global',
+        settings: { defaultLanguage: 'en', retentionDays: 90 },
+      });
+    }
+
+    // 2. Ensure user exists
+    let user = await User.findOne({ email });
+    if (!user) {
+      const defaultPasswordHash = await User.hashPassword('NovaTechDemo2026!');
+      user = await User.create({
+        firebaseUid: `demo_${normalizedRole.toLowerCase()}`,
+        name,
+        email,
+        passwordHash: defaultPasswordHash,
+        avatarUrl: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(name)}`,
+      });
+    }
+
+    // 3. Ensure membership exists
+    let membership = await Membership.findOne({
+      organisationId: org._id,
+      userId: user._id,
+    });
+
+    if (!membership) {
+      membership = await Membership.create({
+        organisationId: org._id,
+        userId: user._id,
+        role: normalizedRole,
+        status: MEMBERSHIP_STATUS.ACTIVE,
+      });
+    } else if (membership.role !== normalizedRole || membership.status !== MEMBERSHIP_STATUS.ACTIVE) {
+      membership.role = normalizedRole;
+      membership.status = MEMBERSHIP_STATUS.ACTIVE;
+      await membership.save();
+    }
+
+    const token = generateToken(user._id);
+
+    res.json({
+      success: true,
+      token,
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: normalizedRole,
+        avatarUrl: user.avatarUrl,
+      },
+      workspace: {
+        _id: org._id,
+        name: org.name,
+        slug: org.slug,
+        role: normalizedRole,
+      },
+      role: normalizedRole,
+      membership,
     });
   } catch (error) {
     next(error);

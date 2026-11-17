@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import { Membership } from '../modules/members/membership.model.js';
 
 export function requireWorkspaceRole(allowedRoles = []) {
@@ -13,6 +14,16 @@ export function requireWorkspaceRole(allowedRoles = []) {
         return res.status(400).json({
           success: false,
           error: { message: 'Missing x-organisation-id header', statusCode: 400 },
+        });
+      }
+
+      if (!mongoose.Types.ObjectId.isValid(organisationId)) {
+        return res.status(400).json({
+          success: false,
+          error: {
+            message: `Invalid workspace ID: "${organisationId}". Expected a 24-character hexadecimal ObjectId.`,
+            statusCode: 400,
+          },
         });
       }
 

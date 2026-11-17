@@ -96,8 +96,10 @@ export async function runGroundedChecks(text, organisationId, channel, audience)
   ];
 
   for (const sentence of sentences) {
-    // Check against tone guidelines
+    // Check against tone guidelines (flag at most once per sentence)
+    let sentenceFlaggedTone = false;
     for (const g of guidelines) {
+      if (sentenceFlaggedTone) break;
       if (g.category === GUIDELINE_CATEGORIES.TONE || g.category === GUIDELINE_CATEGORIES.LEGAL) {
         for (const exp of exaggeratedTriggers) {
           if (exp.trigger.test(sentence)) {
@@ -122,6 +124,7 @@ export async function runGroundedChecks(text, organisationId, channel, audience)
                 },
               ],
             });
+            sentenceFlaggedTone = true;
             break;
           }
         }
