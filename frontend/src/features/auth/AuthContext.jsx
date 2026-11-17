@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
+import { signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
+import { auth as firebaseAuth } from '../../services/firebase';
 import { api } from '../../services/api';
 
 const AuthContext = createContext(null);
@@ -107,6 +109,29 @@ export function AuthProvider({ children }) {
     return data;
   }, []);
 
+  const loginWithGoogle = useCallback(async () => {
+    const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: 'select_account' });
+    const result = await signInWithPopup(firebaseAuth, provider);
+    const fbUser = result.user;
+
+    const data = await api.googleLogin({
+      email: fbUser.email,
+      name: fbUser.displayName || fbUser.email.split('@')[0],
+      firebaseUid: fbUser.uid,
+      photoURL: fbUser.photoURL,
+    });
+
+    localStorage.setItem('brandlens_token', data.token);
+    setToken(data.token);
+    setUser(data.user);
+    setMemberships(data.memberships || []);
+    if (data.memberships?.length > 0) {
+      persistOrg(extractOrgId(data.memberships[0].organisationId));
+    }
+    return data;
+  }, [persistOrg]);
+
   const logout = useCallback(() => {
     localStorage.removeItem('brandlens_token');
     localStorage.removeItem('brandlens_active_org_id');
@@ -150,12 +175,13 @@ export function AuthProvider({ children }) {
       activeRole,
       loading,
       login,
+      loginWithGoogle,
       register,
       logout,
       switchOrg,
       refreshSession: initAuth,
     }),
-    [token, user, memberships, activeOrg, activeOrgId, activeRole, loading, login, register, logout, switchOrg, initAuth]
+    [token, user, memberships, activeOrg, activeOrgId, activeRole, loading, login, loginWithGoogle, register, logout, switchOrg, initAuth]
   );
 
   return (

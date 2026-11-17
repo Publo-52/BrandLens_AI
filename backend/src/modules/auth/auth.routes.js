@@ -138,6 +138,105 @@ router.post('/login', async (req, res, next) => {
   }
 });
 
+// POST /api/auth/google
+router.post('/google', async (req, res, next) => {
+  try {
+    const { email, name, firebaseUid } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        error: { message: 'Email is required from Google sign-in.', statusCode: 400 },
+      });
+    }
+
+    const cleanEmail = email.toLowerCase().trim();
+    let user = await User.findOne({ email: cleanEmail });
+
+    if (!user) {
+      // Auto-create user with a secure generated password hash
+      const randomPassword = `GAuth_${firebaseUid || Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
+      const passwordHash = await User.hashPassword(randomPassword);
+
+      user = await User.create({
+        name: (name || cleanEmail.split('@')[0]).trim(),
+        email: cleanEmail,
+        passwordHash,
+      });
+
+      // Create a default workspace for this Google user
+      const orgName = `${user.name}'s Workspace`;
+      let baseSlug = createSlug(orgName);
+      let uniqueSlug = baseSlug;
+      let counter = 1;
+      while (await Organisation.findOne({ slug: uniqueSlug })) {
+        uniqueSlug = `${baseSlug}-${counter++}`;
+      }
+
+      const organisation = await Organisation.create({
+        name: orgName,
+        slug: uniqueSlug,
+      });
+
+      await Membership.create({
+        organisationId: organisation._id,
+        userId: user._id,
+        role: ROLES.ADMIN,
+        status: MEMBERSHIP_STATUS.ACTIVE,
+      });
+    }
+
+    if (!user.isActive) {
+      return res.status(403).json({
+        success: false,
+        error: { message: 'Your account is deactivated. Please contact an administrator.', statusCode: 403 },
+      });
+    }
+
+    // Retrieve active memberships with populated organisation details
+    let memberships = await Membership.find({
+      userId: user._id,
+      status: MEMBERSHIP_STATUS.ACTIVE,
+    }).populate('organisationId');
+
+    // If an existing user has no active workspace yet, provision one
+    if (!memberships || memberships.length === 0) {
+      const orgName = `${user.name}'s Workspace`;
+      let baseSlug = createSlug(orgName);
+      let uniqueSlug = baseSlug;
+      let counter = 1;
+      while (await Organisation.findOne({ slug: uniqueSlug })) {
+        uniqueSlug = `${baseSlug}-${counter++}`;
+      }
+
+      const organisation = await Organisation.create({
+        name: orgName,
+        slug: uniqueSlug,
+      });
+
+      const newMembership = await Membership.create({
+        organisationId: organisation._id,
+        userId: user._id,
+        role: ROLES.ADMIN,
+        status: MEMBERSHIP_STATUS.ACTIVE,
+      });
+      newMembership.organisationId = organisation;
+      memberships = [newMembership];
+    }
+
+    const token = generateToken(user._id);
+
+    res.status(200).json({
+      success: true,
+      token,
+      user,
+      memberships,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // GET /api/auth/me
 router.get('/me', authenticate, async (req, res, next) => {
   try {
