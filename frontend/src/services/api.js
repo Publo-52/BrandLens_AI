@@ -16,15 +16,23 @@ const API_BASE = (
     : (import.meta.env.VITE_API_BASE_URL || 'https://brandlens-backend-ghtd.onrender.com')
 ).replace(/\/+$/, '');
 
+const NOVATECH_GLOBAL_ID = '6af9d8a604f3ddc6a913904d';
+
 function getHeaders(token, organisationId) {
   const headers = { 'Content-Type': 'application/json' };
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
   }
-  const orgId =
+  if (organisationId === false) {
+    return headers;
+  }
+  let orgId =
     organisationId ||
     (typeof window !== 'undefined' ? localStorage.getItem('brandlens_active_org_id') : null);
-  if (orgId) {
+  if (orgId === 'novatech-global-preview') {
+    orgId = NOVATECH_GLOBAL_ID;
+  }
+  if (orgId && orgId !== 'undefined' && orgId !== 'null') {
     headers['x-organisation-id'] = orgId;
   }
   return headers;
@@ -87,7 +95,7 @@ export const api = {
   async register({ name, email, password, organisationName }) {
     return await request(`${API_BASE}/api/auth/register`, {
       method: 'POST',
-      headers: getHeaders(),
+      headers: getHeaders(null, false),
       body: JSON.stringify({ name, email, password, organisationName }),
     });
   },
@@ -95,7 +103,7 @@ export const api = {
   async login({ email, password }) {
     return await request(`${API_BASE}/api/auth/login`, {
       method: 'POST',
-      headers: getHeaders(),
+      headers: getHeaders(null, false),
       body: JSON.stringify({ email, password }),
     });
   },
@@ -104,7 +112,7 @@ export const api = {
     try {
       return await request(`${API_BASE}/api/auth/google`, {
         method: 'POST',
-        headers: getHeaders(),
+        headers: getHeaders(null, false),
         body: JSON.stringify({ name, email, firebaseUid, photoURL }),
       });
     } catch (err) {
@@ -129,21 +137,21 @@ export const api = {
 
   async getMe(token) {
     return await request(`${API_BASE}/api/auth/me`, {
-      headers: getHeaders(token),
+      headers: getHeaders(token, false),
     });
   },
 
   // Workspaces
   async getWorkspaces(token) {
     return await request(`${API_BASE}/api/workspaces`, {
-      headers: getHeaders(token),
+      headers: getHeaders(token, false),
     });
   },
 
   async createWorkspace({ name, settings }, token) {
     return await request(`${API_BASE}/api/workspaces`, {
       method: 'POST',
-      headers: getHeaders(token),
+      headers: getHeaders(token, false),
       body: JSON.stringify({ name, settings }),
     });
   },
@@ -151,7 +159,7 @@ export const api = {
   async demoLogin(role) {
     return await request(`${API_BASE}/api/workspaces/demo-login`, {
       method: 'POST',
-      headers: getHeaders(),
+      headers: getHeaders(null, false),
       body: JSON.stringify({ role }),
     });
   },

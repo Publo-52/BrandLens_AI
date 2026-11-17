@@ -12,11 +12,16 @@ import { api } from '../../services/api';
 
 const AuthContext = createContext(null);
 
+export const NOVATECH_GLOBAL_ID = '6af9d8a604f3ddc6a913904d';
+
 function extractOrgId(org) {
   if (!org) return null;
-  if (typeof org === 'string') return org;
+  if (typeof org === 'string') {
+    return org === 'novatech-global-preview' ? NOVATECH_GLOBAL_ID : org;
+  }
   const id = org._id || org.id || org.organisationId?._id || org.organisationId;
-  return id ? String(id) : null;
+  const stringId = id ? String(id) : null;
+  return stringId === 'novatech-global-preview' ? NOVATECH_GLOBAL_ID : stringId;
 }
 
 export function AuthProvider({ children }) {
@@ -32,11 +37,21 @@ export function AuthProvider({ children }) {
   });
   const [memberships, setMemberships] = useState([]);
   const [workspaces, setWorkspaces] = useState([]);
-  const [activeOrgId, setActiveOrgId] = useState(() => localStorage.getItem('brandlens_active_org_id'));
+  const [activeOrgId, setActiveOrgId] = useState(() => {
+    const saved = localStorage.getItem('brandlens_active_org_id');
+    if (saved === 'novatech-global-preview') {
+      localStorage.setItem('brandlens_active_org_id', NOVATECH_GLOBAL_ID);
+      return NOVATECH_GLOBAL_ID;
+    }
+    return saved || NOVATECH_GLOBAL_ID;
+  });
   const [loading, setLoading] = useState(true);
 
   const persistOrg = useCallback((id) => {
-    const stringId = id ? String(id) : null;
+    let stringId = id ? String(id) : null;
+    if (stringId === 'novatech-global-preview') {
+      stringId = NOVATECH_GLOBAL_ID;
+    }
     setActiveOrgId(stringId);
     if (stringId) {
       localStorage.setItem('brandlens_active_org_id', stringId);
@@ -68,7 +83,7 @@ export function AuthProvider({ children }) {
       if (!wsList || wsList.length === 0) {
         wsList = [
           {
-            _id: 'novatech-global-preview',
+            _id: NOVATECH_GLOBAL_ID,
             name: 'NovaTech Global',
             slug: 'novatech-global',
             role: 'ADMIN',
@@ -188,7 +203,7 @@ export function AuthProvider({ children }) {
           console.warn('Initial demo preview auto-load skipped, providing offline preview:', e.message);
           // Set in-memory demo preview so visitors are never blocked
           const previewOrg = {
-            _id: 'novatech-global-preview',
+            _id: NOVATECH_GLOBAL_ID,
             name: 'NovaTech Global',
             slug: 'novatech-global',
             role: 'ADMIN',
@@ -340,7 +355,7 @@ export function AuthProvider({ children }) {
             role: normalizedRole,
           };
           wsToUse = {
-            _id: 'novatech-global-preview',
+            _id: NOVATECH_GLOBAL_ID,
             name: 'NovaTech Global',
             slug: 'novatech-global',
             role: normalizedRole,

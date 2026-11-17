@@ -44,13 +44,21 @@ export async function apiFetch(endpoint, options = {}) {
     }
   }
 
-  // 3. Attach active x-organisation-id header
+  // 3. Attach active x-organisation-id header (only for tenant-scoped endpoints, skip auth/demo-login)
   if (!headers.has('x-organisation-id') && !headers.has('X-Organisation-Id')) {
-    const orgId =
-      options.organisationId ||
-      (typeof window !== 'undefined' ? localStorage.getItem('brandlens_active_org_id') : null);
-    if (orgId) {
-      headers.set('x-organisation-id', orgId);
+    const isAuthEndpoint =
+      typeof endpoint === 'string' &&
+      (endpoint.includes('/auth/') || endpoint.includes('demo-login'));
+    if (!isAuthEndpoint) {
+      let orgId =
+        options.organisationId ||
+        (typeof window !== 'undefined' ? localStorage.getItem('brandlens_active_org_id') : null);
+      if (orgId === 'novatech-global-preview') {
+        orgId = '6af9d8a604f3ddc6a913904d';
+      }
+      if (orgId && orgId !== 'undefined' && orgId !== 'null') {
+        headers.set('x-organisation-id', orgId);
+      }
     }
   }
 
