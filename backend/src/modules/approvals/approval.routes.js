@@ -63,7 +63,23 @@ router.post('/decision', authenticate, requireOrgAccess([ROLES.ADMIN, ROLES.MANA
       });
     }
 
+    // Enterprise RBAC: Separation of duties prevents authors/creators from approving their own submissions
+    if (decision === 'APPROVED' && content.createdBy && String(content.createdBy) === String(req.user._id)) {
+      return res.status(403).json({
+        success: false,
+        error: {
+          message: 'Separation of duties violation: Creators are strictly prohibited from approving their own submissions. Approval requires an independent manager sign-off.',
+          statusCode: 403,
+        },
+      });
+    }
+
     content.status = decision;
+    if (decision === 'APPROVED') {
+      content.approvedBy = req.user._id;
+      content.approvedAt = new Date();
+      content.approvalNotes = reason?.trim() || '';
+    }
     await content.save();
 
     // Immutable audit record

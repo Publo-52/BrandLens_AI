@@ -506,6 +506,30 @@ export function AuthProvider({ children }) {
     [persistOrg]
   );
 
+  const switchDemoRole = useCallback(
+    async (targetRole) => {
+      if (!token) return;
+      try {
+        const data = await api.demoSwitchRole(targetRole, activeOrgId, token);
+        if (data?.token) {
+          localStorage.setItem('brandlens_token', data.token);
+          if (data.user) {
+            localStorage.setItem('brandlens_user', JSON.stringify(data.user));
+          }
+          setToken(data.token);
+          setUser(data.user);
+          setMemberships(data.memberships || []);
+          await fetchWorkspacesAndSync(data.token);
+          return data;
+        }
+      } catch (err) {
+        console.error('Failed to switch demo role:', err);
+        throw err;
+      }
+    },
+    [token, activeOrgId, fetchWorkspacesAndSync]
+  );
+
   // ── Derived active workspace & role ───────────────────────────────────────
   const activeWorkspace = useMemo(() => {
     const stringActiveId = activeOrgId ? String(activeOrgId) : null;
@@ -541,6 +565,7 @@ export function AuthProvider({ children }) {
       logout,
       switchOrg,
       switchOrganisation: switchOrg,
+      switchDemoRole,
       refreshSession,
     }),
     [
@@ -560,6 +585,7 @@ export function AuthProvider({ children }) {
       register,
       logout,
       switchOrg,
+      switchDemoRole,
       refreshSession,
     ]
   );

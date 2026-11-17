@@ -339,6 +339,93 @@ router.post('/demo-login', async (req, res, next) => {
   }
 });
 
+// POST /api/auth/demo-switch-role - Quick demo role-switcher backed by real server-side RBAC
+router.post('/demo-switch-role', authenticate, async (req, res, next) => {
+  try {
+    const { role, organisationId } = req.body;
+    const validRoles = [ROLES.ADMIN, ROLES.MANAGER, ROLES.REVIEWER, ROLES.CREATOR];
+    if (!validRoles.includes(role)) {
+      return res.status(400).json({
+        success: false,
+        error: { message: `Invalid role. Allowed: ${validRoles.join(', ')}`, statusCode: 400 },
+      });
+    }
+
+    // Determine target organisation
+    let orgId = organisationId;
+    if (!orgId) {
+      const activeMem = await Membership.findOne({ userId: req.user._id, status: MEMBERSHIP_STATUS.ACTIVE });
+      orgId = activeMem?.organisationId;
+    }
+
+    if (!orgId) {
+      return res.status(400).json({
+        success: false,
+        error: { message: 'Organisation ID is required to switch roles.', statusCode: 400 },
+      });
+    }
+
+    // Dedicated demo personas for each role to demonstrate separation of duties (creator !== manager)
+    const DEMO_PERSONAS = {
+      ADMIN: { name: 'Sarah Chen (Admin)', emailPrefix: 'admin.demo' },
+      MANAGER: { name: 'Marcus Vance (Manager)', emailPrefix: 'manager.demo' },
+      REVIEWER: { name: 'Elena Rostova (Reviewer)', emailPrefix: 'reviewer.demo' },
+      CREATOR: { name: 'Alex Mercer (Creator)', emailPrefix: 'creator.demo' },
+    };
+
+    const personaInfo = DEMO_PERSONAS[role];
+    const personaEmail = `${personaInfo.emailPrefix}@brandlens.local`;
+
+    let personaUser = await User.findOne({ email: personaEmail });
+    if (!personaUser) {
+      const defaultHash = await User.hashPassword('DemoPass123!');
+      personaUser = await User.create({
+        name: personaInfo.name,
+        email: personaEmail,
+        passwordHash: defaultHash,
+      });
+    }
+
+    // Ensure persona user has membership in this organisation with requested role
+    let personaMembership = await Membership.findOne({
+      organisationId: orgId,
+      userId: personaUser._id,
+    });
+
+    if (!personaMembership) {
+      personaMembership = await Membership.create({
+        organisationId: orgId,
+        userId: personaUser._id,
+        role,
+        status: MEMBERSHIP_STATUS.ACTIVE,
+      });
+    } else if (personaMembership.role !== role) {
+      personaMembership.role = role;
+      await personaMembership.save();
+    }
+
+    // Generate fresh JWT token for the persona user (without mutating the original caller's own membership role)
+    const token = generateToken(personaUser._id);
+    const memberships = await Membership.find({
+      userId: personaUser._id,
+      status: MEMBERSHIP_STATUS.ACTIVE,
+    }).populate('organisationId');
+
+    res.json({
+      success: true,
+      token,
+      user: personaUser,
+      role,
+      activeRole: role,
+      membership: personaMembership,
+      memberships,
+      message: `Switched to ${role} persona: ${personaUser.name}`,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // POST /api/auth/logout
 router.post('/logout', (req, res) => {
   res.json({

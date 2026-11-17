@@ -68,6 +68,19 @@ const contentSchema = new mongoose.Schema(
       default: CONTENT_STATUS.DRAFT,
       index: true,
     },
+    approvedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null,
+    },
+    approvedAt: {
+      type: Date,
+      default: null,
+    },
+    approvalNotes: {
+      type: String,
+      default: '',
+    },
   },
   {
     timestamps: true,

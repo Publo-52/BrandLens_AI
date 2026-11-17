@@ -164,6 +164,14 @@ export const api = {
     });
   },
 
+  async demoSwitchRole(role, organisationId, token) {
+    return await request(`${API_BASE}/api/auth/demo-switch-role`, {
+      method: 'POST',
+      headers: getHeaders(token),
+      body: JSON.stringify({ role, organisationId }),
+    });
+  },
+
   // Organisations
   async getOrganisations(token) {
     return await request(`${API_BASE}/api/organisations`, {

@@ -29,6 +29,12 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../features/auth/AuthContext';
 import { api } from '../services/api';
+import {
+  buildCertificatePayload,
+  downloadCertificateJson,
+  downloadCertificateMarkdown,
+  printCertificatePdf,
+} from '../utils/certificate';
 
 function formatRelativeTime(dateStr) {
   if (!dateStr) return '';
@@ -60,7 +66,24 @@ export function AuditPage() {
   // Certificate Modal State
   const [showCertModal, setShowCertModal] = useState(false);
   const [selectedCertContent, setSelectedCertContent] = useState(null);
+  const [selectedCertReview, setSelectedCertReview] = useState(null);
   const [copiedCert, setCopiedCert] = useState(false);
+
+  // Fetch full details + latest review for selected certificate content
+  useEffect(() => {
+    if (!showCertModal || !selectedCertContent?._id || !activeOrg?._id || !token) return;
+    let cancelled = false;
+    api.getContent(activeOrg._id, selectedCertContent._id, token)
+      .then((res) => {
+        if (!cancelled) {
+          setSelectedCertReview(res.latestReview || null);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setSelectedCertReview(null);
+      });
+    return () => { cancelled = true; };
+  }, [showCertModal, selectedCertContent?._id, activeOrg?._id, token]);
 
   const loadAuditData = useCallback(async () => {
     if (!activeOrg?._id || !token) return;
@@ -179,64 +202,28 @@ export function AuditPage() {
     }
   };
 
-  const generateCertificatePayload = (c) => {
-    if (!c) return null;
-    return {
-      certificateId: `BL-CERT-${c._id.slice(-6).toUpperCase()}-${Date.now().toString(36).toUpperCase()}`,
-      issuedAt: new Date().toISOString(),
-      governanceSystem: 'BrandLens AI v1.0.0 (Team ALGO_X)',
-      organisation: {
-        id: activeOrg?._id,
-        name: activeOrg?.name || 'NovaTech Global',
-      },
-      content: {
-        contentId: c._id,
-        title: c.title,
-        channel: c.channel,
-        targetAudience: c.targetAudience,
-        currentVersion: c.currentVersionNumber || 1,
-        status: c.status,
-      },
-      verifications: {
-        deterministicTerminologyCheck: {
-          status: 'VERIFIED_PASSED',
-          confidence: '100% Deterministic Guarantee',
-          bannedTermsFound: 0,
-        },
-        approvedFactsGrounding: {
-          status: 'GROUNDED_VERIFIED',
-          hallucinationGuards: 'Strict - No unapproved claims',
-        },
-        toneAndVoiceGuidelineCheck: {
-          status: 'ALIGNED',
-        },
-        humanApprovalAuthority: {
-          verifiedBy: user?.name || 'Authorized Brand Officer',
-          role: activeOrg?.role || 'MANAGER',
-          immutableAuditLogged: true,
-        },
-      },
-    };
-  };
+  const currentCertificate = useMemo(() => {
+    return buildCertificatePayload(selectedCertContent, selectedCertReview, activeOrg, user);
+  }, [selectedCertContent, selectedCertReview, activeOrg, user]);
 
   const handleDownloadCertificate = () => {
-    if (!selectedCertContent) return;
-    const cert = generateCertificatePayload(selectedCertContent);
-    const blob = new Blob([JSON.stringify(cert, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `brandlens-certificate-${selectedCertContent._id.slice(-6)}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    if (!currentCertificate) return;
+    downloadCertificateJson(currentCertificate);
+  };
+
+  const handleDownloadMarkdownCertificate = () => {
+    if (!currentCertificate) return;
+    downloadCertificateMarkdown(currentCertificate);
+  };
+
+  const handlePrintPdfCertificate = () => {
+    if (!currentCertificate) return;
+    printCertificatePdf(currentCertificate);
   };
 
   const handleCopyCertificate = () => {
-    if (!selectedCertContent) return;
-    const cert = generateCertificatePayload(selectedCertContent);
-    navigator.clipboard.writeText(JSON.stringify(cert, null, 2));
+    if (!currentCertificate) return;
+    navigator.clipboard.writeText(JSON.stringify(currentCertificate, null, 2));
     setCopiedCert(true);
     setTimeout(() => setCopiedCert(false), 2000);
   };
@@ -591,16 +578,18 @@ export function AuditPage() {
                           Official Pre-Publication Clearance
                         </span>
                         <span className="text-[10px] font-mono text-slate-500 font-semibold">
-                          BL-CERT-{selectedCertContent._id.slice(-6).toUpperCase()}
+                          {currentCertificate?.certificateId || `BL-CERT-${selectedCertContent._id.slice(-6).toUpperCase()}`}
                         </span>
                       </div>
                       <h4 className="text-xl font-extrabold text-slate-900 tracking-tight">{selectedCertContent.title}</h4>
                       <div className="text-xs text-slate-500 flex flex-wrap items-center gap-x-2 gap-y-1">
                         <span>Workspace: <strong className="text-slate-800">{activeOrg?.name}</strong></span>
                         <span>&bull;</span>
-                        <span>Channel: <strong className="text-slate-800">{selectedCertContent.channel}</strong></span>
+                        <span>Version: <strong className="text-slate-800 font-mono">v{currentCertificate?.content?.versionNumber || 1}</strong></span>
                         <span>&bull;</span>
-                        <span>Target: <strong className="text-slate-800">{selectedCertContent.targetAudience || 'Enterprise'}</strong></span>
+                        <span>Version ID: <strong className="text-slate-700 font-mono text-[11px]">{String(currentCertificate?.content?.versionId || '').slice(-8)}</strong></span>
+                        <span>&bull;</span>
+                        <span>Channel: <strong className="text-slate-800">{selectedCertContent.channel}</strong></span>
                       </div>
                     </div>
 
@@ -630,55 +619,66 @@ export function AuditPage() {
                     </div>
                   </div>
 
-                  {/* 4 Pillars of Verification */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                    <div className="p-3.5 bg-white border border-slate-200/80 rounded-xl space-y-1 shadow-xs">
-                      <div className="font-bold text-slate-800 flex items-center gap-1.5">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                        <span>Deterministic Terminology Check</span>
+                  {/* Approver & Findings Summary */}
+                  {currentCertificate && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                      <div className="p-3.5 bg-white border border-slate-200/80 rounded-xl space-y-1 shadow-xs">
+                        <div className="font-bold text-slate-800 flex items-center gap-1.5">
+                          <Lock className="w-4 h-4 text-brand-600 shrink-0" />
+                          <span>Human Review Sign-Off</span>
+                        </div>
+                        <div className="text-[11px] text-slate-600 leading-relaxed">
+                          Approver: <strong className="text-slate-900">{currentCertificate.approval.approverName}</strong>
+                        </div>
+                        <div className="text-[11px] text-slate-500">
+                          Signed: {new Date(currentCertificate.approval.approvedAt).toLocaleString()}
+                        </div>
+                        <div className="text-[10px] font-semibold text-emerald-700">
+                          {currentCertificate.approval.separationOfDutiesVerified
+                            ? '✓ Independent Approver Verified (Separation of Duties)'
+                            : 'Audited Governance Record'}
+                        </div>
                       </div>
-                      <div className="text-[11px] text-slate-500 leading-relaxed">
-                        100% confidence. Zero unapproved jargon or banned terms found in version {selectedCertContent.currentVersionNumber || 1}.
-                      </div>
-                    </div>
 
-                    <div className="p-3.5 bg-white border border-slate-200/80 rounded-xl space-y-1 shadow-xs">
-                      <div className="font-bold text-slate-800 flex items-center gap-1.5">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                        <span>Grounded Approved Facts</span>
-                      </div>
-                      <div className="text-[11px] text-slate-500 leading-relaxed">
-                        All claims anchored to verified corporate knowledge base without synthetic hallucinations.
+                      <div className="p-3.5 bg-white border border-slate-200/80 rounded-xl space-y-1 shadow-xs">
+                        <div className="font-bold text-slate-800 flex items-center gap-1.5">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                          <span>Findings Summary</span>
+                        </div>
+                        <div className="text-[11px] text-slate-600">
+                          Checks Analyzed: <strong>{currentCertificate.findingsSummary.totalChecksAnalyzed}</strong> &bull; Accepted: <strong>{currentCertificate.findingsSummary.acceptedFixes}</strong> &bull; Edited: <strong>{currentCertificate.findingsSummary.customEditedFixes}</strong>
+                        </div>
+                        <div className="text-[11px] text-slate-500">
+                          Overrides: <strong>{currentCertificate.findingsSummary.justifiedOverrides}</strong> &bull; Unresolved Critical: <strong>{currentCertificate.findingsSummary.unresolvedCriticalViolations}</strong>
+                        </div>
                       </div>
                     </div>
+                  )}
 
-                    <div className="p-3.5 bg-white border border-slate-200/80 rounded-xl space-y-1 shadow-xs">
-                      <div className="font-bold text-slate-800 flex items-center gap-1.5">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                        <span>Tone & Legal Alignment</span>
+                  {/* AI vs. Deterministic Disclosure */}
+                  {currentCertificate && (
+                    <div className="p-3.5 bg-blue-50/70 border border-blue-200/80 rounded-xl space-y-1.5 text-xs">
+                      <div className="font-bold text-blue-900 flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+                        <span>AI vs. Deterministic Check Disclosure</span>
                       </div>
-                      <div className="text-[11px] text-slate-500 leading-relaxed">
-                        Audited against official tone guidelines and marketing compliance rules.
+                      <div className="text-[11px] text-blue-950/85 leading-relaxed">
+                        <strong>Deterministic Rules ({currentCertificate.findingsSummary.deterministicChecksCount}): </strong>
+                        {currentCertificate.methodologyDisclosure.deterministicEngine.scope}. <em>{currentCertificate.methodologyDisclosure.deterministicEngine.guarantee}</em>
                       </div>
-                    </div>
-
-                    <div className="p-3.5 bg-white border border-slate-200/80 rounded-xl space-y-1 shadow-xs">
-                      <div className="font-bold text-slate-800 flex items-center gap-1.5">
-                        <Lock className="w-4 h-4 text-brand-600 shrink-0" />
-                        <span>Human Review Sign-Off</span>
-                      </div>
-                      <div className="text-[11px] text-slate-500 leading-relaxed">
-                        Signed off by authorized brand reviewer. Immutable state locked against tampering.
+                      <div className="text-[11px] text-blue-950/85 leading-relaxed">
+                        <strong>AI Grounded Checks ({currentCertificate.findingsSummary.aiEvaluatedChecksCount}): </strong>
+                        {currentCertificate.methodologyDisclosure.aiEvaluationEngine.scope}. <em>{currentCertificate.methodologyDisclosure.aiEvaluationEngine.safeguard}</em>
                       </div>
                     </div>
-                  </div>
+                  )}
 
                   <div className="pt-3 border-t border-slate-200 flex flex-wrap items-center justify-between text-[11px] text-slate-500 gap-2">
                     <div>
-                      Authority: <strong className="text-slate-800">BrandLens AI Engine &bull; Team ALGO_X</strong>
+                      Authority: <strong className="text-slate-800">{currentCertificate?.governanceEngine || 'BrandLens AI Engine'}</strong>
                     </div>
                     <div className="font-mono text-[10px] text-slate-500">
-                      Timestamp: {new Date().toLocaleDateString()} &bull; Hash: SHA256-VERIFIED
+                      Hash: {currentCertificate?.verificationHash || 'SHA256-VERIFIED'}
                     </div>
                   </div>
                 </div>
@@ -691,22 +691,30 @@ export function AuditPage() {
 
             {/* Modal Footer */}
             <div className="p-4 px-6 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <button
-                  onClick={handleCopyCertificate}
-                  disabled={!selectedCertContent}
-                  className="flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 rounded-xl text-xs font-semibold shadow-xs transition-colors"
-                >
-                  {copiedCert ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
-                  <span>{copiedCert ? 'Copied JSON' : 'Copy JSON'}</span>
-                </button>
-                <button
-                  onClick={() => window.print()}
-                  disabled={!selectedCertContent}
+                  onClick={handlePrintPdfCertificate}
+                  disabled={!currentCertificate}
                   className="flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 rounded-xl text-xs font-semibold shadow-xs transition-colors"
                 >
                   <Printer className="w-3.5 h-3.5 text-slate-600" />
                   <span>Print / Save PDF</span>
+                </button>
+                <button
+                  onClick={handleDownloadMarkdownCertificate}
+                  disabled={!currentCertificate}
+                  className="flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 rounded-xl text-xs font-semibold shadow-xs transition-colors"
+                >
+                  <FileText className="w-3.5 h-3.5 text-slate-600" />
+                  <span>Markdown (.md)</span>
+                </button>
+                <button
+                  onClick={handleCopyCertificate}
+                  disabled={!currentCertificate}
+                  className="flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 rounded-xl text-xs font-semibold shadow-xs transition-colors"
+                >
+                  {copiedCert ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                  <span>{copiedCert ? 'Copied' : 'Copy JSON'}</span>
                 </button>
               </div>
 
@@ -720,11 +728,11 @@ export function AuditPage() {
                 </button>
                 <button
                   onClick={handleDownloadCertificate}
-                  disabled={!selectedCertContent}
+                  disabled={!currentCertificate}
                   className="flex items-center gap-1.5 px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-semibold shadow-sm transition-colors"
                 >
                   <Download className="w-3.5 h-3.5" />
-                  <span>Download Certificate (.json)</span>
+                  <span>Download (.json)</span>
                 </button>
               </div>
             </div>

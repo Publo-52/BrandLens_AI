@@ -409,14 +409,14 @@ export function AuthModal({ isOpen, onClose }) {
                   className="p-2.5 bg-gradient-to-br from-purple-50 to-slate-50 hover:from-purple-100 hover:to-purple-50 border border-purple-200 rounded-xl text-left transition-all disabled:opacity-50 relative flex flex-col justify-between group shadow-2xs"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="font-bold text-purple-900">Admin</span>
+                    <span className="font-bold text-purple-900 text-[11px]">Admin</span>
                     {activeDemoRole === 'ADMIN' ? (
                       <Loader2 className="w-3.5 h-3.5 animate-spin text-purple-600" />
                     ) : (
                       <Shield className="w-3.5 h-3.5 text-purple-500 group-hover:scale-110 transition-transform" />
                     )}
                   </div>
-                  <div className="text-[10px] text-purple-700 font-mono mt-0.5">Full workspace control</div>
+                  <div className="text-[9px] text-purple-700 font-mono mt-0.5">ADMIN &bull; Full Policy Access</div>
                 </button>
 
                 <button
@@ -426,14 +426,14 @@ export function AuthModal({ isOpen, onClose }) {
                   className="p-2.5 bg-gradient-to-br from-indigo-50 to-slate-50 hover:from-indigo-100 hover:to-indigo-50 border border-indigo-200 rounded-xl text-left transition-all disabled:opacity-50 relative flex flex-col justify-between group shadow-2xs"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="font-bold text-indigo-900">Manager</span>
+                    <span className="font-bold text-indigo-900 text-[11px]">Manager</span>
                     {activeDemoRole === 'MANAGER' ? (
                       <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-600" />
                     ) : (
                       <ShieldCheck className="w-3.5 h-3.5 text-indigo-500 group-hover:scale-110 transition-transform" />
                     )}
                   </div>
-                  <div className="text-[10px] text-indigo-700 font-mono mt-0.5">Rules & Approvals</div>
+                  <div className="text-[9px] text-indigo-700 font-mono mt-0.5">MANAGER &bull; Release Approver</div>
                 </button>
 
                 <button
@@ -443,14 +443,14 @@ export function AuthModal({ isOpen, onClose }) {
                   className="p-2.5 bg-gradient-to-br from-amber-50 to-slate-50 hover:from-amber-100 hover:to-amber-50 border border-amber-200 rounded-xl text-left transition-all disabled:opacity-50 relative flex flex-col justify-between group shadow-2xs"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="font-bold text-amber-900">Reviewer</span>
+                    <span className="font-bold text-amber-900 text-[11px]">Reviewer</span>
                     {activeDemoRole === 'REVIEWER' ? (
                       <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-600" />
                     ) : (
                       <UserCheck className="w-3.5 h-3.5 text-amber-500 group-hover:scale-110 transition-transform" />
                     )}
                   </div>
-                  <div className="text-[10px] text-amber-700 font-mono mt-0.5">Review queue sign-off</div>
+                  <div className="text-[9px] text-amber-700 font-mono mt-0.5">REVIEWER &bull; Finding Overrides</div>
                 </button>
 
                 <button
@@ -460,14 +460,14 @@ export function AuthModal({ isOpen, onClose }) {
                   className="p-2.5 bg-gradient-to-br from-emerald-50 to-slate-50 hover:from-emerald-100 hover:to-emerald-50 border border-emerald-200 rounded-xl text-left transition-all disabled:opacity-50 relative flex flex-col justify-between group shadow-2xs"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="font-bold text-emerald-900">Creator</span>
+                    <span className="font-bold text-emerald-900 text-[11px]">Creator</span>
                     {activeDemoRole === 'CREATOR' ? (
                       <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-600" />
                     ) : (
-                      <Building2 className="w-3.5 h-3.5 text-emerald-500 group-hover:scale-110 transition-transform" />
+                      <User className="w-3.5 h-3.5 text-emerald-500 group-hover:scale-110 transition-transform" />
                     )}
                   </div>
-                  <div className="text-[10px] text-emerald-700 font-mono mt-0.5">Drafts only (403 restricted)</div>
+                  <div className="text-[9px] text-emerald-700 font-mono mt-0.5">CREATOR &bull; Cannot Self-Approve</div>
                 </button>
               </div>
             </div>

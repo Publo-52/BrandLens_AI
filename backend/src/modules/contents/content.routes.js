@@ -203,6 +203,7 @@ router.get('/', authenticate, requireOrgAccess(), async (req, res, next) => {
 
     const contents = await Content.find(filter)
       .populate('createdBy', 'name email')
+      .populate('approvedBy', 'name email')
       .populate('assignedTo', 'name email')
       .sort({ updatedAt: -1 })
       .lean();
@@ -224,6 +225,7 @@ router.get('/:contentId', authenticate, requireOrgAccess(), async (req, res, nex
       organisationId: req.params.organisationId,
     })
       .populate('createdBy', 'name email')
+      .populate('approvedBy', 'name email')
       .populate('assignedTo', 'name email')
       .populate('currentVersionId')
       .lean();

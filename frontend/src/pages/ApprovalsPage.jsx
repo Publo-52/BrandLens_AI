@@ -18,11 +18,21 @@ import {
   GitCompare,
   ArrowRight,
   Edit3,
-  ShieldCheck
+  ShieldCheck,
+  Printer,
+  Download,
+  FileText,
+  Sparkles
 } from 'lucide-react';
 import { useAuth } from '../features/auth/AuthContext';
 import { api } from '../services/api';
 import { DiffViewer } from '../components/common/DiffViewer';
+import {
+  buildCertificatePayload,
+  downloadCertificateJson,
+  downloadCertificateMarkdown,
+  printCertificatePdf,
+} from '../utils/certificate';
 
 export function ApprovalsPage() {
   const { user, token, activeOrg, activeRole } = useAuth();
@@ -48,6 +58,7 @@ export function ApprovalsPage() {
   const [publishing, setPublishing] = useState(false);
   const [publishDestination, setPublishDestination] = useState('Website CMS');
   const [showPublishModal, setShowPublishModal] = useState(false);
+  const [showCertificateModal, setShowCertificateModal] = useState(false);
 
   // Sync version comparison selection
   useEffect(() => {
@@ -62,6 +73,11 @@ export function ApprovalsPage() {
   }, [versions, approvalDiffBaseId, approvalDiffTargetId]);
 
   const canApprove = activeRole === 'ADMIN' || activeRole === 'MANAGER';
+  const isCreatorOfDraft = Boolean(
+    selectedContent?.createdBy && (
+      String(selectedContent.createdBy?._id || selectedContent.createdBy) === String(user?._id)
+    )
+  );
 
   const loadData = useCallback(async () => {
     if (!activeOrg?._id || !token) return;
@@ -89,13 +105,14 @@ export function ApprovalsPage() {
   // Esc key listener to close modal without page refresh
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (e.key === 'Escape' && showPublishModal) {
-        setShowPublishModal(false);
+      if (e.key === 'Escape') {
+        if (showPublishModal) setShowPublishModal(false);
+        if (showCertificateModal) setShowCertificateModal(false);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [showPublishModal]);
+  }, [showPublishModal, showCertificateModal]);
 
   const loadDetails = useCallback(async (cId) => {
     if (!activeOrg?._id || !token || !cId) return;
@@ -476,7 +493,7 @@ export function ApprovalsPage() {
               </div>
 
               {/* Manager Approval Controls */}
-              {canApprove && selectedContent.status !== 'APPROVED' ? (
+              {canApprove && selectedContent.status !== 'APPROVED' && selectedContent.status !== 'PUBLISHED' ? (
                 <div className="p-5 bg-gradient-to-br from-slate-900 via-slate-900 to-brand-950 text-white rounded-2xl shadow-lg border border-slate-800 space-y-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2.5">
@@ -492,6 +509,17 @@ export function ApprovalsPage() {
                       RBAC VERIFIED
                     </span>
                   </div>
+
+                  {isCreatorOfDraft && (
+                    <div className="p-3.5 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-200 text-xs flex items-start gap-2.5">
+                      <AlertCircle className="w-4 h-4 shrink-0 text-amber-400 mt-0.5" />
+                      <div>
+                        <span className="font-bold text-amber-300">Separation of Duties Active: </span>
+                        You authored this draft (v{selectedContent.currentVersionNumber}). Enterprise governance strictly prohibits authors from approving their own submissions. Please switch to an independent Manager or Admin account using the quick role-switcher in the top bar to sign off.
+                      </div>
+                    </div>
+                  )}
+
                   <div>
                     <input
                       type="text"
@@ -504,9 +532,10 @@ export function ApprovalsPage() {
                   <div className="flex flex-col sm:flex-row items-center gap-3">
                     <button
                       type="button"
-                      disabled={submittingDecision}
+                      disabled={submittingDecision || isCreatorOfDraft}
                       onClick={() => handleDecision('APPROVED')}
-                      className="w-full sm:flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:scale-98 disabled:opacity-60 text-white rounded-xl text-xs font-bold shadow-md shadow-emerald-600/20 transition-all flex items-center justify-center gap-1.5"
+                      title={isCreatorOfDraft ? "Separation of duties: Creators cannot approve their own draft" : "Approve and lock version"}
+                      className="w-full sm:flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:scale-98 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl text-xs font-bold shadow-md shadow-emerald-600/20 transition-all flex items-center justify-center gap-1.5"
                     >
                       <Check className="w-4 h-4 stroke-[2.5]" />
                       <span>Approve Publication (Lock Version)</span>
@@ -533,43 +562,68 @@ export function ApprovalsPage() {
                 </div>
               ) : selectedContent.status === 'APPROVED' ? (
                 <div className="p-5 bg-gradient-to-r from-emerald-50 to-teal-50/60 border border-emerald-200/90 rounded-2xl text-xs text-emerald-900 space-y-3.5 shadow-xs">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs">
-                      <Lock className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <strong className="text-emerald-950 font-bold block text-sm">Pre-Publication Sign-off Granted</strong>
-                      <span className="text-emerald-700">This content version is officially approved and locked. Tamper-evident ledger record committed.</span>
+                  <div className="flex items-center justify-between gap-3 flex-wrap">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                        <Lock className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <strong className="text-emerald-950 font-bold block text-sm">Pre-Publication Sign-off Granted</strong>
+                        <span className="text-emerald-700">
+                          Approved by <strong>{selectedContent.approvedBy?.name || 'Authorized Manager'}</strong>
+                          {selectedContent.approvedAt ? ` on ${new Date(selectedContent.approvedAt).toLocaleString()}` : ''}. Version locked.
+                        </span>
+                      </div>
                     </div>
                   </div>
-                  {canApprove && (
-                    <div className="pt-3 border-t border-emerald-200/70 flex flex-wrap items-center justify-between gap-3">
-                      <span className="text-[11px] text-emerald-700 font-semibold flex items-center gap-1.5">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                        Compliance Verification Passed
-                      </span>
+                  <div className="pt-3 border-t border-emerald-200/70 flex flex-wrap items-center justify-between gap-3">
+                    <span className="text-[11px] text-emerald-700 font-semibold flex items-center gap-1.5">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                      Compliance Verification Passed
+                    </span>
+                    <div className="flex flex-wrap items-center gap-2">
                       <button
                         type="button"
-                        onClick={() => setShowPublishModal(true)}
-                        className="px-4 py-2 bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-700 hover:to-indigo-700 text-white rounded-xl text-xs font-bold shadow-md shadow-brand-600/25 transition-all hover:scale-[1.02] active:scale-98 flex items-center gap-2"
+                        onClick={() => setShowCertificateModal(true)}
+                        className="px-3.5 py-2 bg-white hover:bg-emerald-50 text-emerald-800 border border-emerald-300 rounded-xl text-xs font-bold shadow-xs transition-all flex items-center gap-1.5"
                       >
-                        <Rocket className="w-3.5 h-3.5" />
-                        <span>Publish to Production Channel</span>
+                        <FileCheck2 className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>View &amp; Export Certificate</span>
                       </button>
-                    </div>
-                  )}
-                </div>
-              ) : selectedContent.status === 'PUBLISHED' ? (
-                <div className="p-4 bg-purple-50 border border-purple-200 rounded-xl text-xs text-purple-900 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Rocket className="w-5 h-5 text-purple-600 shrink-0" />
-                    <div>
-                      <strong>Live & Published:</strong> This content has been published to production. Immutable audit trail recorded.
+                      {canApprove && (
+                        <button
+                          type="button"
+                          onClick={() => setShowPublishModal(true)}
+                          className="px-4 py-2 bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-700 hover:to-indigo-700 text-white rounded-xl text-xs font-bold shadow-md shadow-brand-600/25 transition-all hover:scale-[1.02] active:scale-98 flex items-center gap-2"
+                        >
+                          <Rocket className="w-3.5 h-3.5" />
+                          <span>Publish to Production Channel</span>
+                        </button>
+                      )}
                     </div>
                   </div>
-                  <span className="px-2 py-0.5 rounded bg-purple-200 text-purple-800 font-mono font-bold text-[10px]">
-                    LIVE IN PRODUCTION
-                  </span>
+                </div>
+              ) : selectedContent.status === 'PUBLISHED' ? (
+                <div className="p-4 bg-purple-50 border border-purple-200 rounded-xl text-xs text-purple-900 flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <Rocket className="w-5 h-5 text-purple-600 shrink-0" />
+                    <div>
+                      <strong>Live &amp; Published:</strong> This content has been published to production. Immutable audit trail recorded.
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowCertificateModal(true)}
+                      className="px-3 py-1.5 bg-white hover:bg-purple-100 text-purple-800 border border-purple-200 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5"
+                    >
+                      <FileCheck2 className="w-3.5 h-3.5 text-purple-600" />
+                      <span>Export Certificate</span>
+                    </button>
+                    <span className="px-2 py-1 rounded bg-purple-200 text-purple-800 font-mono font-bold text-[10px]">
+                      LIVE IN PRODUCTION
+                    </span>
+                  </div>
                 </div>
               ) : (
                 <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-500">
@@ -703,6 +757,194 @@ export function ApprovalsPage() {
           </div>
         </div>
       )}
+
+      {/* Pre-Publication Compliance Certificate Modal */}
+      {showCertificateModal && selectedContent && (() => {
+        const cert = buildCertificatePayload(selectedContent, latestReview, activeOrg, user);
+        if (!cert) return null;
+
+        return (
+          <div
+            onClick={() => setShowCertificateModal(false)}
+            className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
+            role="dialog"
+            aria-modal="true"
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-2xl overflow-hidden max-h-[90vh] flex flex-col animate-in fade-in zoom-in-95 duration-200"
+            >
+              {/* Modal Header */}
+              <div className="bg-gradient-to-r from-slate-900 via-brand-950 to-slate-900 p-5 text-white flex items-center justify-between border-b border-white/10">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-emerald-500/20 flex items-center justify-center border border-emerald-400/30 text-emerald-300">
+                    <ShieldCheck className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-white tracking-tight">Pre-Publication Compliance Certificate</h3>
+                    <p className="text-xs text-brand-200/80">Exportable tamper-evident proof of governance</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowCertificateModal(false)}
+                  className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-white/10 transition-colors"
+                  title="Close modal (Esc)"
+                  aria-label="Close modal"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Modal Body */}
+              <div className="p-6 overflow-y-auto space-y-5">
+                <div className="border-2 border-brand-900/20 rounded-2xl p-6 bg-gradient-to-b from-white via-slate-50/50 to-slate-100/70 space-y-5 shadow-sm relative overflow-hidden">
+                  {/* Decorative Corner Watermark */}
+                  <div className="absolute -right-8 -bottom-8 w-40 h-40 rounded-full border-4 border-emerald-500/10 flex items-center justify-center pointer-events-none">
+                    <ShieldCheck className="w-24 h-24 text-emerald-500/10" />
+                  </div>
+
+                  {/* Header info */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-200 gap-4">
+                    <div className="space-y-1.5">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] uppercase font-extrabold tracking-widest text-brand-700 bg-brand-50 px-2.5 py-0.5 rounded-md border border-brand-200/80">
+                          Official Sign-Off Clearance
+                        </span>
+                        <span className="text-[10px] font-mono text-slate-500 font-semibold">
+                          {cert.certificateId}
+                        </span>
+                      </div>
+                      <h4 className="text-xl font-extrabold text-slate-900 tracking-tight">{cert.content.title}</h4>
+                      <div className="text-xs text-slate-500 flex flex-wrap items-center gap-x-2 gap-y-1">
+                        <span>Workspace: <strong className="text-slate-800">{cert.organisation.name}</strong></span>
+                        <span>&bull;</span>
+                        <span>Version: <strong className="text-slate-800 font-mono">v{cert.content.versionNumber}</strong></span>
+                        <span>&bull;</span>
+                        <span>Version ID: <strong className="text-slate-700 font-mono text-[11px]">{cert.content.versionId.slice(-8)}</strong></span>
+                        <span>&bull;</span>
+                        <span>Channel: <strong className="text-slate-800">{cert.content.channel}</strong></span>
+                      </div>
+                    </div>
+
+                    <div className="px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-300 rounded-full text-xs font-bold uppercase self-start sm:self-auto shrink-0 flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>{cert.content.status}</span>
+                    </div>
+                  </div>
+
+                  {/* Approver & Separation of Duties */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                    <div className="p-3.5 bg-white border border-slate-200/80 rounded-xl space-y-1 shadow-xs">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Authorized Sign-off By</span>
+                      <span className="font-bold text-slate-900 block text-sm">{cert.approval.approverName}</span>
+                      <span className="text-slate-500 text-[11px] block">{new Date(cert.approval.approvedAt).toLocaleString()}</span>
+                      {cert.approval.approvalNotes && (
+                        <span className="text-slate-600 text-[11px] italic block mt-1">"{cert.approval.approvalNotes}"</span>
+                      )}
+                    </div>
+
+                    <div className="p-3.5 bg-white border border-slate-200/80 rounded-xl space-y-1 shadow-xs">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Author &amp; Separation of Duties</span>
+                      <span className="font-bold text-slate-900 block text-sm">Authored by: {cert.content.authorName}</span>
+                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 mt-1">
+                        <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                        {cert.approval.separationOfDutiesVerified ? 'Independent Sign-off Verified' : 'Governance Audited'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Findings Summary */}
+                  <div className="space-y-2">
+                    <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block">Findings Summary</span>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
+                      <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl">
+                        <div className="font-mono font-bold text-base text-slate-800">{cert.findingsSummary.totalChecksAnalyzed}</div>
+                        <div className="text-[10px] text-slate-500">Checks Evaluated</div>
+                      </div>
+                      <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl">
+                        <div className="font-mono font-bold text-base text-emerald-600">{cert.findingsSummary.acceptedFixes}</div>
+                        <div className="text-[10px] text-slate-500">Fixes Accepted</div>
+                      </div>
+                      <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl">
+                        <div className="font-mono font-bold text-base text-indigo-600">{cert.findingsSummary.customEditedFixes}</div>
+                        <div className="text-[10px] text-slate-500">Custom Edited</div>
+                      </div>
+                      <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl">
+                        <div className="font-mono font-bold text-base text-amber-600">{cert.findingsSummary.justifiedOverrides}</div>
+                        <div className="text-[10px] text-slate-500">Justified Overrides</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* AI vs Deterministic Check Disclosure */}
+                  <div className="p-3.5 bg-blue-50/70 border border-blue-200/80 rounded-xl space-y-2 text-xs">
+                    <div className="font-bold text-blue-900 flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+                      <span>AI vs. Deterministic Check Methodology Disclosure</span>
+                    </div>
+                    <div className="text-[11px] text-blue-950/85 space-y-1.5 leading-relaxed">
+                      <div>
+                        <strong>Deterministic Engine ({cert.findingsSummary.deterministicChecksCount} checks): </strong>
+                        {cert.methodologyDisclosure.deterministicEngine.scope}. <em>{cert.methodologyDisclosure.deterministicEngine.guarantee}</em>
+                      </div>
+                      <div>
+                        <strong>AI-Assisted Grounded Engine ({cert.findingsSummary.aiEvaluatedChecksCount} checks): </strong>
+                        {cert.methodologyDisclosure.aiEvaluationEngine.scope}. <em>{cert.methodologyDisclosure.aiEvaluationEngine.safeguard}</em>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pt-2 border-t border-slate-200 flex items-center justify-between text-[10px] font-mono text-slate-400">
+                    <span>Hash: {cert.verificationHash}</span>
+                    <span>{cert.governanceEngine}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Modal Footer with Export Actions */}
+              <div className="p-4 px-6 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => printCertificatePdf(cert)}
+                    className="flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 rounded-xl text-xs font-semibold shadow-xs transition-colors"
+                  >
+                    <Printer className="w-3.5 h-3.5 text-slate-600" />
+                    <span>Print / Save PDF</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => downloadCertificateMarkdown(cert)}
+                    className="flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 rounded-xl text-xs font-semibold shadow-xs transition-colors"
+                  >
+                    <FileText className="w-3.5 h-3.5 text-slate-600" />
+                    <span>Download Markdown (.md)</span>
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowCertificateModal(false)}
+                    className="px-3.5 py-2 border border-slate-300 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold transition-colors"
+                  >
+                    Close
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => downloadCertificateJson(cert)}
+                    className="flex items-center gap-1.5 px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-semibold shadow-sm transition-colors"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>Download JSON (.json)</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

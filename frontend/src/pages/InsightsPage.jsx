@@ -447,6 +447,76 @@ export function InsightsPage() {
           </div>
         </div>
 
+        {/* Live Overruled & Ambiguous Guidelines Panel (Backed by Stored Review Overrides) */}
+        <div className="space-y-3 pt-2 relative z-10">
+          <div className="flex items-center justify-between">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-amber-300 flex items-center gap-1.5">
+              <ShieldAlert className="w-4 h-4 text-amber-400" />
+              <span>Frequently Overruled & Ambiguous Guidelines (Admin Rewrite Queue)</span>
+            </h4>
+            <span className="text-[10px] font-mono text-slate-300 bg-white/10 px-2 py-0.5 rounded-full">
+              {metrics?.ambiguousGuidelines?.length || 0} Flagged Rules
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+            {(metrics?.ambiguousGuidelines || []).map((item, idx) => (
+              <div
+                key={idx}
+                className="bg-white/10 border border-white/15 rounded-2xl p-4 space-y-2.5 backdrop-blur-xs hover:bg-white/[0.14] transition-colors"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-[10px] font-bold uppercase font-mono px-2 py-0.5 rounded bg-brand-500/20 text-brand-300 border border-brand-400/30">
+                        {item.category}
+                      </span>
+                      <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${
+                        item.ambiguityScore === 'HIGH'
+                          ? 'bg-rose-500/20 text-rose-300 border border-rose-400/30'
+                          : item.ambiguityScore === 'MEDIUM'
+                          ? 'bg-amber-500/20 text-amber-300 border border-amber-400/30'
+                          : 'bg-sky-500/20 text-sky-300 border border-sky-400/30'
+                      }`}>
+                        {item.ambiguityScore} AMBIGUITY
+                      </span>
+                    </div>
+                    <h5 className="text-xs font-bold text-white leading-snug pt-1">
+                      {item.ruleTitle}
+                    </h5>
+                  </div>
+                  <span className="text-xs font-mono font-bold text-amber-300 bg-amber-500/15 border border-amber-400/30 px-2.5 py-1 rounded-xl shrink-0">
+                    {item.overrideCount} {item.overrideCount === 1 ? 'Override' : 'Overrides'}
+                  </span>
+                </div>
+
+                {/* Reviewer Justifications */}
+                {item.reasons && item.reasons.length > 0 && (
+                  <div className="p-2.5 bg-black/30 rounded-xl border border-white/10 text-[11px] space-y-1">
+                    <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+                      Recorded Reviewer Override Rationales:
+                    </span>
+                    <ul className="list-disc list-inside text-slate-300 space-y-0.5">
+                      {item.reasons.map((r, rIdx) => (
+                        <li key={rIdx} className="truncate" title={r}>"{r}"</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Admin Rewrite Recommendation */}
+                <div className="p-2.5 bg-emerald-500/15 border border-emerald-400/30 rounded-xl text-[11px] text-emerald-200 space-y-1">
+                  <div className="font-bold text-emerald-300 flex items-center gap-1">
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>Recommended Guideline Rewrite for Admins:</span>
+                  </div>
+                  <p className="leading-relaxed text-emerald-100">{item.recommendation}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
         {/* Interactive Ambiguity Co-Pilot Drawer */}
         <div className="mt-4 pt-4 border-t border-white/10 relative z-10">
           {!coPilotActive ? (
