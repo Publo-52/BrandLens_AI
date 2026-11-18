@@ -63,6 +63,5 @@ export function getDatabaseHealth() {
   return {
     status: stateCode === 1 ? 'connected' : 'disconnected',
     state: states[stateCode] || 'unknown',
-    uri: config.mongoUri.replace(/:([^:@]+)@/, ':****@'), // redact password in logs/health if present
   };
 }

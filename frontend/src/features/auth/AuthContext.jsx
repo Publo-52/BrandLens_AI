@@ -472,11 +472,15 @@ export function AuthProvider({ children }) {
           return data;
         }
       } catch (err) {
+        if (err.status === 404) {
+          // Graceful compatibility fallback to /api/workspaces/demo-login
+          return await loginWithDemoRole(targetRole);
+        }
         console.error('Failed to switch demo role:', err);
         throw err;
       }
     },
-    [token, activeOrgId, fetchWorkspacesAndSync]
+    [token, activeOrgId, fetchWorkspacesAndSync, loginWithDemoRole]
   );
 
   // ── Derived active workspace & role ───────────────────────────────────────

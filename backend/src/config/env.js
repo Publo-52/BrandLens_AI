@@ -20,6 +20,7 @@ const rawOrigins = [process.env.FRONTEND_ORIGIN, process.env.ALLOWED_ORIGINS]
   .filter(Boolean);
 
 const defaultDevOrigins = ['http://localhost:5173', 'http://127.0.0.1:5173', 'http://localhost:4173'];
+const defaultProdOrigins = ['https://brand-lens-ai-ten.vercel.app'];
 
 export const config = {
   env: nodeEnv,
@@ -28,7 +29,9 @@ export const config = {
   mongoUri: (process.env.MONGODB_URI || 'mongodb://localhost:27017/brandlens').trim(),
   jwtSecret: (process.env.JWT_SECRET || DEV_FALLBACK_JWT_SECRET).trim(),
   frontendOrigin: (process.env.FRONTEND_ORIGIN || 'http://localhost:5173').trim(),
-  allowedOrigins: Array.from(new Set([...rawOrigins, ...(isProduction ? [] : defaultDevOrigins)])),
+  allowedOrigins: Array.from(
+    new Set([...rawOrigins, ...defaultProdOrigins, ...(isProduction ? [] : defaultDevOrigins)])
+  ),
   allowDemoAuth:
     process.env.ALLOW_DEMO_AUTH !== undefined
       ? process.env.ALLOW_DEMO_AUTH === 'true'
