@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../features/auth/AuthContext';
 
-export function AuthPage({ onAuthSuccess }) {
+export function AuthPage({ onAuthSuccess, initialMode = 'signin', onBackToHome }) {
   const {
     loginWithFirebase,
     signUpWithFirebase,
@@ -29,7 +29,21 @@ export function AuthPage({ onAuthSuccess }) {
     register,
   } = useAuth();
 
-  const [mode, setMode] = useState('signin'); // 'signin' | 'signup'
+  const [mode, setMode] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const queryMode = urlParams.get('mode');
+      if (queryMode === 'signup' || queryMode === 'register') return 'signup';
+      if (queryMode === 'signin' || queryMode === 'login') return 'signin';
+    }
+    return initialMode || 'signin';
+  });
+
+  useEffect(() => {
+    if (initialMode) {
+      setMode(initialMode);
+    }
+  }, [initialMode]);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -144,6 +158,15 @@ export function AuthPage({ onAuthSuccess }) {
 
         {/* Brand Header */}
         <div className="relative z-10">
+          {onBackToHome && (
+            <button
+              type="button"
+              onClick={onBackToHome}
+              className="inline-flex items-center gap-1.5 text-xs text-teal-300 hover:text-white mb-6 font-semibold py-1.5 px-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 transition-colors"
+            >
+              <span>← Back to Home</span>
+            </button>
+          )}
           <div className="flex items-center gap-3">
             <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-teal-500 via-teal-400 to-cyan-300 text-[#0f2744] flex items-center justify-center font-black shadow-lg shadow-teal-500/30">
               <ShieldCheck className="w-6 h-6 stroke-[2.5]" />
@@ -221,6 +244,17 @@ export function AuthPage({ onAuthSuccess }) {
       {/* ───────────────────────────────────────────────────────────────────── */}
       <div className="lg:w-1/2 flex items-center justify-center p-6 sm:p-10 lg:p-14 bg-slate-900/90 relative">
         <div className="w-full max-w-md space-y-6">
+          {onBackToHome && (
+            <div className="lg:hidden flex items-center justify-between pb-1">
+              <button
+                type="button"
+                onClick={onBackToHome}
+                className="inline-flex items-center gap-1.5 text-xs text-teal-300 hover:text-white font-semibold py-1 px-2.5 rounded-lg bg-white/5 border border-white/10"
+              >
+                <span>← Back to Home</span>
+              </button>
+            </div>
+          )}
           {/* Main Card */}
           <div className="bg-slate-800/90 border border-slate-700/80 rounded-2xl p-6 sm:p-8 shadow-2xl backdrop-blur-md">
             {/* Tabs: Sign In / Create Account */}
