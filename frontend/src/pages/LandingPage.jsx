@@ -257,14 +257,11 @@ export function LandingPage({ onNavigate, onDemoLogin }) {
           onClick={() => onNavigate && onNavigate('landing')}
           className="flex items-center gap-2.5 font-bold text-base tracking-tight cursor-pointer"
         >
-          <div
-            style={{
-              background: 'linear-gradient(135deg, var(--accent), var(--accent-2))'
-            }}
-            className="w-7 h-7 rounded-lg text-white flex items-center justify-center font-extrabold text-xs shadow-sm"
-          >
-            B
-          </div>
+          <img
+            src="/favicon-32x32.png"
+            alt="BrandLens AI Logo"
+            className="w-7 h-7 rounded-lg shadow-sm"
+          />
           <span>BrandLens AI</span>
         </div>
 

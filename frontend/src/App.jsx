@@ -108,17 +108,18 @@ function PageLoadingFallback() {
       </div>
       {/* Logo + spinner */}
       <div style={{ position: 'relative', zIndex: 1, textAlign: 'center' }}>
-        <div style={{
-          width: 52, height: 52, borderRadius: 16,
-          background: 'linear-gradient(135deg,#6366f1 0%,#818cf8 100%)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          margin: '0 auto 16px', boxShadow: '0 8px 24px rgba(99,102,241,0.28)',
-        }}>
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
-            <circle cx="12" cy="12" r="4" fill="white" opacity="0.9"/>
-            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z" fill="white" opacity="0.4"/>
-          </svg>
-        </div>
+        <img
+          src="/favicon-48x48.png"
+          alt="BrandLens AI Logo"
+          style={{
+            width: 52,
+            height: 52,
+            borderRadius: 16,
+            margin: '0 auto 16px',
+            display: 'block',
+            boxShadow: '0 8px 24px rgba(99,102,241,0.25)',
+          }}
+        />
         <Loader2 style={{ color: '#6366f1', margin: '0 auto 12px', display: 'block' }} className="w-6 h-6 animate-spin" />
         <span style={{ color: '#64748b', fontSize: 13, fontWeight: 500, letterSpacing: '0.06em' }}>
           Loading BrandLens AI…
@@ -229,17 +230,16 @@ function MainApp() {
           display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20,
         }}>
           {/* Logo mark */}
-          <div style={{
-            width: 64, height: 64, borderRadius: 18,
-            background: 'linear-gradient(135deg,#6366f1 0%,#818cf8 100%)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 12px 32px rgba(99,102,241,0.32)',
-          }}>
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
-              <circle cx="12" cy="12" r="4" fill="white" opacity="0.95"/>
-              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z" fill="white" opacity="0.4"/>
-            </svg>
-          </div>
+          <img
+            src="/favicon-192x192.png"
+            alt="BrandLens AI Logo"
+            style={{
+              width: 64,
+              height: 64,
+              borderRadius: 18,
+              boxShadow: '0 12px 32px rgba(99,102,241,0.25)',
+            }}
+          />
 
           {/* Wordmark */}
           <div>
