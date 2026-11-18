@@ -13,7 +13,7 @@ router.get('/', authenticate, requireOrgAccess(), async (req, res, next) => {
       organisationId: req.params.organisationId,
       status: { $ne: MEMBERSHIP_STATUS.SUSPENDED },
     })
-      .populate('userId', 'name email isActive')
+      .populate('userId', 'name email firebaseUid isActive')
       .sort({ createdAt: -1 });
 
     res.json({
@@ -135,18 +135,47 @@ router.patch('/:memberId', authenticate, requireOrgAccess([ROLES.ADMIN]), valida
       updates.status = status;
     }
 
-    const membership = await Membership.findOneAndUpdate(
-      { _id: req.params.memberId, organisationId: req.params.organisationId },
-      { $set: updates },
-      { new: true }
-    ).populate('userId', 'name email');
+    const existingMembership = await Membership.findOne({
+      _id: req.params.memberId,
+      organisationId: req.params.organisationId,
+    });
 
-    if (!membership) {
+    if (!existingMembership) {
       return res.status(404).json({
         success: false,
         error: { message: 'Membership not found in this organisation.', statusCode: 404 },
       });
     }
+
+    const isDemotingOrDeactivatingAdmin =
+      existingMembership.role === ROLES.ADMIN &&
+      existingMembership.status === MEMBERSHIP_STATUS.ACTIVE &&
+      ((updates.role && updates.role !== ROLES.ADMIN) ||
+        (updates.status && updates.status !== MEMBERSHIP_STATUS.ACTIVE));
+
+    if (isDemotingOrDeactivatingAdmin) {
+      const activeAdminCount = await Membership.countDocuments({
+        organisationId: req.params.organisationId,
+        role: ROLES.ADMIN,
+        status: MEMBERSHIP_STATUS.ACTIVE,
+      });
+      if (activeAdminCount <= 1) {
+        return res.status(400).json({
+          success: false,
+          error: {
+            message:
+              'Cannot demote or deactivate the last active workspace Admin. Promote another member to Admin first.',
+            statusCode: 400,
+          },
+        });
+      }
+    }
+
+    const membership = await Membership.findOneAndUpdate(
+      { _id: req.params.memberId, organisationId: req.params.organisationId },
+      { $set: updates },
+      { new: true }
+    ).populate('userId', 'name email firebaseUid');
 
     res.json({
       success: true,

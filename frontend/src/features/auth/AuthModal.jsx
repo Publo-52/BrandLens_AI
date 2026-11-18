@@ -313,6 +313,7 @@ export function AuthModal({ isOpen, onClose }) {
                 <input
                   type="email"
                   name="email"
+                  autoComplete="email"
                   required
                   value={formData.email}
                   onChange={handleChange}
@@ -336,6 +337,7 @@ export function AuthModal({ isOpen, onClose }) {
                 <input
                   type={showPassword ? 'text' : 'password'}
                   name="password"
+                  autoComplete={isRegister ? 'new-password' : 'current-password'}
                   required
                   minLength={8}
                   value={formData.password}

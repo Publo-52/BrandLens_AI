@@ -97,9 +97,12 @@ export function SettingsPage() {
     try {
       await api.updateMemberRole(activeOrg._id, memberId, newRole, token);
       setSuccessMsg('Member role updated successfully!');
-      await loadMembers();
+      await Promise.all([loadMembers(), refreshSession()]);
     } catch (err) {
       setError(err.message || 'Failed to update role');
+      if (err.status === 403) {
+        await refreshSession();
+      }
     }
   };
 
@@ -385,7 +388,11 @@ export function SettingsPage() {
                 </tr>
               ) : members.map((m) => {
                 const u = m.userId;
-                const isCurrentUser = u?._id === user?._id;
+                const isCurrentUser = Boolean(
+                  (u?._id && user?._id && String(u._id) === String(user._id)) ||
+                    (u?.firebaseUid && user?.firebaseUid && u.firebaseUid === user.firebaseUid) ||
+                    (u?.email && user?.email && u.email.toLowerCase() === user.email.toLowerCase())
+                );
                 const nameDisplay = u?.name || (m.invitedEmail ? `Invited (${m.invitedEmail.split('@')[0]})` : 'Pending Teammate');
                 const emailDisplay = u?.email || m.invitedEmail || '—';
                 const initial = nameDisplay ? nameDisplay.charAt(0).toUpperCase() : 'U';

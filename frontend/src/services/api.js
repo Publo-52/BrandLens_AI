@@ -195,6 +195,7 @@ export const api = {
         body: JSON.stringify({ email, role, name }),
       });
     } catch (err) {
+      if (err.status !== 404) throw err;
       return await request(`${API_BASE}/api/organisations/${orgId}/members`, {
         method: 'POST',
         headers: getHeaders(token, orgId),
@@ -211,6 +212,7 @@ export const api = {
         body: JSON.stringify({ role }),
       });
     } catch (err) {
+      if (err.status !== 404) throw err;
       return await request(`${API_BASE}/api/organisations/${orgId}/members/${memberId}`, {
         method: 'PATCH',
         headers: getHeaders(token, orgId),

@@ -237,35 +237,63 @@ router.patch(
         });
       }
 
-      if (role) {
-        if (!Object.values(ROLES).includes(role)) {
+      if (role && !Object.values(ROLES).includes(role)) {
+        return res.status(400).json({
+          success: false,
+          error: {
+            message: `Invalid role. Allowed roles: ${Object.values(ROLES).join(', ')}`,
+            statusCode: 400,
+          },
+        });
+      }
+
+      if (status && !Object.values(MEMBERSHIP_STATUS).includes(status)) {
+        return res.status(400).json({
+          success: false,
+          error: {
+            message: `Invalid status. Allowed statuses: ${Object.values(MEMBERSHIP_STATUS).join(', ')}`,
+            statusCode: 400,
+          },
+        });
+      }
+
+      const isDemotingOrDeactivatingAdmin =
+        membership.role === ROLES.ADMIN &&
+        membership.status === MEMBERSHIP_STATUS.ACTIVE &&
+        ((role && role !== ROLES.ADMIN) || (status && status !== MEMBERSHIP_STATUS.ACTIVE));
+
+      if (isDemotingOrDeactivatingAdmin) {
+        const activeAdminCount = await Membership.countDocuments({
+          organisationId,
+          role: ROLES.ADMIN,
+          status: MEMBERSHIP_STATUS.ACTIVE,
+        });
+        if (activeAdminCount <= 1) {
           return res.status(400).json({
             success: false,
             error: {
-              message: `Invalid role. Allowed roles: ${Object.values(ROLES).join(', ')}`,
+              message:
+                'Cannot demote or deactivate the last active workspace Admin. Promote another member to Admin first.',
               statusCode: 400,
             },
           });
         }
+      }
+
+      if (role) {
         membership.role = role;
       }
 
       if (status) {
-        if (!Object.values(MEMBERSHIP_STATUS).includes(status)) {
-          return res.status(400).json({
-            success: false,
-            error: {
-              message: `Invalid status. Allowed statuses: ${Object.values(MEMBERSHIP_STATUS).join(', ')}`,
-              statusCode: 400,
-            },
-          });
-        }
         membership.status = status;
       }
 
       await membership.save();
 
-      const populated = await Membership.findById(membership._id).populate('userId', 'name email avatarUrl');
+      const populated = await Membership.findById(membership._id).populate(
+        'userId',
+        'name email firebaseUid avatarUrl'
+      );
 
       res.json({
         success: true,
@@ -289,7 +317,7 @@ router.get(
     try {
       const { organisationId } = req.params;
       const members = await Membership.find({ organisationId })
-        .populate('userId', 'name email avatarUrl isActive')
+        .populate('userId', 'name email firebaseUid avatarUrl isActive')
         .sort({ createdAt: 1 });
 
       res.json({

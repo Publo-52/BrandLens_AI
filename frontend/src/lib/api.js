@@ -118,6 +118,7 @@ export const workspaceApi = {
         body: JSON.stringify({ email, role }),
       });
     } catch (err) {
+      if (err.status !== 404) throw err;
       return await apiFetch(`/api/organisations/${organisationId}/members`, {
         method: 'POST',
         organisationId,
@@ -135,6 +136,7 @@ export const workspaceApi = {
         body: JSON.stringify({ role, status }),
       });
     } catch (err) {
+      if (err.status !== 404) throw err;
       return await apiFetch(`/api/organisations/${organisationId}/members/${memberId}`, {
         method: 'PATCH',
         organisationId,
@@ -150,6 +152,7 @@ export const workspaceApi = {
         organisationId,
       });
     } catch (err) {
+      if (err.status !== 404) throw err;
       return await apiFetch(`/api/organisations/${organisationId}/members`, {
         organisationId,
       });

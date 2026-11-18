@@ -63,6 +63,19 @@ export function AuthProvider({ children }) {
   // Sync workspaces from backend with multi-tiered fallback
   const fetchWorkspacesAndSync = useCallback(
     async (authToken) => {
+      const effectiveToken = authToken || localStorage.getItem('brandlens_token');
+      if (effectiveToken) {
+        try {
+          const meData = await api.getMe(effectiveToken);
+          if (meData?.user) {
+            localStorage.setItem('brandlens_user', JSON.stringify(meData.user));
+            setUser(meData.user);
+          }
+        } catch (meErr) {
+          // Keep existing user profile if /api/auth/me is temporarily unavailable
+        }
+      }
+
       let wsList = [];
       try {
         // 1. Try modern /api/workspaces
