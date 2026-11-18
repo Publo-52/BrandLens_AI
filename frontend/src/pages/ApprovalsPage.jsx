@@ -262,10 +262,10 @@ export function ApprovalsPage() {
       )}
 
       {/* Main Approval Queue Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      <div className={`grid grid-cols-1 lg:grid-cols-12 gap-6 ${selectedContent ? 'items-start' : 'items-stretch'}`}>
         {/* Left: Queue Items List (4 cols) */}
-        <div className="lg:col-span-4 space-y-4">
-          <div className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-sm space-y-4 overflow-hidden">
+        <div className="lg:col-span-4 flex flex-col">
+          <div className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-sm flex-1 flex flex-col space-y-4 overflow-hidden">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 gap-2">
               <div className="flex items-center gap-2 min-w-0">
                 <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 whitespace-nowrap">
@@ -338,7 +338,7 @@ export function ApprovalsPage() {
         </div>
 
         {/* Right: Inspection & Approval Sign-off Box (8 cols) */}
-        <div className="lg:col-span-8 space-y-5">
+        <div className="lg:col-span-8 flex flex-col space-y-5">
           {selectedContent ? (
             <div className="bg-white rounded-2xl border border-slate-200/90 p-6 shadow-xs space-y-6">
               {/* Submission Details Header */}
@@ -670,7 +670,7 @@ export function ApprovalsPage() {
               </div>
             </div>
           ) : contents.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-slate-200/90 p-12 text-center space-y-3 shadow-xs">
+            <div className="bg-white rounded-2xl border border-slate-200/90 p-12 text-center space-y-3 shadow-xs flex-1 flex flex-col items-center justify-center">
               <div className="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-200/60 flex items-center justify-center text-amber-600 mx-auto">
                 <CheckSquare2 className="w-6 h-6 stroke-[2]" />
               </div>
@@ -680,7 +680,7 @@ export function ApprovalsPage() {
               </p>
             </div>
           ) : (
-            <div className="bg-white rounded-2xl border border-slate-200/90 p-12 text-center space-y-2 shadow-xs text-slate-400 text-xs">
+            <div className="bg-white rounded-2xl border border-slate-200/90 p-12 text-center space-y-2 shadow-xs text-slate-400 text-xs flex-1 flex flex-col items-center justify-center">
               <p className="font-semibold text-slate-600">Select a submission from the queue</p>
               <p className="text-[11px]">Click any item on the left to inspect rule findings and issue manager sign-off.</p>
             </div>

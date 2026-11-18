@@ -482,32 +482,74 @@ export function ReviewPage() {
         {/* Left Column: Submissions List & Active Editor (7 cols) */}
         <div className="lg:col-span-7 space-y-5 lg:space-y-6">
           {/* Submissions Switcher Bar */}
-          <div className="bg-white/90 backdrop-blur-xs rounded-2xl border border-slate-200/90 p-2 sm:p-2.5 shadow-xs flex items-center gap-2 overflow-x-auto touch-scroll no-scrollbar">
+          <div className="bg-white/90 backdrop-blur-xs rounded-2xl border border-slate-200/90 p-2 sm:p-2.5 shadow-xs flex items-center gap-2 overflow-x-auto touch-scroll no-scrollbar min-h-[48px]">
             <span className="text-[10px] font-bold text-slate-400 shrink-0 px-2 sm:px-2.5 uppercase tracking-wider">
               Submissions:
             </span>
-            {contents.map((c) => {
-              const isSelected = c._id === selectedContentId;
-              return (
-                <button
-                  key={c._id}
-                  onClick={() => setSelectedContentId(c._id)}
-                  className={`px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-semibold shrink-0 transition-all flex items-center gap-2 ${
-                    isSelected
-                      ? 'bg-slate-900 text-white shadow-sm ring-1 ring-slate-800'
-                      : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200/80'
-                  }`}
-                >
-                  <span className="truncate max-w-[110px] sm:max-w-[130px]">{c.title}</span>
-                  <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded-md ${
-                    isSelected ? 'bg-white/20 text-white' : 'bg-slate-200/70 text-slate-600'
-                  }`}>
-                    v{c.currentVersionNumber || 1}
-                  </span>
-                </button>
-              );
-            })}
+            {contents.length === 0 ? (
+              <span className="text-xs text-slate-400 px-1">No submissions yet</span>
+            ) : (
+              contents.map((c) => {
+                const isSelected = c._id === selectedContentId;
+                return (
+                  <button
+                    key={c._id}
+                    onClick={() => setSelectedContentId(c._id)}
+                    className={`px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-semibold shrink-0 transition-all flex items-center gap-2 ${
+                      isSelected
+                        ? 'bg-slate-900 text-white shadow-sm ring-1 ring-slate-800'
+                        : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200/80'
+                    }`}
+                  >
+                    <span className="truncate max-w-[110px] sm:max-w-[130px]">{c.title}</span>
+                    <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded-md ${
+                      isSelected ? 'bg-white/20 text-white' : 'bg-slate-200/70 text-slate-600'
+                    }`}>
+                      v{c.currentVersionNumber || 1}
+                    </span>
+                  </button>
+                );
+              })
+            )}
           </div>
+
+          {!selectedContent && (
+            <div className="bg-white rounded-2xl border border-slate-200/90 p-10 sm:p-12 shadow-xs text-center space-y-4">
+              <div className="w-12 h-12 rounded-2xl bg-brand-50 border border-brand-200/70 flex items-center justify-center text-brand-600 mx-auto">
+                <FileText className="w-6 h-6 stroke-[1.9]" />
+              </div>
+              <div className="space-y-1.5 max-w-md mx-auto">
+                <h3 className="text-sm font-bold text-slate-800">No Content Submissions Yet</h3>
+                <p className="text-xs text-slate-500 leading-relaxed">
+                  Create a new content submission or load the interactive demo sample to run grounded brand compliance checks, terminology enforcement, and approval workflows.
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center justify-center gap-2.5 pt-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setNewTitle('NovaTech Cloud Launch Campaign');
+                    setNewChannel('Social Media');
+                    setNewAudience('Enterprise Decision Makers');
+                    setNewText(SAMPLE_DEMO_DRAFT);
+                    setShowNewModal(true);
+                  }}
+                  className="flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-brand-600 via-brand-500 to-indigo-600 hover:from-brand-700 hover:to-indigo-700 text-white rounded-xl text-xs font-bold shadow-sm shadow-brand-500/20 hover:shadow-md transition-all active:scale-95"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                  <span>Load Demo Sample</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowNewModal(true)}
+                  className="flex items-center gap-1.5 px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold shadow-sm transition-all active:scale-95"
+                >
+                  <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+                  <span>New Submission</span>
+                </button>
+              </div>
+            </div>
+          )}
 
           {selectedContent && (
             <div className="bg-white rounded-2xl border border-slate-200/90 p-4 sm:p-6 shadow-xs space-y-5">
@@ -845,8 +887,18 @@ export function ReviewPage() {
           </div>
 
           {/* Finding Cards List */}
-          <div className="space-y-3 max-h-[750px] overflow-y-auto pr-1">
-            {latestReview?.findings && latestReview.findings.length > 0 ? (
+          <div className="space-y-3 max-h-[750px] overflow-y-auto">
+            {!selectedContent ? (
+              <div className="bg-white rounded-2xl border border-slate-200/90 p-10 text-center space-y-2.5 shadow-xs">
+                <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-center text-slate-400 mx-auto">
+                  <FileCheck2 className="w-5 h-5 text-slate-400 stroke-[1.9]" />
+                </div>
+                <h4 className="text-sm font-semibold text-slate-800">Awaiting Submission</h4>
+                <p className="text-xs text-slate-500 max-w-xs mx-auto leading-relaxed">
+                  Select or create a submission on the left to inspect explainable findings, grounded citations, and deterministic fixes.
+                </p>
+              </div>
+            ) : latestReview?.findings && latestReview.findings.length > 0 ? (
               latestReview.findings.map((f) => {
                 const isOverridden = f.reviewStatus === 'OVERRIDDEN';
                 const isRejected = f.reviewStatus === 'REJECTED';

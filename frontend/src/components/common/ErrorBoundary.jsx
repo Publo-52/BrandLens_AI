@@ -17,6 +17,16 @@ export class ErrorBoundary extends React.Component {
   }
 
   handleReset = () => {
+    const msg = String(this.state.error?.message || '');
+    const isChunkError =
+      msg.includes('Failed to fetch dynamically imported module') ||
+      msg.includes('Importing a module script failed') ||
+      msg.includes('Loading chunk');
+    if (isChunkError && typeof window !== 'undefined') {
+      sessionStorage.removeItem('brandlens_chunk_reloaded');
+      window.location.reload();
+      return;
+    }
     this.setState({ hasError: false, error: null, errorInfo: null });
     if (this.props.onReset) {
       this.props.onReset();

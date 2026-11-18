@@ -333,10 +333,10 @@ export function KnowledgeBasePage() {
       )}
 
       {/* Modern Segmented Navigation Tabs */}
-      <div className="flex items-center gap-1.5 p-1.5 bg-slate-100/90 rounded-2xl border border-slate-200/80 text-xs font-bold w-full sm:w-fit overflow-x-auto touch-scroll no-scrollbar">
+      <div className="flex items-center gap-1.5 p-1.5 bg-slate-100/90 rounded-2xl border border-slate-200/80 text-xs font-bold w-full overflow-x-auto touch-scroll no-scrollbar">
         <button
           onClick={() => setActiveTab('guidelines')}
-          className={`px-4 py-2 rounded-xl transition-all duration-150 flex items-center gap-2 shrink-0 ${
+          className={`flex-1 justify-center px-4 py-2 rounded-xl transition-all duration-150 flex items-center gap-2 shrink-0 ${
             activeTab === 'guidelines'
               ? 'bg-white text-slate-900 shadow-sm border border-slate-200/80'
               : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
@@ -352,7 +352,7 @@ export function KnowledgeBasePage() {
 
         <button
           onClick={() => setActiveTab('facts')}
-          className={`px-4 py-2 rounded-xl transition-all duration-150 flex items-center gap-2 shrink-0 ${
+          className={`flex-1 justify-center px-4 py-2 rounded-xl transition-all duration-150 flex items-center gap-2 shrink-0 ${
             activeTab === 'facts'
               ? 'bg-white text-slate-900 shadow-sm border border-slate-200/80'
               : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
@@ -368,7 +368,7 @@ export function KnowledgeBasePage() {
 
         <button
           onClick={() => setActiveTab('terminology')}
-          className={`px-4 py-2 rounded-xl transition-all duration-150 flex items-center gap-2 shrink-0 ${
+          className={`flex-1 justify-center px-4 py-2 rounded-xl transition-all duration-150 flex items-center gap-2 shrink-0 ${
             activeTab === 'terminology'
               ? 'bg-white text-slate-900 shadow-sm border border-slate-200/80'
               : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
@@ -384,7 +384,7 @@ export function KnowledgeBasePage() {
 
         <button
           onClick={() => setActiveTab('assets')}
-          className={`px-4 py-2 rounded-xl transition-all duration-150 flex items-center gap-2 shrink-0 ${
+          className={`flex-1 justify-center px-4 py-2 rounded-xl transition-all duration-150 flex items-center gap-2 shrink-0 ${
             activeTab === 'assets'
               ? 'bg-white text-slate-900 shadow-sm border border-slate-200/80'
               : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
@@ -454,9 +454,12 @@ export function KnowledgeBasePage() {
                 </div>
               ))
             ) : (
-              <div className="col-span-2 text-center py-12 bg-white rounded-xl border border-slate-200 p-6 space-y-2">
-                <p className="text-sm font-semibold text-slate-700">No guidelines found in this category</p>
-                <p className="text-xs text-slate-400">Click "Seed NovaTech Demo Brand Pack" to automatically populate realistic rules.</p>
+              <div className="col-span-full text-center py-14 bg-white rounded-2xl border border-slate-200/90 shadow-xs p-6 space-y-2.5">
+                <div className="w-11 h-11 rounded-2xl bg-brand-50 border border-brand-200/60 flex items-center justify-center text-brand-600 mx-auto">
+                  <BookOpen className="w-5 h-5 stroke-[1.9]" />
+                </div>
+                <p className="text-sm font-semibold text-slate-800">No guidelines found in this category</p>
+                <p className="text-xs text-slate-400">Click &ldquo;Seed Demo Pack&rdquo; above to automatically populate realistic rules.</p>
               </div>
             )}
           </div>
@@ -499,9 +502,12 @@ export function KnowledgeBasePage() {
                 </div>
               ))
             ) : (
-              <div className="col-span-2 text-center py-12 bg-white rounded-xl border border-slate-200 p-6 space-y-2">
-                <p className="text-sm font-semibold text-slate-700">No approved facts defined yet</p>
-                <p className="text-xs text-slate-400">Click "Seed NovaTech Demo Brand Pack" to populate.</p>
+              <div className="col-span-full text-center py-14 bg-white rounded-2xl border border-slate-200/90 shadow-xs p-6 space-y-2.5">
+                <div className="w-11 h-11 rounded-2xl bg-emerald-50 border border-emerald-200/60 flex items-center justify-center text-emerald-600 mx-auto">
+                  <FileText className="w-5 h-5 stroke-[1.9]" />
+                </div>
+                <p className="text-sm font-semibold text-slate-800">No approved facts defined yet</p>
+                <p className="text-xs text-slate-400">Click &ldquo;Seed Demo Pack&rdquo; above to populate.</p>
               </div>
             )}
           </div>
@@ -606,9 +612,12 @@ export function KnowledgeBasePage() {
                 </div>
               ))
             ) : (
-              <div className="col-span-3 text-center py-12 bg-white rounded-xl border border-slate-200 p-6 space-y-2">
-                <p className="text-sm font-semibold text-slate-700">No brand visual assets registered yet</p>
-                <p className="text-xs text-slate-400">Click "Seed NovaTech Demo Brand Pack" to populate.</p>
+              <div className="col-span-full text-center py-14 bg-white rounded-2xl border border-slate-200/90 shadow-xs p-6 space-y-2.5">
+                <div className="w-11 h-11 rounded-2xl bg-purple-50 border border-purple-200/60 flex items-center justify-center text-purple-600 mx-auto">
+                  <Palette className="w-5 h-5 stroke-[1.9]" />
+                </div>
+                <p className="text-sm font-semibold text-slate-800">No brand visual assets registered yet</p>
+                <p className="text-xs text-slate-400">Click &ldquo;Seed Demo Pack&rdquo; above to populate.</p>
               </div>
             )}
           </div>

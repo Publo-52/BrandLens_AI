@@ -4,16 +4,54 @@ import { AuthProvider, useAuth } from './features/auth/AuthContext';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { Loader2 } from 'lucide-react';
 
+// Resilient lazy loader: recovers automatically once if a stale hashed chunk 404s after a new deployment
+function lazyWithRetry(importer) {
+  return lazy(async () => {
+    const reloadFlag = 'brandlens_chunk_reloaded';
+    try {
+      const mod = await importer();
+      if (typeof window !== 'undefined') {
+        sessionStorage.removeItem(reloadFlag);
+      }
+      return mod;
+    } catch (err) {
+      const msg = String(err?.message || err || '');
+      const isChunkError =
+        msg.includes('Failed to fetch dynamically imported module') ||
+        msg.includes('Importing a module script failed') ||
+        msg.includes('Loading chunk') ||
+        err?.name === 'ChunkLoadError';
+
+      if (isChunkError && typeof window !== 'undefined' && !sessionStorage.getItem(reloadFlag)) {
+        sessionStorage.setItem(reloadFlag, '1');
+        window.location.reload();
+        return new Promise(() => {});
+      }
+      throw err;
+    }
+  });
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('vite:preloadError', () => {
+    const reloadFlag = 'brandlens_chunk_reloaded';
+    if (!sessionStorage.getItem(reloadFlag)) {
+      sessionStorage.setItem(reloadFlag, '1');
+      window.location.reload();
+    }
+  });
+}
+
 // Code-split pages for instant initial load and optimal browser caching
-const LandingPage = lazy(() => import('./pages/LandingPage').then((m) => ({ default: m.LandingPage })));
-const AuthPage = lazy(() => import('./pages/AuthPage').then((m) => ({ default: m.AuthPage })));
-const DashboardPage = lazy(() => import('./pages/DashboardPage').then((m) => ({ default: m.DashboardPage })));
-const ReviewPage = lazy(() => import('./pages/ReviewPage').then((m) => ({ default: m.ReviewPage })));
-const KnowledgeBasePage = lazy(() => import('./pages/KnowledgeBasePage').then((m) => ({ default: m.KnowledgeBasePage })));
-const ApprovalsPage = lazy(() => import('./pages/ApprovalsPage').then((m) => ({ default: m.ApprovalsPage })));
-const InsightsPage = lazy(() => import('./pages/InsightsPage').then((m) => ({ default: m.InsightsPage })));
-const AuditPage = lazy(() => import('./pages/AuditPage').then((m) => ({ default: m.AuditPage })));
-const SettingsPage = lazy(() => import('./pages/SettingsPage').then((m) => ({ default: m.SettingsPage })));
+const LandingPage = lazyWithRetry(() => import('./pages/LandingPage').then((m) => ({ default: m.LandingPage })));
+const AuthPage = lazyWithRetry(() => import('./pages/AuthPage').then((m) => ({ default: m.AuthPage })));
+const DashboardPage = lazyWithRetry(() => import('./pages/DashboardPage').then((m) => ({ default: m.DashboardPage })));
+const ReviewPage = lazyWithRetry(() => import('./pages/ReviewPage').then((m) => ({ default: m.ReviewPage })));
+const KnowledgeBasePage = lazyWithRetry(() => import('./pages/KnowledgeBasePage').then((m) => ({ default: m.KnowledgeBasePage })));
+const ApprovalsPage = lazyWithRetry(() => import('./pages/ApprovalsPage').then((m) => ({ default: m.ApprovalsPage })));
+const InsightsPage = lazyWithRetry(() => import('./pages/InsightsPage').then((m) => ({ default: m.InsightsPage })));
+const AuditPage = lazyWithRetry(() => import('./pages/AuditPage').then((m) => ({ default: m.AuditPage })));
+const SettingsPage = lazyWithRetry(() => import('./pages/SettingsPage').then((m) => ({ default: m.SettingsPage })));
 
 const VALID_TABS = new Set(['dashboard', 'review', 'knowledge', 'approvals', 'insights', 'audit', 'settings']);
 
