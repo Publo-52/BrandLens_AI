@@ -7,105 +7,29 @@ import {
   ChevronDown,
   Menu,
   X,
-  FileCheck2,
-  Lock,
-  Layers,
-  CheckCircle2,
-  AlertCircle,
-  ExternalLink,
   RotateCcw
 } from 'lucide-react';
 import { useAuth } from '../features/auth/AuthContext';
 
-const THEMES = {
-  aurora: {
-    id: 'aurora',
-    name: '1. Pearl & Aurora Mist',
-    bg: '#fafafc',
-    orb1: 'rgba(167, 139, 250, 0.34)',
-    orb2: 'rgba(56, 189, 248, 0.28)',
-    orb3: 'rgba(244, 114, 182, 0.22)',
-    gridColor: 'rgba(15, 23, 42, 0.06)',
-    ringColor: 'rgba(99, 102, 241, 0.14)',
-    surface: 'rgba(255, 255, 255, 0.72)',
-    surfaceSolid: 'rgba(255, 255, 255, 0.92)',
-    text: '#0f172a',
-    muted: '#64748b',
-    border: 'rgba(15, 23, 42, 0.08)',
-    btnBg: '#0f172a',
-    btnText: '#ffffff',
-    btnGhost: 'rgba(15, 23, 42, 0.05)',
-    accent: '#6366f1',
-    accentSoft: 'rgba(99, 102, 241, 0.11)',
-    shadow: '0 20px 50px -15px rgba(15, 23, 42, 0.08)',
-    dotGrad: 'linear-gradient(135deg, #a78bfa, #38bdf8, #f472b6)'
-  },
-  midnight: {
-    id: 'midnight',
-    name: '2. Silk Midnight & Sapphire',
-    bg: '#09090d',
-    orb1: 'rgba(99, 102, 241, 0.34)',
-    orb2: 'rgba(14, 165, 233, 0.24)',
-    orb3: 'rgba(168, 85, 247, 0.2)',
-    gridColor: 'rgba(255, 255, 255, 0.07)',
-    ringColor: 'rgba(129, 140, 248, 0.16)',
-    surface: 'rgba(24, 24, 32, 0.65)',
-    surfaceSolid: 'rgba(255, 255, 255, 0.04)',
-    text: '#f8fafc',
-    muted: '#94a3b8',
-    border: 'rgba(255, 255, 255, 0.1)',
-    btnBg: '#ffffff',
-    btnText: '#09090d',
-    btnGhost: 'rgba(255, 255, 255, 0.08)',
-    accent: '#818cf8',
-    accentSoft: 'rgba(129, 140, 248, 0.16)',
-    shadow: '0 20px 50px -15px rgba(0, 0, 0, 0.5)',
-    dotGrad: 'linear-gradient(135deg, #09090d, #6366f1, #0ea5e9)'
-  },
-  glacier: {
-    id: 'glacier',
-    name: '3. Glacier Mint & Frosted Sky',
-    bg: '#f6fbfa',
-    orb1: 'rgba(45, 212, 191, 0.28)',
-    orb2: 'rgba(56, 189, 248, 0.26)',
-    orb3: 'rgba(167, 243, 208, 0.32)',
-    gridColor: 'rgba(13, 148, 136, 0.08)',
-    ringColor: 'rgba(13, 148, 136, 0.15)',
-    surface: 'rgba(255, 255, 255, 0.72)',
-    surfaceSolid: 'rgba(255, 255, 255, 0.92)',
-    text: '#0f2724',
-    muted: '#475569',
-    border: 'rgba(15, 39, 36, 0.08)',
-    btnBg: '#0d9488',
-    btnText: '#ffffff',
-    btnGhost: 'rgba(13, 148, 136, 0.07)',
-    accent: '#0d9488',
-    accentSoft: 'rgba(13, 148, 136, 0.12)',
-    shadow: '0 20px 50px -15px rgba(13, 148, 136, 0.08)',
-    dotGrad: 'linear-gradient(135deg, #99f6e4, #bae6fd, #e0e7ff)'
-  },
-  dusk: {
-    id: 'dusk',
-    name: '4. Obsidian Rose & Dusk',
-    bg: '#0c090e',
-    orb1: 'rgba(244, 63, 94, 0.26)',
-    orb2: 'rgba(245, 158, 11, 0.2)',
-    orb3: 'rgba(168, 85, 247, 0.22)',
-    gridColor: 'rgba(255, 255, 255, 0.06)',
-    ringColor: 'rgba(251, 113, 133, 0.16)',
-    surface: 'rgba(28, 21, 32, 0.66)',
-    surfaceSolid: 'rgba(255, 255, 255, 0.04)',
-    text: '#faf5ff',
-    muted: '#a1a1aa',
-    border: 'rgba(255, 255, 255, 0.1)',
-    btnBg: '#fb7185',
-    btnText: '#0c090e',
-    btnGhost: 'rgba(255, 255, 255, 0.08)',
-    accent: '#fb7185',
-    accentSoft: 'rgba(251, 113, 133, 0.16)',
-    shadow: '0 20px 50px -15px rgba(0, 0, 0, 0.6)',
-    dotGrad: 'linear-gradient(135deg, #120d14, #fb7185, #f59e0b)'
-  }
+// Fixed Option 1: Pearl & Aurora Mist Theme
+const AURORA_THEME = {
+  bg: '#fafafc',
+  orb1: 'rgba(167, 139, 250, 0.34)',
+  orb2: 'rgba(56, 189, 248, 0.28)',
+  orb3: 'rgba(244, 114, 182, 0.22)',
+  gridColor: 'rgba(15, 23, 42, 0.06)',
+  ringColor: 'rgba(99, 102, 241, 0.14)',
+  surface: 'rgba(255, 255, 255, 0.72)',
+  surfaceSolid: 'rgba(255, 255, 255, 0.92)',
+  text: '#0f172a',
+  muted: '#64748b',
+  border: 'rgba(15, 23, 42, 0.08)',
+  btnBg: '#0f172a',
+  btnText: '#ffffff',
+  btnGhost: 'rgba(15, 23, 42, 0.05)',
+  accent: '#6366f1',
+  accentSoft: 'rgba(99, 102, 241, 0.11)',
+  shadow: '0 20px 50px -15px rgba(15, 23, 42, 0.08)',
 };
 
 const FAQ_ITEMS = [
@@ -133,7 +57,6 @@ const FAQ_ITEMS = [
 
 export function LandingPage({ onNavigate, onDemoLogin }) {
   const { user, loginWithDemoRole } = useAuth();
-  const [activeThemeKey, setActiveThemeKey] = useState('aurora');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [openFaqIndex, setOpenFaqIndex] = useState(0);
   const [demoRoleLoading, setDemoRoleLoading] = useState(false);
@@ -141,8 +64,6 @@ export function LandingPage({ onNavigate, onDemoLogin }) {
   // Showcase interactive action states
   const [previewActionStatus, setPreviewActionStatus] = useState(null);
   const [showcaseSample, setShowcaseSample] = useState(0);
-
-  const activeTheme = THEMES[activeThemeKey] || THEMES.aurora;
 
   const handleDemoClick = async (role = 'ADMIN') => {
     try {
@@ -161,29 +82,29 @@ export function LandingPage({ onNavigate, onDemoLogin }) {
   };
 
   const cssVariables = {
-    '--bg': activeTheme.bg,
-    '--orb-1': activeTheme.orb1,
-    '--orb-2': activeTheme.orb2,
-    '--orb-3': activeTheme.orb3,
-    '--grid-color': activeTheme.gridColor,
-    '--ring-color': activeTheme.ringColor,
-    '--surface': activeTheme.surface,
-    '--surface-solid': activeTheme.surfaceSolid,
-    '--text': activeTheme.text,
-    '--muted': activeTheme.muted,
-    '--border': activeTheme.border,
-    '--btn-bg': activeTheme.btnBg,
-    '--btn-text': activeTheme.btnText,
-    '--btn-ghost': activeTheme.btnGhost,
-    '--accent': activeTheme.accent,
-    '--accent-soft': activeTheme.accentSoft,
-    '--shadow': activeTheme.shadow,
+    '--bg': AURORA_THEME.bg,
+    '--orb-1': AURORA_THEME.orb1,
+    '--orb-2': AURORA_THEME.orb2,
+    '--orb-3': AURORA_THEME.orb3,
+    '--grid-color': AURORA_THEME.gridColor,
+    '--ring-color': AURORA_THEME.ringColor,
+    '--surface': AURORA_THEME.surface,
+    '--surface-solid': AURORA_THEME.surfaceSolid,
+    '--text': AURORA_THEME.text,
+    '--muted': AURORA_THEME.muted,
+    '--border': AURORA_THEME.border,
+    '--btn-bg': AURORA_THEME.btnBg,
+    '--btn-text': AURORA_THEME.btnText,
+    '--btn-ghost': AURORA_THEME.btnGhost,
+    '--accent': AURORA_THEME.accent,
+    '--accent-soft': AURORA_THEME.accentSoft,
+    '--shadow': AURORA_THEME.shadow,
   };
 
   return (
     <div
       style={cssVariables}
-      className="min-h-screen text-[var(--text)] transition-colors duration-500 selection:bg-[var(--accent)] selection:text-white relative font-sans overflow-x-hidden bg-[var(--bg)]"
+      className="min-h-screen text-[var(--text)] selection:bg-[var(--accent)] selection:text-white relative font-sans overflow-x-hidden bg-[var(--bg)]"
     >
       <style>{`
         @keyframes drift1 {
@@ -215,7 +136,7 @@ export function LandingPage({ onNavigate, onDemoLogin }) {
         }
       `}</style>
 
-      {/* ── Abstract Background Canvas ────────────────────────────────────────── */}
+      {/* ── Abstract Background Canvas (Pearl & Aurora Mist) ─────────────────── */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
         {/* Subtle Masked Dot Grid */}
         <div className="absolute inset-0 dot-grid-canvas" />
@@ -223,15 +144,15 @@ export function LandingPage({ onNavigate, onDemoLogin }) {
         {/* Drifting Abstract Gradient Orbs */}
         <div
           style={{ background: 'var(--orb-1)' }}
-          className="absolute w-[560px] h-[560px] -top-40 left-1/2 -translate-x-[65%] rounded-full blur-[85px] will-change-transform transition-colors duration-700 anim-orb-1"
+          className="absolute w-[560px] h-[560px] -top-40 left-1/2 -translate-x-[65%] rounded-full blur-[85px] will-change-transform anim-orb-1"
         />
         <div
           style={{ background: 'var(--orb-2)' }}
-          className="absolute w-[480px] h-[480px] top-10 -right-24 rounded-full blur-[85px] will-change-transform transition-colors duration-700 anim-orb-2"
+          className="absolute w-[480px] h-[480px] top-10 -right-24 rounded-full blur-[85px] will-change-transform anim-orb-2"
         />
         <div
           style={{ background: 'var(--orb-3)' }}
-          className="absolute w-[440px] h-[440px] -bottom-32 -left-20 rounded-full blur-[85px] will-change-transform transition-colors duration-700 anim-orb-3"
+          className="absolute w-[440px] h-[440px] -bottom-32 -left-20 rounded-full blur-[85px] will-change-transform anim-orb-3"
         />
 
         {/* Minimal Abstract SVG Rings & Flowing Curve */}
@@ -264,34 +185,9 @@ export function LandingPage({ onNavigate, onDemoLogin }) {
         </svg>
       </div>
 
-      {/* ── 1. Minimal Palette Switcher Bar (Sticky) ────────────────────────── */}
-      <div className="sticky top-0 z-50 bg-slate-900/90 backdrop-blur-md text-slate-100 py-2.5 px-4 sm:px-6 flex flex-wrap items-center justify-center gap-2 text-xs border-b border-white/10 shadow-sm">
-        <span className="text-slate-300 font-medium tracking-wide">Abstract + Minimalist Themes:</span>
-        {Object.values(THEMES).map((t) => {
-          const isActive = activeThemeKey === t.id;
-          return (
-            <button
-              key={t.id}
-              onClick={() => setActiveThemeKey(t.id)}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs transition-all cursor-pointer ${
-                isActive
-                  ? 'bg-white text-slate-900 font-bold shadow-xs'
-                  : 'bg-white/10 text-slate-200 hover:bg-white/20 border border-white/15'
-              }`}
-            >
-              <span
-                className="w-2.5 h-2.5 rounded-full shrink-0 shadow-xs"
-                style={{ background: t.dotGrad }}
-              />
-              <span>{t.name}</span>
-            </button>
-          );
-        })}
-      </div>
-
       <div className="relative z-10">
-        {/* ── 2. Floating Glass Navbar ────────────────────────────────────────── */}
-        <div className="max-w-[980px] mx-auto px-4 sm:px-6 mt-5">
+        {/* ── Floating Glass Navbar ─────────────────────────────────────────── */}
+        <div className="max-w-[980px] mx-auto px-4 sm:px-6 pt-5">
           <nav
             style={{
               background: 'var(--surface)',
@@ -434,7 +330,7 @@ export function LandingPage({ onNavigate, onDemoLogin }) {
           )}
         </div>
 
-        {/* ── 3. Centered Minimalist Hero ────────────────────────────────────── */}
+        {/* ── Centered Minimalist Hero ──────────────────────────────────────── */}
         <section className="max-w-[820px] mx-auto px-6 pt-16 sm:pt-20 pb-12 sm:pb-16 text-center">
           {/* Eyebrow Pill */}
           <div
@@ -494,7 +390,7 @@ export function LandingPage({ onNavigate, onDemoLogin }) {
           </div>
         </section>
 
-        {/* ── 4. Satisfying Minimal Preview Window (Showcase) ────────────────── */}
+        {/* ── Satisfying Minimal Preview Window (Showcase) ──────────────────── */}
         <div className="max-w-[860px] mx-auto px-4 sm:px-6 mb-12">
           <div
             style={{
@@ -587,13 +483,13 @@ export function LandingPage({ onNavigate, onDemoLogin }) {
                   </button>
                   <button
                     onClick={() => setPreviewActionStatus('EDITED')}
-                    className="text-xs font-semibold px-2.5 py-1.5 rounded-full bg-slate-100 dark:bg-slate-800 text-[var(--muted)] hover:text-[var(--text)] transition-colors cursor-pointer"
+                    className="text-xs font-semibold px-2.5 py-1.5 rounded-full bg-slate-100 text-[var(--muted)] hover:text-[var(--text)] transition-colors cursor-pointer"
                   >
                     Edit
                   </button>
                   <button
                     onClick={() => setPreviewActionStatus('REJECTED')}
-                    className="text-xs font-semibold px-2.5 py-1.5 rounded-full bg-slate-100 dark:bg-slate-800 text-[var(--muted)] hover:text-rose-600 transition-colors cursor-pointer"
+                    className="text-xs font-semibold px-2.5 py-1.5 rounded-full bg-slate-100 text-[var(--muted)] hover:text-rose-600 transition-colors cursor-pointer"
                   >
                     Reject
                   </button>
@@ -630,7 +526,7 @@ export function LandingPage({ onNavigate, onDemoLogin }) {
           </div>
         </div>
 
-        {/* ── 5. Airy 3-Step Flow ────────────────────────────────────────────── */}
+        {/* ── Airy 3-Step Flow ──────────────────────────────────────────────── */}
         <section id="how" className="max-w-[940px] mx-auto px-6 pt-16 sm:pt-20">
           <div className="text-center mb-11">
             <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-[var(--text)] mb-2">
@@ -710,7 +606,7 @@ export function LandingPage({ onNavigate, onDemoLogin }) {
           </div>
         </section>
 
-        {/* ── 6. Bottom CTA Banner ───────────────────────────────────────────── */}
+        {/* ── Bottom CTA Banner ─────────────────────────────────────────────── */}
         <div id="cta" className="max-w-[780px] mx-auto px-6 mt-20">
           <div
             style={{
@@ -761,7 +657,7 @@ export function LandingPage({ onNavigate, onDemoLogin }) {
           </div>
         </div>
 
-        {/* ── 7. Minimal FAQ Accordion ───────────────────────────────────────── */}
+        {/* ── Minimal FAQ Accordion ─────────────────────────────────────────── */}
         <section id="faq" className="max-w-[680px] mx-auto px-6 pt-20">
           <div className="text-center mb-8">
             <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-[var(--text)]">
@@ -797,7 +693,7 @@ export function LandingPage({ onNavigate, onDemoLogin }) {
           </div>
         </section>
 
-        {/* ── 8. Clean Footer ────────────────────────────────────────────────── */}
+        {/* ── Clean Footer ──────────────────────────────────────────────────── */}
         <footer
           style={{ borderColor: 'var(--border)' }}
           className="max-w-[940px] mx-auto mt-20 px-6 py-8 pb-12 border-t flex flex-wrap items-center justify-between gap-5 text-xs text-[var(--muted)]"
