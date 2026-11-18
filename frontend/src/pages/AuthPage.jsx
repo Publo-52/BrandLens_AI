@@ -437,7 +437,7 @@ export function AuthPage({ onAuthSuccess, initialMode = 'signin', onBackToHome }
 
         {/* Footer line */}
         <p className="text-center text-[10px] text-slate-400 pb-2">
-          BrandLens AI • Team ALGO_X • GIST • +91 62955 01027
+          BrandLens AI • Team ALGO_X • GIST
         </p>
       </div>
     </div>
