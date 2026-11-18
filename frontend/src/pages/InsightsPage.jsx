@@ -80,14 +80,16 @@ export function InsightsPage() {
     IN_REVIEW: 0,
     CHANGES_REQUESTED: 0,
     APPROVED: 0,
+    PUBLISHED: 0,
     REJECTED: 0,
   };
 
   const totalFindings = metrics?.totalFindingsCaught || 0;
   const getPct = (val) => (totalFindings > 0 ? Math.round((val / totalFindings) * 100) : 0);
 
+  const certifiedCount = (status.APPROVED || 0) + (status.PUBLISHED || 0);
   const publishingReadiness = metrics?.totalSubmissions > 0
-    ? Math.round((status.APPROVED / metrics.totalSubmissions) * 100)
+    ? Math.round((certifiedCount / metrics.totalSubmissions) * 100)
     : 0;
 
   return (

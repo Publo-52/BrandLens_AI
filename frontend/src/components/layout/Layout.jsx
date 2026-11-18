@@ -53,7 +53,7 @@ export const Layout = memo(function Layout({ children, currentTab, onSelectTab }
       </div>
 
       {/* Modern Mobile Bottom Navigation Bar (Visible on screens < 640px / sm) */}
-      <nav className="sm:hidden fixed bottom-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-md border-t border-slate-200/90 shadow-[0_-2px_12px_rgba(0,0,0,0.05)] safe-area-bottom px-2 py-1">
+      <nav aria-label="Mobile navigation" className="sm:hidden fixed bottom-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-md border-t border-slate-200/90 shadow-[0_-2px_12px_rgba(0,0,0,0.05)] safe-area-bottom px-2 py-1">
         <div className="flex items-center justify-around">
           {mobileNavItems.map((item) => {
             const Icon = item.icon;
@@ -61,6 +61,8 @@ export const Layout = memo(function Layout({ children, currentTab, onSelectTab }
             return (
               <button
                 key={item.id}
+                type="button"
+                aria-current={isActive ? 'page' : undefined}
                 onClick={() => {
                   onSelectTab(item.id);
                   closeMobileMenu();

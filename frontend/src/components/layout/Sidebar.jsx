@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { 
   LayoutDashboard, 
   FileCheck2, 
@@ -40,6 +40,8 @@ function NavContent({ currentTab, onSelectTab, onItemClick }) {
               return (
                 <button
                   key={item.id}
+                  type="button"
+                  aria-current={isActive ? 'page' : undefined}
                   onClick={() => {
                     onSelectTab(item.id);
                     if (onItemClick) onItemClick();
@@ -64,7 +66,7 @@ function NavContent({ currentTab, onSelectTab, onItemClick }) {
 
                   <div className="flex items-center gap-1.5">
                     {item.tag && (
-                      <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded-md uppercase tracking-wider ${
+                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md uppercase tracking-wider ${
                         isActive
                           ? 'bg-brand-600 text-white'
                           : 'bg-slate-100 text-slate-400 group-hover:bg-slate-200 group-hover:text-slate-600'
@@ -97,10 +99,19 @@ function NavContent({ currentTab, onSelectTab, onItemClick }) {
 }
 
 export function Sidebar({ currentTab, onSelectTab, isOpen = false, onClose }) {
+  useEffect(() => {
+    if (!isOpen || !onClose) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   return (
     <>
       {/* Desktop Persistent Sidebar (>= 1024px / lg) */}
-      <aside className="hidden lg:flex w-64 bg-white/80 backdrop-blur-md border-r border-slate-200/80 flex-col shrink-0 sticky top-16 h-[calc(100vh-4rem)] overflow-y-auto select-none shadow-[1px_0_4px_rgba(0,0,0,0.015)]">
+      <aside aria-label="Main navigation" className="hidden lg:flex w-64 bg-white/80 backdrop-blur-md border-r border-slate-200/80 flex-col shrink-0 sticky top-16 h-[calc(100vh-4rem)] overflow-y-auto select-none shadow-[1px_0_4px_rgba(0,0,0,0.015)]">
         <NavContent currentTab={currentTab} onSelectTab={onSelectTab} />
       </aside>
 
@@ -114,6 +125,9 @@ export function Sidebar({ currentTab, onSelectTab, isOpen = false, onClose }) {
       )}
 
       <aside
+        role="dialog"
+        aria-modal={isOpen ? 'true' : undefined}
+        aria-label="Mobile navigation drawer"
         className={`lg:hidden fixed top-0 bottom-0 left-0 z-50 w-72 max-w-[85vw] bg-white border-r border-slate-200 shadow-2xl flex flex-col transition-transform duration-300 ease-in-out ${
           isOpen ? 'translate-x-0' : '-translate-x-full pointer-events-none'
         }`}

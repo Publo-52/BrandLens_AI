@@ -69,6 +69,8 @@ export function ContrastChecker() {
 
   const presetPalettes = PRESET_PALETTES;
 
+  const safeHexForPicker = (hex, fallback) => (/^#[0-9a-fA-F]{6}$/.test(hex) ? hex : fallback);
+
   return (
     <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-200">
@@ -120,43 +122,47 @@ export function ContrastChecker() {
       {/* Interactive Color Controls */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
         <div className="space-y-1.5">
-          <label className="font-semibold text-slate-700 flex items-center justify-between">
+          <label htmlFor="contrast-bg-hex" className="font-semibold text-slate-700 flex items-center justify-between">
             <span>Background Color</span>
             <span className="font-mono text-slate-500">{bgColor}</span>
           </label>
           <div className="flex items-center gap-2">
             <input
               type="color"
-              value={bgColor}
+              aria-label="Pick background color"
+              value={safeHexForPicker(bgColor, '#0F172A')}
               onChange={(e) => setBgColor(e.target.value)}
-              className="w-10 h-10 rounded border border-slate-200 cursor-pointer"
+              className="w-10 h-10 rounded border border-slate-200 cursor-pointer shrink-0"
             />
             <input
+              id="contrast-bg-hex"
               type="text"
               value={bgColor}
               onChange={(e) => setBgColor(e.target.value)}
-              className="flex-1 px-3 py-2 border border-slate-300 rounded-lg font-mono text-xs uppercase"
+              className="flex-1 min-w-0 px-3 py-2 border border-slate-300 rounded-lg font-mono text-xs uppercase focus:outline-none focus:ring-2 focus:ring-brand-500"
             />
           </div>
         </div>
 
         <div className="space-y-1.5">
-          <label className="font-semibold text-slate-700 flex items-center justify-between">
+          <label htmlFor="contrast-fg-hex" className="font-semibold text-slate-700 flex items-center justify-between">
             <span>Text / Foreground Color</span>
             <span className="font-mono text-slate-500">{textColor}</span>
           </label>
           <div className="flex items-center gap-2">
             <input
               type="color"
-              value={textColor}
+              aria-label="Pick text color"
+              value={safeHexForPicker(textColor, '#F8FAFC')}
               onChange={(e) => setTextColor(e.target.value)}
-              className="w-10 h-10 rounded border border-slate-200 cursor-pointer"
+              className="w-10 h-10 rounded border border-slate-200 cursor-pointer shrink-0"
             />
             <input
+              id="contrast-fg-hex"
               type="text"
               value={textColor}
               onChange={(e) => setTextColor(e.target.value)}
-              className="flex-1 px-3 py-2 border border-slate-300 rounded-lg font-mono text-xs uppercase"
+              className="flex-1 min-w-0 px-3 py-2 border border-slate-300 rounded-lg font-mono text-xs uppercase focus:outline-none focus:ring-2 focus:ring-brand-500"
             />
           </div>
         </div>

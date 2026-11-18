@@ -366,7 +366,7 @@ export function SettingsPage() {
 
         {/* Member Table */}
         <div className="overflow-x-auto rounded-xl border border-slate-200/80">
-          <table className="w-full text-left text-xs">
+          <table className="w-full min-w-[600px] text-left text-xs">
             <thead className="bg-slate-50 text-slate-500 uppercase tracking-wider font-semibold border-b border-slate-200">
               <tr>
                 <th className="py-3 px-4">Collaborator</th>
@@ -377,7 +377,13 @@ export function SettingsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {members.map((m) => {
+              {members.length === 0 ? (
+                <tr>
+                  <td colSpan={isAdmin ? 5 : 4} className="py-10 px-4 text-center text-slate-400">
+                    {loadingMembers ? 'Loading workspace roster...' : 'No collaborators found in this workspace yet.'}
+                  </td>
+                </tr>
+              ) : members.map((m) => {
                 const u = m.userId;
                 const isCurrentUser = u?._id === user?._id;
                 const nameDisplay = u?.name || (m.invitedEmail ? `Invited (${m.invitedEmail.split('@')[0]})` : 'Pending Teammate');
@@ -388,7 +394,7 @@ export function SettingsPage() {
                   <tr key={m._id} className="hover:bg-slate-50/80 transition-colors">
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-2.5">
-                        <div className={`w-8 h-8 rounded-xl border flex items-center justify-center text-xs font-bold shadow-2xs ${
+                        <div className={`w-8 h-8 rounded-xl border flex items-center justify-center text-xs font-bold shadow-2xs shrink-0 ${
                           isInvited
                             ? 'bg-amber-50 border-amber-200 text-amber-700'
                             : 'bg-gradient-to-br from-brand-100 to-indigo-100 border-brand-200 text-brand-700'
@@ -399,7 +405,7 @@ export function SettingsPage() {
                           <div className="font-semibold text-slate-800 flex items-center gap-1.5">
                             <span>{nameDisplay}</span>
                             {isCurrentUser && (
-                              <span className="text-[10px] text-brand-600 font-bold bg-brand-50 px-1.5 py-0.2 rounded-full border border-brand-200">
+                              <span className="text-[10px] text-brand-600 font-bold bg-brand-50 px-1.5 py-0.5 rounded-full border border-brand-200">
                                 You
                               </span>
                             )}

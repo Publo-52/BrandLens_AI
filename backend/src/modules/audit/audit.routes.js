@@ -133,6 +133,7 @@ router.get('/insights', authenticate, requireOrgAccess(), async (req, res, next)
       IN_REVIEW: 0,
       CHANGES_REQUESTED: 0,
       APPROVED: 0,
+      PUBLISHED: 0,
       REJECTED: 0,
     };
 

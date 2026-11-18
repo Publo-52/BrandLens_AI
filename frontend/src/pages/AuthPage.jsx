@@ -467,7 +467,7 @@ export function AuthPage({ onAuthSuccess }) {
                         <IconComponent className="w-3.5 h-3.5 text-teal-400" />
                         <span className="text-xs font-bold text-white">{item.label}</span>
                       </div>
-                      <span className={`text-[9px] font-mono px-1.5 py-0.2 rounded border ${item.badge}`}>
+                      <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded border ${item.badge}`}>
                         {item.role}
                       </span>
                     </div>

@@ -125,24 +125,37 @@ export function AuditPage() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [showCertModal]);
 
+  const APPROVAL_ACTIONS = new Set([
+    'APPROVAL_DECISION',
+    'APPROVAL_REQUESTED',
+    'DECISION_APPROVED',
+    'DECISION_CHANGES_REQUESTED',
+    'DECISION_REJECTED',
+    'CONTENT_PUBLISHED',
+  ]);
+
   // Statistics memo
   const telemetry = useMemo(() => {
     const total = logs.length;
-    const approvals = logs.filter(l => l.action === 'APPROVAL_DECISION').length;
-    const overrides = logs.filter(l => l.action === 'FINDING_DECISION').length;
-    const reviews = logs.filter(l => l.action === 'REVIEW_RUN').length;
+    const approvals = logs.filter((l) => APPROVAL_ACTIONS.has(l.action)).length;
+    const overrides = logs.filter((l) => l.action === 'FINDING_DECISION').length;
+    const reviews = logs.filter((l) => l.action === 'REVIEW_RUN').length;
     return { total, approvals, overrides, reviews };
   }, [logs]);
 
   const filteredLogs = useMemo(() => {
     return logs.filter((log) => {
-      if (actionFilter !== 'ALL' && log.action !== actionFilter) return false;
+      if (actionFilter === 'APPROVAL_DECISION') {
+        if (!APPROVAL_ACTIONS.has(log.action)) return false;
+      } else if (actionFilter !== 'ALL' && log.action !== actionFilter) {
+        return false;
+      }
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
         const actorName = log.actorId?.name?.toLowerCase() || '';
         const actorEmail = log.actorId?.email?.toLowerCase() || '';
         const actionName = log.action?.toLowerCase() || '';
-        const reason = log.details?.reason?.toLowerCase() || '';
+        const reason = (log.reason || log.details?.reason || '').toLowerCase();
         const title = log.details?.title?.toLowerCase() || '';
         return (
           actorName.includes(q) || 
@@ -180,10 +193,39 @@ export function AuditPage() {
           </span>
         );
       case 'APPROVAL_DECISION':
+      case 'DECISION_APPROVED':
         return (
           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
             Approval Signed
+          </span>
+        );
+      case 'APPROVAL_REQUESTED':
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+            Approval Requested
+          </span>
+        );
+      case 'DECISION_CHANGES_REQUESTED':
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-orange-50 text-orange-700 border border-orange-200">
+            <span className="w-1.5 h-1.5 rounded-full bg-orange-500" />
+            Changes Requested
+          </span>
+        );
+      case 'DECISION_REJECTED':
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-rose-50 text-rose-700 border border-rose-200">
+            <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+            Rejected
+          </span>
+        );
+      case 'CONTENT_PUBLISHED':
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-purple-50 text-purple-700 border border-purple-200">
+            <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />
+            Published
           </span>
         );
       case 'COMMENT_ADDED':
@@ -370,7 +412,7 @@ export function AuditPage() {
                 }`}
               >
                 <span>{f.label}</span>
-                <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${active ? 'bg-white/20 text-white' : 'bg-slate-200/80 text-slate-600'}`}>
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${active ? 'bg-white/20 text-white' : 'bg-slate-200/80 text-slate-600'}`}>
                   {f.count}
                 </span>
               </button>

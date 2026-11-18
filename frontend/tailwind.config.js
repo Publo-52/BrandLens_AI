@@ -6,10 +6,19 @@ export default {
   ],
   theme: {
     extend: {
+      screens: {
+        xs: '420px',
+      },
       spacing: {
         '4.5': '1.125rem',
         '8.5': '2.125rem',
         '9.5': '2.375rem',
+      },
+      backdropBlur: {
+        xs: '2px',
+      },
+      scale: {
+        98: '.98',
       },
       boxShadow: {
         'xs': '0 1px 2px 0 rgba(0, 0, 0, 0.05)',

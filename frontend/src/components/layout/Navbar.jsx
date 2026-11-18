@@ -27,6 +27,7 @@ export function Navbar({ onToggleMobileMenu, isMobileMenuOpen = false }) {
   const [switchingRole, setSwitchingRole] = useState(false);
 
   const orgDropdownRef = useRef(null);
+  const roleDropdownRef = useRef(null);
   const userDropdownRef = useRef(null);
 
   useEffect(() => {
@@ -34,12 +35,26 @@ export function Navbar({ onToggleMobileMenu, isMobileMenuOpen = false }) {
       if (orgDropdownRef.current && !orgDropdownRef.current.contains(event.target)) {
         setShowOrgDropdown(false);
       }
+      if (roleDropdownRef.current && !roleDropdownRef.current.contains(event.target)) {
+        setShowRoleDropdown(false);
+      }
       if (userDropdownRef.current && !userDropdownRef.current.contains(event.target)) {
         setShowUserDropdown(false);
       }
     }
+    function handleKeyDown(event) {
+      if (event.key === 'Escape') {
+        setShowOrgDropdown(false);
+        setShowRoleDropdown(false);
+        setShowUserDropdown(false);
+      }
+    }
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
   }, []);
 
   const getRoleBadgeColor = (role) => {
@@ -107,7 +122,14 @@ export function Navbar({ onToggleMobileMenu, isMobileMenuOpen = false }) {
           {(activeOrg || user) && (
             <div ref={orgDropdownRef} className="relative">
               <button
-                onClick={() => setShowOrgDropdown((prev) => !prev)}
+                type="button"
+                aria-expanded={showOrgDropdown}
+                aria-haspopup="menu"
+                onClick={() => {
+                  setShowOrgDropdown((prev) => !prev);
+                  setShowRoleDropdown(false);
+                  setShowUserDropdown(false);
+                }}
                 className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3.5 py-1.5 bg-slate-50 hover:bg-slate-100/90 active:bg-slate-200/70 border border-slate-200/90 rounded-xl text-xs font-medium text-slate-700 transition-all shadow-xs hover:border-slate-300"
               >
                 <div className="w-5 h-5 rounded-lg bg-white shadow-xs border border-slate-200/60 flex items-center justify-center shrink-0">
@@ -129,7 +151,7 @@ export function Navbar({ onToggleMobileMenu, isMobileMenuOpen = false }) {
               </button>
 
               {showOrgDropdown && (
-                <div className="absolute right-0 mt-2 w-72 bg-white rounded-2xl shadow-xl border border-slate-200/90 py-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
+                <div className="absolute right-0 mt-2 w-72 max-w-[calc(100vw-1.5rem)] bg-white rounded-2xl shadow-xl border border-slate-200/90 py-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
                   <div className="px-3.5 py-2 border-b border-slate-100 flex items-center justify-between">
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                       Your Workspaces ({workspaces?.length || 0})
@@ -187,9 +209,11 @@ export function Navbar({ onToggleMobileMenu, isMobileMenuOpen = false }) {
 
           {/* Quick Demo Role Switcher (CREATOR, REVIEWER, MANAGER, ADMIN) */}
           {user && (
-            <div className="relative">
+            <div ref={roleDropdownRef} className="relative">
               <button
                 type="button"
+                aria-expanded={showRoleDropdown}
+                aria-haspopup="menu"
                 onClick={() => {
                   setShowRoleDropdown((prev) => !prev);
                   setShowOrgDropdown(false);
@@ -205,7 +229,7 @@ export function Navbar({ onToggleMobileMenu, isMobileMenuOpen = false }) {
               </button>
 
               {showRoleDropdown && (
-                <div className="absolute right-0 mt-2 w-72 bg-white rounded-2xl shadow-xl border border-slate-200/90 p-2 z-50 animate-in fade-in zoom-in-95 duration-150 space-y-1">
+                <div className="absolute right-0 mt-2 w-72 max-w-[calc(100vw-1.5rem)] bg-white rounded-2xl shadow-xl border border-slate-200/90 p-2 z-50 animate-in fade-in zoom-in-95 duration-150 space-y-1">
                   <div className="px-2.5 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between border-b border-slate-100">
                     <span>Quick Role Switcher</span>
                     <span className="text-[9px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-mono font-semibold">RBAC DEMO</span>
@@ -262,7 +286,14 @@ export function Navbar({ onToggleMobileMenu, isMobileMenuOpen = false }) {
           {user ? (
             <div ref={userDropdownRef} className="relative">
               <button
-                onClick={() => setShowUserDropdown((prev) => !prev)}
+                type="button"
+                aria-expanded={showUserDropdown}
+                aria-haspopup="menu"
+                onClick={() => {
+                  setShowUserDropdown((prev) => !prev);
+                  setShowOrgDropdown(false);
+                  setShowRoleDropdown(false);
+                }}
                 className="flex items-center gap-2 p-1 pl-1.5 pr-2 sm:pr-3 bg-white hover:bg-slate-50 border border-slate-200/90 rounded-xl transition-all shadow-xs"
               >
                 <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-brand-600 to-indigo-600 text-white flex items-center justify-center font-bold text-xs shadow-xs">
@@ -280,7 +311,7 @@ export function Navbar({ onToggleMobileMenu, isMobileMenuOpen = false }) {
               </button>
 
               {showUserDropdown && (
-                <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-xl border border-slate-200/90 py-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
+                <div className="absolute right-0 mt-2 w-56 max-w-[calc(100vw-1.5rem)] bg-white rounded-2xl shadow-xl border border-slate-200/90 py-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
                   <div className="px-3.5 py-2.5 border-b border-slate-100">
                     <p className="text-xs font-bold text-slate-900">{user.name}</p>
                     <p className="text-[11px] text-slate-500 font-mono truncate">{user.email}</p>

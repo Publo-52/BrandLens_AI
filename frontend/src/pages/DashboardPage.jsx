@@ -82,6 +82,13 @@ export function DashboardPage({ onNavigate }) {
     if (onNavigate) onNavigate(tab);
   };
 
+  const handleCardKeyDown = (tab) => (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      nav(tab);
+    }
+  };
+
   const getStatusBadge = (status) => {
     switch (status) {
       case 'PUBLISHED':
@@ -166,8 +173,11 @@ export function DashboardPage({ onNavigate }) {
       {/* Primary KPI Metrics */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div 
+          role="button"
+          tabIndex={0}
           onClick={() => nav('approvals')}
-          className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-xs hover:border-amber-300 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer group relative overflow-hidden"
+          onKeyDown={handleCardKeyDown('approvals')}
+          className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-xs hover:border-amber-300 hover:shadow-md hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-amber-400 transition-all duration-200 cursor-pointer group relative overflow-hidden"
         >
           <div className="absolute top-0 left-0 right-0 h-1 bg-amber-400 group-hover:h-1.5 transition-all" />
           <div className="flex items-center justify-between text-slate-500">
@@ -177,7 +187,7 @@ export function DashboardPage({ onNavigate }) {
             </div>
           </div>
           <div className="text-3xl font-extrabold text-slate-900 mt-2 font-mono">
-            {stats.inReview}
+            {loading && contents.length === 0 ? '—' : stats.inReview}
           </div>
           <div className="text-[11px] text-amber-600 font-semibold mt-2 flex items-center gap-1">
             <span>Awaiting Reviewer sign-off</span>
@@ -186,8 +196,11 @@ export function DashboardPage({ onNavigate }) {
         </div>
 
         <div 
+          role="button"
+          tabIndex={0}
           onClick={() => nav('review')}
-          className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-xs hover:border-brand-300 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer group relative overflow-hidden"
+          onKeyDown={handleCardKeyDown('review')}
+          className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-xs hover:border-brand-300 hover:shadow-md hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-brand-400 transition-all duration-200 cursor-pointer group relative overflow-hidden"
         >
           <div className="absolute top-0 left-0 right-0 h-1 bg-brand-500 group-hover:h-1.5 transition-all" />
           <div className="flex items-center justify-between text-slate-500">
@@ -197,7 +210,7 @@ export function DashboardPage({ onNavigate }) {
             </div>
           </div>
           <div className="text-3xl font-extrabold text-slate-900 mt-2 font-mono">
-            {stats.totalDrafts}
+            {loading && contents.length === 0 ? '—' : stats.totalDrafts}
           </div>
           <div className="text-[11px] text-slate-500 font-medium mt-2 flex items-center gap-1">
             <span>Documents in workspace</span>
@@ -206,8 +219,11 @@ export function DashboardPage({ onNavigate }) {
         </div>
 
         <div 
+          role="button"
+          tabIndex={0}
           onClick={() => nav('audit')}
-          className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-xs hover:border-emerald-300 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer group relative overflow-hidden"
+          onKeyDown={handleCardKeyDown('audit')}
+          className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-xs hover:border-emerald-300 hover:shadow-md hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-emerald-400 transition-all duration-200 cursor-pointer group relative overflow-hidden"
         >
           <div className="absolute top-0 left-0 right-0 h-1 bg-emerald-500 group-hover:h-1.5 transition-all" />
           <div className="flex items-center justify-between text-slate-500">
@@ -217,7 +233,7 @@ export function DashboardPage({ onNavigate }) {
             </div>
           </div>
           <div className="text-3xl font-extrabold text-emerald-600 mt-2 font-mono">
-            {stats.approved}
+            {loading && contents.length === 0 ? '—' : stats.approved}
           </div>
           <div className="text-[11px] text-emerald-600 font-semibold mt-2 flex items-center gap-1">
             <span>Locked & compliant copies</span>
@@ -226,8 +242,11 @@ export function DashboardPage({ onNavigate }) {
         </div>
 
         <div 
+          role="button"
+          tabIndex={0}
           onClick={() => nav('knowledge')}
-          className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-xs hover:border-indigo-300 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer group relative overflow-hidden"
+          onKeyDown={handleCardKeyDown('knowledge')}
+          className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-xs hover:border-indigo-300 hover:shadow-md hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition-all duration-200 cursor-pointer group relative overflow-hidden"
         >
           <div className="absolute top-0 left-0 right-0 h-1 bg-indigo-500 group-hover:h-1.5 transition-all" />
           <div className="flex items-center justify-between text-slate-500">
@@ -237,7 +256,7 @@ export function DashboardPage({ onNavigate }) {
             </div>
           </div>
           <div className="text-3xl font-extrabold text-indigo-600 mt-2 font-mono">
-            {stats.guidelinesCount}
+            {loading && stats.guidelinesCount === 0 ? '—' : stats.guidelinesCount}
           </div>
           <div className="text-[11px] text-indigo-600 font-semibold mt-2 flex items-center gap-1">
             <span>Tone, terms & approved facts</span>
@@ -259,8 +278,11 @@ export function DashboardPage({ onNavigate }) {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {/* Card 1: Review Content */}
           <div 
+            role="button"
+            tabIndex={0}
             onClick={() => nav('review')}
-            className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-xs hover:shadow-lg hover:border-brand-400/80 hover:-translate-y-1 transition-all duration-200 cursor-pointer flex flex-col justify-between space-y-4 group"
+            onKeyDown={handleCardKeyDown('review')}
+            className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-xs hover:shadow-lg hover:border-brand-400/80 hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-brand-400 transition-all duration-200 cursor-pointer flex flex-col justify-between space-y-4 group"
           >
             <div className="space-y-2.5">
               <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-brand-600 to-brand-500 text-white flex items-center justify-center shadow-md shadow-brand-500/20 group-hover:scale-105 transition-transform">
@@ -281,8 +303,11 @@ export function DashboardPage({ onNavigate }) {
 
           {/* Card 2: Approval Queue */}
           <div 
+            role="button"
+            tabIndex={0}
             onClick={() => nav('approvals')}
-            className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-xs hover:shadow-lg hover:border-amber-400/80 hover:-translate-y-1 transition-all duration-200 cursor-pointer flex flex-col justify-between space-y-4 group"
+            onKeyDown={handleCardKeyDown('approvals')}
+            className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-xs hover:shadow-lg hover:border-amber-400/80 hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-amber-400 transition-all duration-200 cursor-pointer flex flex-col justify-between space-y-4 group"
           >
             <div className="space-y-2.5">
               <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-amber-500 to-amber-400 text-white flex items-center justify-center shadow-md shadow-amber-500/20 group-hover:scale-105 transition-transform">
@@ -303,8 +328,11 @@ export function DashboardPage({ onNavigate }) {
 
           {/* Card 3: Brand Knowledge Base */}
           <div 
+            role="button"
+            tabIndex={0}
             onClick={() => nav('knowledge')}
-            className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-xs hover:shadow-lg hover:border-indigo-400/80 hover:-translate-y-1 transition-all duration-200 cursor-pointer flex flex-col justify-between space-y-4 group"
+            onKeyDown={handleCardKeyDown('knowledge')}
+            className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-xs hover:shadow-lg hover:border-indigo-400/80 hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition-all duration-200 cursor-pointer flex flex-col justify-between space-y-4 group"
           >
             <div className="space-y-2.5">
               <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-indigo-600 to-indigo-500 text-white flex items-center justify-center shadow-md shadow-indigo-500/20 group-hover:scale-105 transition-transform">
@@ -325,8 +353,11 @@ export function DashboardPage({ onNavigate }) {
 
           {/* Card 4: Governance Insights */}
           <div 
+            role="button"
+            tabIndex={0}
             onClick={() => nav('insights')}
-            className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-xs hover:shadow-lg hover:border-purple-400/80 hover:-translate-y-1 transition-all duration-200 cursor-pointer flex flex-col justify-between space-y-4 group"
+            onKeyDown={handleCardKeyDown('insights')}
+            className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-xs hover:shadow-lg hover:border-purple-400/80 hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-purple-400 transition-all duration-200 cursor-pointer flex flex-col justify-between space-y-4 group"
           >
             <div className="space-y-2.5">
               <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-purple-600 to-purple-500 text-white flex items-center justify-center shadow-md shadow-purple-500/20 group-hover:scale-105 transition-transform">
@@ -347,8 +378,11 @@ export function DashboardPage({ onNavigate }) {
 
           {/* Card 5: Audit Trail & Certificates */}
           <div 
+            role="button"
+            tabIndex={0}
             onClick={() => nav('audit')}
-            className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-xs hover:shadow-lg hover:border-emerald-400/80 hover:-translate-y-1 transition-all duration-200 cursor-pointer flex flex-col justify-between space-y-4 group"
+            onKeyDown={handleCardKeyDown('audit')}
+            className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-xs hover:shadow-lg hover:border-emerald-400/80 hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-emerald-400 transition-all duration-200 cursor-pointer flex flex-col justify-between space-y-4 group"
           >
             <div className="space-y-2.5">
               <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-emerald-600 to-emerald-500 text-white flex items-center justify-center shadow-md shadow-emerald-500/20 group-hover:scale-105 transition-transform">
@@ -369,8 +403,11 @@ export function DashboardPage({ onNavigate }) {
 
           {/* Card 6: Workspace Settings */}
           <div 
+            role="button"
+            tabIndex={0}
             onClick={() => nav('settings')}
-            className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-xs hover:shadow-lg hover:border-slate-400/80 hover:-translate-y-1 transition-all duration-200 cursor-pointer flex flex-col justify-between space-y-4 group"
+            onKeyDown={handleCardKeyDown('settings')}
+            className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-xs hover:shadow-lg hover:border-slate-400/80 hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-slate-400 transition-all duration-200 cursor-pointer flex flex-col justify-between space-y-4 group"
           >
             <div className="space-y-2.5">
               <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-slate-800 to-slate-700 text-white flex items-center justify-center shadow-md shadow-slate-900/20 group-hover:scale-105 transition-transform">
@@ -433,8 +470,11 @@ export function DashboardPage({ onNavigate }) {
             {contents.slice(0, 5).map((item) => (
               <div 
                 key={item._id}
+                role="button"
+                tabIndex={0}
                 onClick={() => nav(item.status === 'IN_REVIEW' ? 'approvals' : 'review')}
-                className="p-3.5 sm:p-4 px-4 sm:px-6 hover:bg-slate-50/80 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 cursor-pointer group"
+                onKeyDown={handleCardKeyDown(item.status === 'IN_REVIEW' ? 'approvals' : 'review')}
+                className="p-3.5 sm:p-4 px-4 sm:px-6 hover:bg-slate-50/80 focus:outline-none focus:bg-brand-50/40 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 cursor-pointer group"
               >
                 <div className="min-w-0 space-y-1.5">
                   <div className="flex flex-wrap items-center gap-2">
@@ -448,7 +488,7 @@ export function DashboardPage({ onNavigate }) {
                       {item.channel || 'Social Media'}
                     </span>
                     <span className="text-slate-300">&bull;</span>
-                    <span className="truncate max-w-[200px]">Audience: {item.targetAudience || 'General Audience'}</span>
+                    <span className="truncate max-w-[200px]">Audience: {item.audience || item.targetAudience || 'General Audience'}</span>
                     <span className="text-slate-300">&bull;</span>
                     <span className="font-mono text-slate-400">v{item.currentVersionNumber || 1}</span>
                   </div>

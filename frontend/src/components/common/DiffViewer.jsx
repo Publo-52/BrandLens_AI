@@ -56,9 +56,9 @@ export function DiffViewer({ oldText = '', newText = '', oldLabel = 'Original Dr
       </div>
 
       {/* Diff Content */}
-      <div className="p-4 text-xs font-mono leading-relaxed">
+      <div className="p-4 text-xs font-mono leading-relaxed overflow-x-auto">
         {viewMode === 'inline' ? (
-          <div className="p-4 bg-slate-50/70 border border-slate-200 rounded-lg whitespace-pre-wrap">
+          <div className="p-4 bg-slate-50/70 border border-slate-200 rounded-lg whitespace-pre-wrap break-words">
             {diffTokens.map((token, idx) => {
               if (token.type === 'added') {
                 return (
@@ -79,22 +79,22 @@ export function DiffViewer({ oldText = '', newText = '', oldLabel = 'Original Dr
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="border border-slate-200 rounded-lg p-4 bg-rose-50/20">
-              <div className="text-[11px] font-bold text-rose-700 uppercase tracking-wider mb-2 pb-1 border-b border-rose-100 flex items-center justify-between">
-                <span>{oldLabel}</span>
-                <span className="text-[10px] text-rose-600">Base</span>
+            <div className="border border-slate-200 rounded-lg p-4 bg-rose-50/20 min-w-0">
+              <div className="text-[11px] font-bold text-rose-700 uppercase tracking-wider mb-2 pb-1 border-b border-rose-100 flex items-center justify-between gap-2">
+                <span className="truncate">{oldLabel}</span>
+                <span className="text-[10px] text-rose-600 shrink-0">Base</span>
               </div>
-              <div className="text-slate-800 whitespace-pre-wrap leading-relaxed">
+              <div className="text-slate-800 whitespace-pre-wrap break-words leading-relaxed">
                 {oldText}
               </div>
             </div>
 
-            <div className="border border-slate-200 rounded-lg p-4 bg-emerald-50/20">
-              <div className="text-[11px] font-bold text-emerald-700 uppercase tracking-wider mb-2 pb-1 border-b border-emerald-100 flex items-center justify-between">
-                <span>{newLabel}</span>
-                <span className="text-[10px] text-emerald-600 font-bold">Target</span>
+            <div className="border border-slate-200 rounded-lg p-4 bg-emerald-50/20 min-w-0">
+              <div className="text-[11px] font-bold text-emerald-700 uppercase tracking-wider mb-2 pb-1 border-b border-emerald-100 flex items-center justify-between gap-2">
+                <span className="truncate">{newLabel}</span>
+                <span className="text-[10px] text-emerald-600 font-bold shrink-0">Target</span>
               </div>
-              <div className="text-slate-800 whitespace-pre-wrap leading-relaxed">
+              <div className="text-slate-800 whitespace-pre-wrap break-words leading-relaxed">
                 {newText}
               </div>
             </div>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Building2, X, Plus, Loader2, Sparkles, AlertCircle } from 'lucide-react';
 import { useAuth } from '../features/auth/AuthContext';
 import { workspaceApi } from '../lib/api';
@@ -8,6 +8,15 @@ export function CreateWorkspaceModal({ isOpen, onClose, canClose = true }) {
   const [workspaceName, setWorkspaceName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (!isOpen || !canClose || !onClose) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && !loading) onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, canClose, onClose, loading]);
 
   if (!isOpen) return null;
 
@@ -45,13 +54,26 @@ export function CreateWorkspaceModal({ isOpen, onClose, canClose = true }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-slate-900 border border-slate-700/80 rounded-2xl w-full max-w-md p-6 sm:p-7 shadow-2xl relative text-white">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="create-workspace-title"
+      onClick={() => {
+        if (canClose && onClose && !loading) onClose();
+      }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-200 overflow-y-auto"
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="bg-slate-900 border border-slate-700/80 rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto p-6 sm:p-7 shadow-2xl relative text-white"
+      >
         {/* Close Button (if allowed) */}
         {canClose && onClose && (
           <button
             type="button"
             onClick={onClose}
+            aria-label="Close modal"
+            title="Close (Esc)"
             className="absolute top-4 right-4 p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition"
           >
             <X className="w-5 h-5" />
@@ -60,18 +82,18 @@ export function CreateWorkspaceModal({ isOpen, onClose, canClose = true }) {
 
         {/* Modal Header */}
         <div className="flex items-center gap-3 mb-5">
-          <div className="w-10 h-10 rounded-xl bg-teal-500/20 border border-teal-500/40 text-teal-400 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-xl bg-teal-500/20 border border-teal-500/40 text-teal-400 flex items-center justify-center shrink-0">
             <Building2 className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="text-base font-bold text-white flex items-center gap-2">
+            <h3 id="create-workspace-title" className="text-base font-bold text-white flex items-center gap-2">
               <span>Create Workspace</span>
               <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-teal-500/20 text-teal-300 border border-teal-500/30 font-semibold">
                 ADMIN
               </span>
             </h3>
             <p className="text-xs text-slate-400">
-              Establish a isolated tenant environment with dedicated brand rules.
+              Establish an isolated tenant environment with dedicated brand rules.
             </p>
           </div>
         </div>
