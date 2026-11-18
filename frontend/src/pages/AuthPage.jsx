@@ -188,9 +188,8 @@ export function AuthPage({ onAuthSuccess, initialMode = 'signin', onBackToHome }
         )}
 
         {/* Logo */}
-        <div className="flex items-center gap-2.5 mb-1">
-          <img src="/favicon-32x32.png" alt="BrandLens AI Logo" className="w-6 h-6 rounded-md shadow-xs" />
-          <span className="font-extrabold text-base tracking-tight text-slate-900">BrandLens AI</span>
+        <div className="flex items-center gap-2 mb-2">
+          <img src="/brandlens-full-logo.png" alt="BrandLens AI" className="h-8 w-auto object-contain" />
           <span className="text-[10px] font-bold text-slate-400 tracking-widest uppercase">v1.0</span>
         </div>
 

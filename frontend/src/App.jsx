@@ -229,24 +229,22 @@ function MainApp() {
           padding: '48px 56px', boxShadow: '0 8px 40px rgba(99,102,241,0.10)',
           display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20,
         }}>
-          {/* Logo mark */}
-          <img
-            src="/favicon-192x192.png"
-            alt="BrandLens AI Logo"
-            style={{
-              width: 64,
-              height: 64,
-              borderRadius: 18,
-              boxShadow: '0 12px 32px rgba(99,102,241,0.25)',
-            }}
-          />
-
-          {/* Wordmark */}
-          <div>
-            <div style={{ fontSize: 20, fontWeight: 700, color: '#0f172a', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
-              BrandLens <span style={{ color: '#6366f1' }}>AI</span>
+          {/* Full Brand Logo */}
+          <div style={{ textAlign: 'center' }}>
+            <img
+              src="/brandlens-full-logo.png"
+              alt="BrandLens AI Logo"
+              style={{
+                height: 44,
+                width: 'auto',
+                objectFit: 'contain',
+                margin: '0 auto',
+                display: 'block',
+              }}
+            />
+            <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+              v1.0 &bull; Pre-Publication Governance
             </div>
-            <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 2, fontWeight: 500 }}>v1.0</div>
           </div>
 
           {/* Spinner */}

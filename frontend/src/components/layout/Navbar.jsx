@@ -103,21 +103,18 @@ export function Navbar({ onToggleMobileMenu, isMobileMenuOpen = false }) {
             )}
           </button>
 
-          <img
-            src="/favicon-48x48.png"
-            alt="BrandLens AI Logo"
-            className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl shadow-md transition-transform hover:scale-105 shrink-0"
-          />
-          <div className="min-w-0">
-            <div className="flex items-center gap-1.5 sm:gap-2">
-              <h1 className="font-bold text-slate-900 text-sm sm:text-base tracking-tight bg-gradient-to-r from-slate-900 via-slate-800 to-brand-900 bg-clip-text truncate">
-                BrandLens AI
-              </h1>
+          <div className="flex flex-col">
+            <div className="flex items-center gap-2">
+              <img
+                src="/brandlens-full-logo.png"
+                alt="BrandLens AI"
+                className="h-7 sm:h-8 w-auto object-contain shrink-0"
+              />
               <span className="text-[9px] sm:text-[10px] font-bold tracking-wide uppercase bg-gradient-to-r from-brand-50 to-indigo-50 text-brand-700 px-1.5 sm:px-2 py-0.5 rounded-full border border-brand-200/80 shadow-[inset_0_1px_1px_rgba(255,255,255,0.8)] shrink-0">
                 v1.0
               </span>
             </div>
-            <p className="text-[11px] text-slate-500 hidden sm:flex items-center gap-1.5 font-medium truncate">
+            <p className="text-[10px] sm:text-[11px] text-slate-500 hidden sm:flex items-center gap-1.5 font-medium truncate mt-0.5">
               <span>Intelligent Brand Governance</span>
               <span className="inline-block w-1 h-1 rounded-full bg-slate-300" />
               <span className="text-emerald-600 font-semibold flex items-center gap-1">

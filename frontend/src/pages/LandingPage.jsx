@@ -255,14 +255,13 @@ export function LandingPage({ onNavigate, onDemoLogin }) {
       <nav className="max-w-[1160px] mx-auto px-6 py-4 flex items-center justify-between relative z-20">
         <div
           onClick={() => onNavigate && onNavigate('landing')}
-          className="flex items-center gap-2.5 font-bold text-base tracking-tight cursor-pointer"
+          className="flex items-center cursor-pointer transition-transform hover:opacity-95"
         >
           <img
-            src="/favicon-32x32.png"
-            alt="BrandLens AI Logo"
-            className="w-7 h-7 rounded-lg shadow-sm"
+            src="/brandlens-full-logo.png"
+            alt="BrandLens AI"
+            className="h-7 sm:h-8 w-auto object-contain"
           />
-          <span>BrandLens AI</span>
         </div>
 
         {/* Center links */}
