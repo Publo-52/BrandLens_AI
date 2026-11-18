@@ -2,6 +2,7 @@ import express from 'express';
 import { Membership, ROLES, MEMBERSHIP_STATUS } from './membership.model.js';
 import { User } from '../auth/user.model.js';
 import { authenticate, requireOrgAccess } from '../../middleware/auth.js';
+import { validateObjectIdParam } from '../../middleware/security.js';
 
 const router = express.Router({ mergeParams: true });
 
@@ -103,7 +104,7 @@ router.post('/', authenticate, requireOrgAccess([ROLES.ADMIN, ROLES.MANAGER]), a
 });
 
 // PATCH /api/organisations/:organisationId/members/:memberId - Update member role or status (ADMIN only)
-router.patch('/:memberId', authenticate, requireOrgAccess([ROLES.ADMIN]), async (req, res, next) => {
+router.patch('/:memberId', authenticate, requireOrgAccess([ROLES.ADMIN]), validateObjectIdParam('memberId'), async (req, res, next) => {
   try {
     const { role, status } = req.body;
     const updates = {};

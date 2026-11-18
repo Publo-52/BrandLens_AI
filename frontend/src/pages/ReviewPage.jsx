@@ -77,11 +77,22 @@ export function ReviewPage() {
   const loadContents = useCallback(async () => {
     if (!activeOrg?._id || !token) return;
     setLoading(true);
+    setError(null);
     try {
       const data = await api.getContents(activeOrg._id, token);
       const items = data.contents || [];
       setContents(items);
-      setSelectedContentId((prev) => prev || (items[0]?._id ?? null));
+      setSelectedContentId((prev) => {
+        if (prev && items.some((item) => item._id === prev)) return prev;
+        return items[0]?._id ?? null;
+      });
+      if (items.length === 0) {
+        setSelectedContent(null);
+        setVersions([]);
+        setLatestReview(null);
+        setComments([]);
+        setWorkingText('');
+      }
     } catch (err) {
       setError(err.message);
     } finally {

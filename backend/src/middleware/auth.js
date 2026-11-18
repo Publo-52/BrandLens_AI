@@ -4,7 +4,8 @@ import { verifyFirebaseToken } from './verifyFirebaseToken.js';
 import { requireWorkspaceRole } from './requireWorkspaceRole.js';
 
 export function generateToken(userId) {
-  return jwt.sign({ userId }, config.jwtSecret, {
+  return jwt.sign({ userId: String(userId) }, config.jwtSecret, {
+    algorithm: 'HS256',
     expiresIn: '7d',
   });
 }

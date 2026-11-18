@@ -1,10 +1,11 @@
-import React, { useState, lazy, Suspense } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { Layout } from './components/layout/Layout';
 import { AuthProvider, useAuth } from './features/auth/AuthContext';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { Loader2 } from 'lucide-react';
 
 // Code-split pages for instant initial load and optimal browser caching
+const AuthPage = lazy(() => import('./pages/AuthPage').then((m) => ({ default: m.AuthPage })));
 const DashboardPage = lazy(() => import('./pages/DashboardPage').then((m) => ({ default: m.DashboardPage })));
 const ReviewPage = lazy(() => import('./pages/ReviewPage').then((m) => ({ default: m.ReviewPage })));
 const KnowledgeBasePage = lazy(() => import('./pages/KnowledgeBasePage').then((m) => ({ default: m.KnowledgeBasePage })));
@@ -12,6 +13,14 @@ const ApprovalsPage = lazy(() => import('./pages/ApprovalsPage').then((m) => ({ 
 const InsightsPage = lazy(() => import('./pages/InsightsPage').then((m) => ({ default: m.InsightsPage })));
 const AuditPage = lazy(() => import('./pages/AuditPage').then((m) => ({ default: m.AuditPage })));
 const SettingsPage = lazy(() => import('./pages/SettingsPage').then((m) => ({ default: m.SettingsPage })));
+
+const VALID_TABS = new Set(['dashboard', 'review', 'knowledge', 'approvals', 'insights', 'audit', 'settings']);
+
+function getInitialTab() {
+  if (typeof window === 'undefined') return 'dashboard';
+  const hashTab = window.location.hash.replace(/^#\/?/, '').trim().toLowerCase();
+  return VALID_TABS.has(hashTab) ? hashTab : 'dashboard';
+}
 
 function PageLoadingFallback() {
   return (
@@ -23,8 +32,27 @@ function PageLoadingFallback() {
 }
 
 function MainApp() {
-  const { loading } = useAuth();
-  const [currentTab, setCurrentTab] = useState('dashboard');
+  const { user, token, loading } = useAuth();
+  const [currentTab, setCurrentTabState] = useState(getInitialTab);
+
+  const setCurrentTab = (tab) => {
+    const safeTab = VALID_TABS.has(tab) ? tab : 'dashboard';
+    setCurrentTabState(safeTab);
+    if (typeof window !== 'undefined' && window.location.hash !== `#${safeTab}`) {
+      window.history.replaceState(null, '', `#${safeTab}`);
+    }
+  };
+
+  useEffect(() => {
+    const onHashChange = () => {
+      const hashTab = window.location.hash.replace(/^#\/?/, '').trim().toLowerCase();
+      if (VALID_TABS.has(hashTab)) {
+        setCurrentTabState(hashTab);
+      }
+    };
+    window.addEventListener('hashchange', onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
+  }, []);
 
   if (loading) {
     return (
@@ -34,6 +62,17 @@ function MainApp() {
           Loading BrandLens AI...
         </span>
       </div>
+    );
+  }
+
+  // Protected routes: require an authenticated session before accessing workspace pages
+  if (!user || !token) {
+    return (
+      <ErrorBoundary onGoHome={() => setCurrentTab('dashboard')}>
+        <Suspense fallback={<PageLoadingFallback />}>
+          <AuthPage onAuthSuccess={() => setCurrentTab('dashboard')} />
+        </Suspense>
+      </ErrorBoundary>
     );
   }
 

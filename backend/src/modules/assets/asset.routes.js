@@ -3,13 +3,25 @@ import multer from 'multer';
 import { Asset, ASSET_TYPES } from './asset.model.js';
 import { ROLES } from '../members/membership.model.js';
 import { authenticate, requireOrgAccess } from '../../middleware/auth.js';
+import { validateObjectIdParam } from '../../middleware/security.js';
+import { uploadRateLimiter } from '../../middleware/rateLimiter.js';
 import { uploadToCloudinary } from '../../utils/cloudinary.js';
+import { validateUploadedFile, MAX_UPLOAD_SIZE_BYTES } from '../../utils/fileValidation.js';
 
-const upload = multer({ limits: { fileSize: 10 * 1024 * 1024 } });
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: MAX_UPLOAD_SIZE_BYTES, files: 1 },
+});
 const router = express.Router({ mergeParams: true });
 
 // POST /api/organisations/:organisationId/assets/upload - Upload asset file directly to Cloudinary
-router.post('/upload', authenticate, requireOrgAccess([ROLES.ADMIN, ROLES.MANAGER]), upload.single('file'), async (req, res, next) => {
+router.post(
+  '/upload',
+  authenticate,
+  requireOrgAccess([ROLES.ADMIN, ROLES.MANAGER]),
+  uploadRateLimiter,
+  upload.single('file'),
+  async (req, res, next) => {
   try {
     if (!req.file) {
       return res.status(400).json({
@@ -18,9 +30,20 @@ router.post('/upload', authenticate, requireOrgAccess([ROLES.ADMIN, ROLES.MANAGE
       });
     }
 
+    // Strict asset file validation (blocks SVG/HTML/JS XSS vectors and spoofed MIME types)
+    const validation = validateUploadedFile(req.file, { mode: 'asset' });
+    if (!validation.valid) {
+      return res.status(400).json({
+        success: false,
+        error: { message: validation.error, statusCode: 400 },
+      });
+    }
+
+    const resourceType = validation.ext === '.pdf' ? 'raw' : 'image';
     const uploadResult = await uploadToCloudinary(req.file.buffer, {
       folder: `brandlens/${req.params.organisationId}/assets`,
-      resource_type: 'auto',
+      resource_type: resourceType,
+      public_id: `${Date.now()}_${validation.safeName.replace(/[^a-zA-Z0-9_-]/g, '_')}`,
     });
 
     res.status(201).json({
@@ -91,7 +114,7 @@ router.post('/', authenticate, requireOrgAccess([ROLES.ADMIN, ROLES.MANAGER]), a
 });
 
 // PATCH /api/organisations/:organisationId/assets/:assetId - Update asset
-router.patch('/:assetId', authenticate, requireOrgAccess([ROLES.ADMIN, ROLES.MANAGER]), async (req, res, next) => {
+router.patch('/:assetId', authenticate, requireOrgAccess([ROLES.ADMIN, ROLES.MANAGER]), validateObjectIdParam('assetId'), async (req, res, next) => {
   try {
     const { name, metadata, secureUrl, isActive } = req.body;
     const asset = await Asset.findOne({

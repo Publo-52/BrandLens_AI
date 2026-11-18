@@ -153,6 +153,15 @@ export function downloadCertificateMarkdown(cert) {
   URL.revokeObjectURL(url);
 }
 
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 export function printCertificatePdf(cert) {
   if (!cert) return;
   const printWindow = window.open('', '_blank', 'width=900,height=800');
@@ -161,11 +170,13 @@ export function printCertificatePdf(cert) {
     return;
   }
 
+  const esc = escapeHtml;
+
   const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Pre-Publication Compliance Certificate — ${cert.certificateId}</title>
+  <title>Pre-Publication Compliance Certificate — ${esc(cert.certificateId)}</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
     body { padding: 36px; background: #f8fafc; color: #0f172a; line-height: 1.5; }
@@ -204,40 +215,40 @@ export function printCertificatePdf(cert) {
         <div class="brand-title">BrandLens AI</div>
         <div class="brand-sub">Official Pre-Publication Compliance Certificate</div>
       </div>
-      <div class="badge">✓ ${cert.content.status} &amp; LOCKED</div>
+      <div class="badge">&#10003; ${esc(cert.content.status)} &amp; LOCKED</div>
     </div>
 
     <div class="meta-grid">
       <div class="meta-card">
         <div class="meta-label">Content Title &amp; Version</div>
-        <div class="meta-val">${cert.content.title}</div>
-        <div class="meta-sub">Version v${cert.content.versionNumber} &bull; ID: ${cert.content.versionId}</div>
-        <div class="meta-sub">Channel: ${cert.content.channel} &bull; Audience: ${cert.content.audience}</div>
+        <div class="meta-val">${esc(cert.content.title)}</div>
+        <div class="meta-sub">Version v${esc(cert.content.versionNumber)} &bull; ID: ${esc(cert.content.versionId)}</div>
+        <div class="meta-sub">Channel: ${esc(cert.content.channel)} &bull; Audience: ${esc(cert.content.audience)}</div>
       </div>
       <div class="meta-card">
         <div class="meta-label">Formal Sign-Off Authority</div>
-        <div class="meta-val">${cert.approval.approverName}</div>
-        <div class="meta-sub">Signed: ${new Date(cert.approval.approvedAt).toLocaleString()}</div>
-        <div class="meta-sub">Author: ${cert.content.authorName} &bull; Separation of Duties Verified</div>
+        <div class="meta-val">${esc(cert.approval.approverName)}</div>
+        <div class="meta-sub">Signed: ${esc(new Date(cert.approval.approvedAt).toLocaleString())}</div>
+        <div class="meta-sub">Author: ${esc(cert.content.authorName)} &bull; Separation of Duties Verified</div>
       </div>
     </div>
 
     <div class="section-title">Automated Governance Findings Summary</div>
     <div class="stats-row">
       <div class="stat-box">
-        <div class="stat-num">${cert.findingsSummary.totalChecksAnalyzed}</div>
+        <div class="stat-num">${esc(cert.findingsSummary.totalChecksAnalyzed)}</div>
         <div class="stat-label">Total Checks Run</div>
       </div>
       <div class="stat-box">
-        <div class="stat-num">${cert.findingsSummary.deterministicChecksCount}</div>
+        <div class="stat-num">${esc(cert.findingsSummary.deterministicChecksCount)}</div>
         <div class="stat-label">Deterministic Rules</div>
       </div>
       <div class="stat-box">
-        <div class="stat-num">${cert.findingsSummary.aiEvaluatedChecksCount}</div>
+        <div class="stat-num">${esc(cert.findingsSummary.aiEvaluatedChecksCount)}</div>
         <div class="stat-label">AI Grounded Checks</div>
       </div>
       <div class="stat-box">
-        <div class="stat-num" style="color: ${cert.findingsSummary.unresolvedCriticalViolations === 0 ? '#059669' : '#dc2626'}">${cert.findingsSummary.unresolvedCriticalViolations}</div>
+        <div class="stat-num" style="color: ${cert.findingsSummary.unresolvedCriticalViolations === 0 ? '#059669' : '#dc2626'}">${esc(cert.findingsSummary.unresolvedCriticalViolations)}</div>
         <div class="stat-label">Unresolved Critical</div>
       </div>
     </div>
@@ -245,21 +256,21 @@ export function printCertificatePdf(cert) {
     <div class="section-title">AI vs. Deterministic Check Methodology Disclosure</div>
     <div class="disclosure">
       <div class="disclosure-item">
-        <strong>100% Deterministic Engine:</strong> ${cert.methodologyDisclosure.deterministicEngine.scope}. <em>${cert.methodologyDisclosure.deterministicEngine.guarantee}</em>
+        <strong>100% Deterministic Engine:</strong> ${esc(cert.methodologyDisclosure.deterministicEngine.scope)}. <em>${esc(cert.methodologyDisclosure.deterministicEngine.guarantee)}</em>
       </div>
       <div class="disclosure-item">
-        <strong>AI Semantic Grounding:</strong> ${cert.methodologyDisclosure.aiEvaluationEngine.scope}. <em>${cert.methodologyDisclosure.aiEvaluationEngine.safeguard}</em>
+        <strong>AI Semantic Grounding:</strong> ${esc(cert.methodologyDisclosure.aiEvaluationEngine.scope)}. <em>${esc(cert.methodologyDisclosure.aiEvaluationEngine.safeguard)}</em>
       </div>
     </div>
 
     <div class="footer">
       <div>
-        <div><strong>Certificate ID:</strong> ${cert.certificateId}</div>
-        <div style="margin-top: 4px;">Organisation: ${cert.organisation.name}</div>
+        <div><strong>Certificate ID:</strong> ${esc(cert.certificateId)}</div>
+        <div style="margin-top: 4px;">Organisation: ${esc(cert.organisation.name)}</div>
       </div>
       <div style="text-align: right;">
-        <div class="hash">${cert.verificationHash}</div>
-        <div style="margin-top: 4px;">Immutable Audit Ledger Timestamp: ${cert.issuedAt}</div>
+        <div class="hash">${esc(cert.verificationHash)}</div>
+        <div style="margin-top: 4px;">Immutable Audit Ledger Timestamp: ${esc(cert.issuedAt)}</div>
       </div>
     </div>
   </div>

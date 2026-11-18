@@ -27,6 +27,7 @@ const userSchema = new mongoose.Schema(
     passwordHash: {
       type: String,
       default: null,
+      select: false,
     },
     avatarUrl: {
       type: String,
@@ -48,9 +49,11 @@ userSchema.methods.comparePassword = async function (candidatePassword) {
   return bcrypt.compare(candidatePassword, this.passwordHash);
 };
 
-// Static helper to hash password
+// Static helper to hash password (12 rounds in prod/dev, 10 in test for fast CI runs)
 userSchema.statics.hashPassword = async function (plainPassword) {
-  const salt = await bcrypt.genSalt(10);
+  const isTest = process.env.NODE_ENV === 'test' || Boolean(process.env.NODE_TEST_CONTEXT);
+  const rounds = isTest ? 10 : 12;
+  const salt = await bcrypt.genSalt(rounds);
   return bcrypt.hash(plainPassword, salt);
 };
 

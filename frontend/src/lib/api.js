@@ -26,18 +26,15 @@ export async function apiFetch(endpoint, options = {}) {
     headers.set('Content-Type', 'application/json');
   }
 
-  // 2. Attach Bearer ID token (from Firebase currentUser or localStorage fallback)
+  // 2. Attach Bearer ID token (prefer active session token in localStorage so demo role switches take effect)
   if (!headers.has('Authorization')) {
-    let token = null;
-    if (auth.currentUser) {
+    let token = typeof window !== 'undefined' ? localStorage.getItem('brandlens_token') : null;
+    if (!token && auth.currentUser) {
       try {
         token = await auth.currentUser.getIdToken();
       } catch (e) {
         console.warn('Failed to retrieve Firebase ID token:', e.message);
       }
-    }
-    if (!token && typeof window !== 'undefined') {
-      token = localStorage.getItem('brandlens_token');
     }
     if (token) {
       headers.set('Authorization', `Bearer ${token}`);

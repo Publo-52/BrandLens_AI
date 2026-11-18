@@ -27,13 +27,19 @@ export async function verifyFirebaseToken(req, res, next) {
       logger.debug(`Firebase verifyIdToken failed: ${fbErr.message}. Checking fallback tokens.`);
     }
 
-    // 2. Fallback: Check if it's a signed JWT (demo / legacy JWT fallback)
+    // 2. Fallback: Check if it's a signed JWT (HS256 algorithm pinned to prevent algorithm confusion)
     if (!decoded) {
       try {
-        const jwtPayload = jwt.verify(idToken, config.jwtSecret);
+        const jwtPayload = jwt.verify(idToken, config.jwtSecret, { algorithms: ['HS256'] });
         if (jwtPayload?.userId) {
           const existingUser = await User.findById(jwtPayload.userId);
           if (existingUser) {
+            if (existingUser.isActive === false) {
+              return res.status(403).json({
+                success: false,
+                error: { message: 'Account is deactivated. Please contact an administrator.', statusCode: 403 },
+              });
+            }
             decoded = {
               uid: existingUser.firebaseUid || existingUser._id.toString(),
               email: existingUser.email,
@@ -54,15 +60,19 @@ export async function verifyFirebaseToken(req, res, next) {
       }
     }
 
-    // 3. Fallback: Check for special demo token format (e.g. demo:admin@novatech.demo)
-    if (!decoded && idToken.startsWith('demo:')) {
-      const demoEmail = idToken.replace('demo:', '').toLowerCase().trim();
-      decoded = {
-        uid: `demo_${demoEmail.replace(/[^a-z0-9]/g, '_')}`,
-        email: demoEmail,
-        name: demoEmail.split('@')[0].toUpperCase(),
-        picture: '',
-      };
+    // 3. Fallback: Demo token format restricted strictly to non-production / opt-in demo domains
+    if (!decoded && idToken.startsWith('demo:') && config.allowDemoAuth) {
+      const demoEmail = idToken.slice(5).toLowerCase().trim();
+      const allowedDemoDomains = ['@novatech.demo', '@rbac-test.local', '@brandlens.local', '@test.local'];
+      const isAllowedDemoEmail = allowedDemoDomains.some((domain) => demoEmail.endsWith(domain));
+      if (isAllowedDemoEmail && /^\S+@\S+\.\S+$/.test(demoEmail)) {
+        decoded = {
+          uid: `demo_${demoEmail.replace(/[^a-z0-9]/g, '_')}`,
+          email: demoEmail,
+          name: demoEmail.split('@')[0].toUpperCase(),
+          picture: '',
+        };
+      }
     }
 
     if (!decoded) {
@@ -103,6 +113,13 @@ export async function verifyFirebaseToken(req, res, next) {
       if (updated) {
         await user.save();
       }
+    }
+
+    if (user.isActive === false) {
+      return res.status(403).json({
+        success: false,
+        error: { message: 'Account is deactivated. Please contact an administrator.', statusCode: 403 },
+      });
     }
 
     // 5. Auto-activate any pending workspace invites for this email

@@ -2,6 +2,7 @@ import express from 'express';
 import { Guideline, GUIDELINE_CATEGORIES, GUIDELINE_SEVERITIES, GUIDELINE_STATUS } from './guideline.model.js';
 import { ROLES } from '../members/membership.model.js';
 import { authenticate, requireOrgAccess } from '../../middleware/auth.js';
+import { validateObjectIdParam } from '../../middleware/security.js';
 
 const router = express.Router({ mergeParams: true });
 
@@ -69,7 +70,7 @@ router.post('/', authenticate, requireOrgAccess([ROLES.ADMIN, ROLES.MANAGER]), a
 });
 
 // PATCH /api/organisations/:organisationId/guidelines/:guidelineId - Update or version guideline (ADMIN, MANAGER)
-router.patch('/:guidelineId', authenticate, requireOrgAccess([ROLES.ADMIN, ROLES.MANAGER]), async (req, res, next) => {
+router.patch('/:guidelineId', authenticate, requireOrgAccess([ROLES.ADMIN, ROLES.MANAGER]), validateObjectIdParam('guidelineId'), async (req, res, next) => {
   try {
     const { title, ruleText, severity, category, status } = req.body;
     const guideline = await Guideline.findOne({

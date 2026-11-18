@@ -28,13 +28,17 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# CORS configuration
+# CORS configuration (explicit allowlist from ALLOWED_ORIGINS; never combine wildcard with credentials)
+raw_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:5000,http://127.0.0.1:5000,http://localhost:5173")
+allowed_origins = [o.strip().rstrip("/") for o in raw_origins.split(",") if o.strip()]
+allow_all = "*" in allowed_origins
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=["*"] if allow_all else allowed_origins,
+    allow_credentials=not allow_all,
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization", "X-API-Key"],
 )
 
 # Normalize Vercel Serverless Function rewritten paths

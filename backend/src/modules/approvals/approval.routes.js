@@ -4,8 +4,10 @@ import { Comment } from '../comments/comment.model.js';
 import { AuditLog } from '../audit/audit.model.js';
 import { ROLES } from '../members/membership.model.js';
 import { authenticate, requireOrgAccess } from '../../middleware/auth.js';
+import { validateObjectIdParam } from '../../middleware/security.js';
 
 const router = express.Router({ mergeParams: true });
+router.use(validateObjectIdParam('contentId'));
 
 // POST /api/organisations/:organisationId/contents/:contentId/approval-request - Request formal review
 router.post('/approval-request', authenticate, requireOrgAccess(), async (req, res, next) => {

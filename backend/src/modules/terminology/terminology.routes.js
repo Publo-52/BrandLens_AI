@@ -2,6 +2,7 @@ import express from 'express';
 import { TerminologyRule } from './terminology.model.js';
 import { ROLES } from '../members/membership.model.js';
 import { authenticate, requireOrgAccess } from '../../middleware/auth.js';
+import { validateObjectIdParam } from '../../middleware/security.js';
 
 const router = express.Router({ mergeParams: true });
 
@@ -64,7 +65,7 @@ router.post('/', authenticate, requireOrgAccess([ROLES.ADMIN, ROLES.MANAGER]), a
 });
 
 // PATCH /api/organisations/:organisationId/terminology/:ruleId - Update terminology rule (ADMIN, MANAGER)
-router.patch('/:ruleId', authenticate, requireOrgAccess([ROLES.ADMIN, ROLES.MANAGER]), async (req, res, next) => {
+router.patch('/:ruleId', authenticate, requireOrgAccess([ROLES.ADMIN, ROLES.MANAGER]), validateObjectIdParam('ruleId'), async (req, res, next) => {
   try {
     const { preferredTerm, bannedTerms, replacement, explanation, caseSensitive, scope, isActive } = req.body;
     const rule = await TerminologyRule.findOne({

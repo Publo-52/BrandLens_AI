@@ -2,6 +2,7 @@ import express from 'express';
 import { ApprovedFact, FACT_STATUS } from './fact.model.js';
 import { ROLES } from '../members/membership.model.js';
 import { authenticate, requireOrgAccess } from '../../middleware/auth.js';
+import { validateObjectIdParam } from '../../middleware/security.js';
 
 const router = express.Router({ mergeParams: true });
 
@@ -16,8 +17,8 @@ router.get('/', authenticate, requireOrgAccess(), async (req, res, next) => {
     } else if (!status) {
       filter.status = FACT_STATUS.ACTIVE;
     }
-    if (product) {
-      filter['applicability.product'] = product;
+    if (typeof product === 'string' && product.trim()) {
+      filter['applicability.product'] = product.trim();
     }
 
     const facts = await ApprovedFact.find(filter)
@@ -67,7 +68,7 @@ router.post('/', authenticate, requireOrgAccess([ROLES.ADMIN, ROLES.MANAGER]), a
 });
 
 // PATCH /api/organisations/:organisationId/facts/:factId - Update fact (ADMIN, MANAGER)
-router.patch('/:factId', authenticate, requireOrgAccess([ROLES.ADMIN, ROLES.MANAGER]), async (req, res, next) => {
+router.patch('/:factId', authenticate, requireOrgAccess([ROLES.ADMIN, ROLES.MANAGER]), validateObjectIdParam('factId'), async (req, res, next) => {
   try {
     const { statement, sourceReference, applicability, status } = req.body;
     const fact = await ApprovedFact.findOne({

@@ -49,11 +49,15 @@ async function request(url, options = {}) {
     inFlightRequests.clear(); // Bust cache on mutations
     const res = await fetch(url, options);
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.error?.message || `Request failed (${res.status})`);
+    if (!res.ok) {
+      const err = new Error(data.error?.message || `Request failed (${res.status})`);
+      err.status = res.status;
+      throw err;
+    }
     return data;
   }
 
-  const cacheKey = `${url}:${options.headers?.Authorization || ''}`;
+  const cacheKey = `${url}:${options.headers?.Authorization || ''}:${options.headers?.['x-organisation-id'] || ''}`;
   if (inFlightRequests.has(cacheKey)) {
     return inFlightRequests.get(cacheKey);
   }
@@ -62,10 +66,18 @@ async function request(url, options = {}) {
     try {
       const res = await fetch(url, options);
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error?.message || `Request failed (${res.status})`);
+      if (!res.ok) {
+        const err = new Error(data.error?.message || `Request failed (${res.status})`);
+        err.status = res.status;
+        throw err;
+      }
       return data;
+    } catch (err) {
+      // Never cache failed GET requests so Retry works immediately
+      inFlightRequests.delete(cacheKey);
+      throw err;
     } finally {
-      setTimeout(() => inFlightRequests.delete(cacheKey), 2500); // 2.5s deduplication window
+      setTimeout(() => inFlightRequests.delete(cacheKey), 2500);
     }
   })();
 
@@ -108,31 +120,12 @@ export const api = {
     });
   },
 
-  async googleLogin({ name, email, firebaseUid, photoURL }) {
-    try {
-      return await request(`${API_BASE}/api/auth/google`, {
-        method: 'POST',
-        headers: getHeaders(null, false),
-        body: JSON.stringify({ name, email, firebaseUid, photoURL }),
-      });
-    } catch (err) {
-      // Fallback: if backend /api/auth/google returns 404 before redeploy finishes,
-      // authenticate seamlessly via the standard login/register routes
-      if (err.message?.includes('404') || err.message?.includes('Cannot POST') || err.message?.includes('failed (404)')) {
-        const synthPassword = `GAuth_${(firebaseUid || 'User').slice(0, 16)}!`;
-        try {
-          return await this.login({ email, password: synthPassword });
-        } catch {
-          return await this.register({
-            name: name || email.split('@')[0],
-            email,
-            password: synthPassword,
-            organisationName: `${name || 'Personal'}'s Workspace`,
-          });
-        }
-      }
-      throw err;
-    }
+  async googleLogin({ idToken, name, email, firebaseUid, photoURL }) {
+    return await request(`${API_BASE}/api/auth/google`, {
+      method: 'POST',
+      headers: getHeaders(idToken || null, false),
+      body: JSON.stringify({ name, email, firebaseUid, photoURL }),
+    });
   },
 
   async getMe(token) {
@@ -230,59 +223,91 @@ export const api = {
   async getGuidelines(orgId, token, category) {
     const url = new URL(`${API_BASE}/api/organisations/${orgId}/guidelines`);
     if (category) url.searchParams.append('category', category);
-    return await request(url.toString(), { headers: getHeaders(token) });
+    return await request(url.toString(), { headers: getHeaders(token, orgId) });
   },
 
   async createGuideline(orgId, guidelineData, token) {
     return await request(`${API_BASE}/api/organisations/${orgId}/guidelines`, {
       method: 'POST',
-      headers: getHeaders(token),
+      headers: getHeaders(token, orgId),
       body: JSON.stringify(guidelineData),
+    });
+  },
+
+  async updateGuideline(orgId, guidelineId, updateData, token) {
+    return await request(`${API_BASE}/api/organisations/${orgId}/guidelines/${guidelineId}`, {
+      method: 'PATCH',
+      headers: getHeaders(token, orgId),
+      body: JSON.stringify(updateData),
     });
   },
 
   // Approved Facts
   async getFacts(orgId, token) {
     return await request(`${API_BASE}/api/organisations/${orgId}/facts`, {
-      headers: getHeaders(token),
+      headers: getHeaders(token, orgId),
     });
   },
 
   async createFact(orgId, factData, token) {
     return await request(`${API_BASE}/api/organisations/${orgId}/facts`, {
       method: 'POST',
-      headers: getHeaders(token),
+      headers: getHeaders(token, orgId),
       body: JSON.stringify(factData),
+    });
+  },
+
+  async updateFact(orgId, factId, updateData, token) {
+    return await request(`${API_BASE}/api/organisations/${orgId}/facts/${factId}`, {
+      method: 'PATCH',
+      headers: getHeaders(token, orgId),
+      body: JSON.stringify(updateData),
     });
   },
 
   // Terminology
   async getTerminology(orgId, token) {
     return await request(`${API_BASE}/api/organisations/${orgId}/terminology`, {
-      headers: getHeaders(token),
+      headers: getHeaders(token, orgId),
     });
   },
 
   async createTerminology(orgId, ruleData, token) {
     return await request(`${API_BASE}/api/organisations/${orgId}/terminology`, {
       method: 'POST',
-      headers: getHeaders(token),
+      headers: getHeaders(token, orgId),
       body: JSON.stringify(ruleData),
+    });
+  },
+
+  async updateTerminology(orgId, ruleId, updateData, token) {
+    return await request(`${API_BASE}/api/organisations/${orgId}/terminology/${ruleId}`, {
+      method: 'PATCH',
+      headers: getHeaders(token, orgId),
+      body: JSON.stringify(updateData),
     });
   },
 
   // Brand Assets
   async getAssets(orgId, token) {
     return await request(`${API_BASE}/api/organisations/${orgId}/assets`, {
-      headers: getHeaders(token),
+      headers: getHeaders(token, orgId),
     });
   },
 
   async createAsset(orgId, assetData, token) {
     return await request(`${API_BASE}/api/organisations/${orgId}/assets`, {
       method: 'POST',
-      headers: getHeaders(token),
+      headers: getHeaders(token, orgId),
       body: JSON.stringify(assetData),
+    });
+  },
+
+  async updateAsset(orgId, assetId, updateData, token) {
+    return await request(`${API_BASE}/api/organisations/${orgId}/assets/${assetId}`, {
+      method: 'PATCH',
+      headers: getHeaders(token, orgId),
+      body: JSON.stringify(updateData),
     });
   },
 
@@ -290,7 +315,7 @@ export const api = {
   async seedDemoKnowledge(orgId, token) {
     return await request(`${API_BASE}/api/organisations/${orgId}/knowledge/seed-demo`, {
       method: 'POST',
-      headers: getHeaders(token),
+      headers: getHeaders(token, orgId),
     });
   },
   async seedDemoBrandPack(orgId, token) {
@@ -302,12 +327,12 @@ export const api = {
     const url = new URL(`${API_BASE}/api/organisations/${orgId}/contents`);
     if (filters.status) url.searchParams.append('status', filters.status);
     if (filters.channel) url.searchParams.append('channel', filters.channel);
-    return await request(url.toString(), { headers: getHeaders(token) });
+    return await request(url.toString(), { headers: getHeaders(token, orgId) });
   },
 
   async getContent(orgId, contentId, token) {
     return await request(`${API_BASE}/api/organisations/${orgId}/contents/${contentId}`, {
-      headers: getHeaders(token),
+      headers: getHeaders(token, orgId),
     });
   },
 
@@ -330,6 +355,7 @@ export const api = {
 
     const headers = {};
     if (token) headers['Authorization'] = `Bearer ${token}`;
+    if (orgId) headers['x-organisation-id'] = orgId;
 
     const res = await fetch(`${API_BASE}/api/organisations/${orgId}/contents`, {
       method: 'POST',
@@ -337,14 +363,18 @@ export const api = {
       body: formData,
     });
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.error?.message || 'Failed to submit draft content');
+    if (!res.ok) {
+      const err = new Error(data.error?.message || 'Failed to submit draft content');
+      err.status = res.status;
+      throw err;
+    }
     return data;
   },
 
   async createContentVersion(orgId, contentId, { text, changeSummary }, token) {
     return await request(`${API_BASE}/api/organisations/${orgId}/contents/${contentId}/versions`, {
       method: 'POST',
-      headers: getHeaders(token),
+      headers: getHeaders(token, orgId),
       body: JSON.stringify({ text, changeSummary }),
     });
   },
@@ -356,7 +386,7 @@ export const api = {
   async updateFindingDecision(orgId, contentId, findingId, decisionData, token) {
     return await request(`${API_BASE}/api/organisations/${orgId}/contents/${contentId}/findings/${findingId}`, {
       method: 'PATCH',
-      headers: getHeaders(token),
+      headers: getHeaders(token, orgId),
       body: JSON.stringify(decisionData),
     });
   },
@@ -365,14 +395,14 @@ export const api = {
   async requestApproval(orgId, contentId, token) {
     return await request(`${API_BASE}/api/organisations/${orgId}/contents/${contentId}/approval-request`, {
       method: 'POST',
-      headers: getHeaders(token),
+      headers: getHeaders(token, orgId),
     });
   },
 
   async submitApprovalDecision(orgId, contentId, { decision, reason }, token) {
     return await request(`${API_BASE}/api/organisations/${orgId}/contents/${contentId}/decision`, {
       method: 'POST',
-      headers: getHeaders(token),
+      headers: getHeaders(token, orgId),
       body: JSON.stringify({ decision, reason }),
     });
   },
@@ -380,7 +410,7 @@ export const api = {
   async publishContent(orgId, contentId, { destination, liveUrl }, token) {
     return await request(`${API_BASE}/api/organisations/${orgId}/contents/${contentId}/publish`, {
       method: 'POST',
-      headers: getHeaders(token),
+      headers: getHeaders(token, orgId),
       body: JSON.stringify({ destination, liveUrl }),
     });
   },
@@ -388,14 +418,14 @@ export const api = {
   // Comments
   async getComments(orgId, contentId, token) {
     return await request(`${API_BASE}/api/organisations/${orgId}/contents/${contentId}/comments`, {
-      headers: getHeaders(token),
+      headers: getHeaders(token, orgId),
     });
   },
 
   async addComment(orgId, contentId, { body, findingId }, token) {
     return await request(`${API_BASE}/api/organisations/${orgId}/contents/${contentId}/comments`, {
       method: 'POST',
-      headers: getHeaders(token),
+      headers: getHeaders(token, orgId),
       body: JSON.stringify({ body, findingId }),
     });
   },
@@ -403,13 +433,13 @@ export const api = {
   // Governance Insights & Audit Logs
   async getInsights(orgId, token) {
     return await request(`${API_BASE}/api/organisations/${orgId}/insights`, {
-      headers: getHeaders(token),
+      headers: getHeaders(token, orgId),
     });
   },
 
   async getAuditLogs(orgId, token) {
     return await request(`${API_BASE}/api/organisations/${orgId}/audit-logs`, {
-      headers: getHeaders(token),
+      headers: getHeaders(token, orgId),
     });
   },
 };

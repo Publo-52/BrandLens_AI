@@ -12,13 +12,12 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 let serviceAccount = null;
 
-// 1. Check for service account JSON files in workspace root or backend
+// 1. Check for service account JSON files via env var or generic local path
 const potentialJsonPaths = [
-  path.resolve(__dirname, '../../../brandlens-ai-7de68-firebase-adminsdk-fbsvc-a956b4e375.json'),
-  path.resolve(__dirname, '../../brandlens-ai-7de68-firebase-adminsdk-fbsvc-a956b4e375.json'),
+  process.env.FIREBASE_SERVICE_ACCOUNT_PATH ? path.resolve(process.env.FIREBASE_SERVICE_ACCOUNT_PATH) : null,
   path.resolve(__dirname, '../../../firebase-service-account.json'),
   path.resolve(__dirname, '../../firebase-service-account.json'),
-];
+].filter(Boolean);
 
 for (const p of potentialJsonPaths) {
   if (fs.existsSync(p)) {

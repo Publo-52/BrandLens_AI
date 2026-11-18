@@ -6,6 +6,8 @@ import mongoose from 'mongoose';
 import { config } from './config/env.js';
 import { connectDB, getDatabaseHealth } from './config/db.js';
 import { notFoundHandler, errorHandler } from './middleware/errorHandler.js';
+import { sanitizeMongoInput } from './middleware/security.js';
+import { apiRateLimiter } from './middleware/rateLimiter.js';
 import authRoutes from './modules/auth/auth.routes.js';
 import organisationRoutes from './modules/organisations/organisation.routes.js';
 import workspaceRoutes from './modules/organisations/workspace.routes.js';
@@ -20,44 +22,79 @@ import approvalRoutes from './modules/approvals/approval.routes.js';
 import auditRoutes from './modules/audit/audit.routes.js';
 
 const app = express();
+app.set('trust proxy', 1);
+app.disable('x-powered-by');
 
-// ── Universal CORS & Preflight (Must run before any routers or security middleware) ──
+// ── Strict Allowlist CORS & Preflight ─────────────────────────────────────────
+const LOCAL_DEV_ORIGIN_RE = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
+
+function isOriginAllowed(origin) {
+  if (!origin) return true;
+  const normalized = origin.replace(/\/+$/, '');
+  if (config.allowedOrigins.includes(normalized)) return true;
+  if (!config.isProduction && LOCAL_DEV_ORIGIN_RE.test(normalized)) return true;
+  return false;
+}
+
+const corsOptions = {
+  origin(origin, callback) {
+    if (!origin || isOriginAllowed(origin)) {
+      return callback(null, true);
+    }
+    if (config.frontendOrigin === '*') {
+      // Wildcard mode: allow request without reflecting untrusted origin with credentials
+      return callback(null, false);
+    }
+    return callback(null, false);
+  },
+  credentials: config.frontendOrigin !== '*',
+  methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: [
+    'Origin',
+    'X-Requested-With',
+    'Content-Type',
+    'Accept',
+    'Authorization',
+    'x-organisation-id',
+    'X-Organisation-Id',
+    'x-workspace-id',
+    'X-Workspace-Id',
+  ],
+  maxAge: 86400,
+};
+
 app.use((req, res, next) => {
   const origin = req.headers.origin;
-  if (origin) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-  } else {
+  if (origin && isOriginAllowed(origin)) {
+    res.setHeader('Vary', 'Origin');
+  } else if (origin && config.frontendOrigin === '*') {
     res.setHeader('Access-Control-Allow-Origin', '*');
-  }
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, POST, PUT, PATCH, DELETE, OPTIONS');
-  res.setHeader(
-    'Access-Control-Allow-Headers',
-    'Origin, X-Requested-With, Content-Type, Accept, Authorization, x-organisation-id, X-Organisation-Id, x-workspace-id, X-Workspace-Id'
-  );
-  res.setHeader('Access-Control-Max-Age', '86400');
-
-  if (req.method === 'OPTIONS') {
-    return res.status(204).end();
+    res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, POST, PUT, PATCH, DELETE, OPTIONS');
+    res.setHeader(
+      'Access-Control-Allow-Headers',
+      'Origin, X-Requested-With, Content-Type, Accept, Authorization, x-organisation-id, X-Organisation-Id, x-workspace-id, X-Workspace-Id'
+    );
+    if (req.method === 'OPTIONS') return res.status(204).end();
   }
   next();
 });
 
-app.use(cors({
-  origin: true,
-  credentials: true,
-  methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-}));
-app.options('*', cors());
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 
-// ── Security ─────────────────────────────────────────────────────────────────
+// ── Security Headers ─────────────────────────────────────────────────────────
 app.use(helmet({
   crossOriginResourcePolicy: { policy: 'cross-origin' },
+  referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
 }));
 
-// ── Body Parsing ──────────────────────────────────────────────────────────────
+// ── Body Parsing & NoSQL Input Sanitization ──────────────────────────────────
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(sanitizeMongoInput);
+
+// ── Global API Rate Limiting ─────────────────────────────────────────────────
+app.use('/api/', apiRateLimiter);
 
 // ── Logging ───────────────────────────────────────────────────────────────────
 if (config.env !== 'test') {

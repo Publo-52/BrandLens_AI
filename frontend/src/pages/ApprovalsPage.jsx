@@ -87,9 +87,16 @@ export function ApprovalsPage() {
       const all = data.contents || [];
       setContents(all);
 
-      const inReviewFirst = all.find((c) => c.status === 'IN_REVIEW') || all[0];
-      if (inReviewFirst) {
-        setSelectedId((prev) => prev || inReviewFirst._id);
+      const inReviewFirst = all.find((c) => c.status === 'IN_REVIEW') || all[0] || null;
+      setSelectedId((prev) => {
+        if (prev && all.some((c) => c._id === prev)) return prev;
+        return inReviewFirst ? inReviewFirst._id : null;
+      });
+      if (all.length === 0) {
+        setSelectedContent(null);
+        setLatestReview(null);
+        setVersions([]);
+        setComments([]);
       }
     } catch (err) {
       setError(err.message);

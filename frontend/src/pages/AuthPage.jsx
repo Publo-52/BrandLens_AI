@@ -59,31 +59,18 @@ export function AuthPage({ onAuthSuccess }) {
           throw new Error('Password must be at least 8 characters long.');
         }
 
-        if (signUpWithFirebase) {
-          await signUpWithFirebase({
-            email: email.trim(),
-            password,
-            displayName: name.trim(),
-            workspaceName: workspaceName.trim() || `${name.trim().split(' ')[0]}'s Workspace`,
-          });
-        } else if (register) {
-          await register({
-            name: name.trim(),
-            email: email.trim(),
-            password,
-            organisationName: workspaceName.trim() || `${name.trim().split(' ')[0]}'s Workspace`,
-          });
-        }
+        await register({
+          name: name.trim(),
+          email: email.trim(),
+          password,
+          organisationName: workspaceName.trim() || `${name.trim().split(' ')[0]}'s Workspace`,
+        });
         setSuccessMsg('Account created successfully! Entering workspace...');
       } else {
         if (!email.trim() || !password) {
           throw new Error('Please enter both email and password.');
         }
-        if (loginWithFirebase) {
-          await loginWithFirebase(email.trim(), password);
-        } else if (login) {
-          await login(email.trim(), password);
-        }
+        await login(email.trim(), password);
         setSuccessMsg('Signed in successfully! Loading workspace...');
       }
       if (onAuthSuccess) onAuthSuccess();

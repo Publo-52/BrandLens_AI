@@ -79,18 +79,6 @@ export function AuthProvider({ children }) {
         }
       }
 
-      // 3. Ensure a valid NovaTech Global workspace preview is always available so the UI never crashes
-      if (!wsList || wsList.length === 0) {
-        wsList = [
-          {
-            _id: NOVATECH_GLOBAL_ID,
-            name: 'NovaTech Global',
-            slug: 'novatech-global',
-            role: 'ADMIN',
-          },
-        ];
-      }
-
       setWorkspaces(wsList);
       setMemberships(wsList);
 
@@ -102,6 +90,8 @@ export function AuthProvider({ children }) {
       } else if (wsList.length > 0) {
         const firstId = extractOrgId(wsList[0]);
         persistOrg(firstId);
+      } else {
+        persistOrg(null);
       }
       return wsList;
     },
@@ -117,21 +107,28 @@ export function AuthProvider({ children }) {
     }
 
     try {
-      // 1. Fetch user profile from /api/auth/me or fallback
-      try {
-        const meData = await api.getMe(currentToken);
-        if (meData?.user) {
-          setUser(meData.user);
-          localStorage.setItem('brandlens_user', JSON.stringify(meData.user));
-        }
-      } catch (meErr) {
-        // Fallback for demo tokens or direct firebase tokens
+      // 1. Validate session token against backend /api/auth/me
+      const meData = await api.getMe(currentToken);
+      if (meData?.user) {
+        setUser(meData.user);
+        localStorage.setItem('brandlens_user', JSON.stringify(meData.user));
       }
 
       // 2. Fetch active workspaces
       await fetchWorkspacesAndSync(currentToken);
     } catch (err) {
       console.warn('Session refresh error:', err.message);
+      // If token is invalid/expired (401/403), clear stale session rather than showing broken state
+      if (err.status === 401 || err.status === 403) {
+        localStorage.removeItem('brandlens_token');
+        localStorage.removeItem('brandlens_user');
+        localStorage.removeItem('brandlens_active_org_id');
+        setToken(null);
+        setUser(null);
+        setWorkspaces([]);
+        setMemberships([]);
+        setActiveOrgId(null);
+      }
     } finally {
       setLoading(false);
     }
@@ -178,45 +175,15 @@ export function AuthProvider({ children }) {
     return () => unsubscribe();
   }, [fetchWorkspacesAndSync, token]);
 
-  // Initial check on mount: If no session, auto-connect to NovaTech Global so visitor can surf immediately
+  // Initial check on mount: restore existing session, never auto-relogin after explicit Sign Out
   useEffect(() => {
     const savedToken = localStorage.getItem('brandlens_token');
     if (savedToken) {
       refreshSession();
     } else {
-      (async () => {
-        try {
-          const demoData = await workspaceApi.demoLogin('ADMIN');
-          if (demoData?.token) {
-            localStorage.setItem('brandlens_token', demoData.token);
-            setToken(demoData.token);
-            if (demoData.user) {
-              localStorage.setItem('brandlens_user', JSON.stringify(demoData.user));
-              setUser(demoData.user);
-            }
-            if (demoData.workspace?._id) {
-              persistOrg(demoData.workspace._id);
-            }
-            await fetchWorkspacesAndSync(demoData.token);
-          }
-        } catch (e) {
-          console.warn('Initial demo preview auto-load skipped, providing offline preview:', e.message);
-          // Set in-memory demo preview so visitors are never blocked
-          const previewOrg = {
-            _id: NOVATECH_GLOBAL_ID,
-            name: 'NovaTech Global',
-            slug: 'novatech-global',
-            role: 'ADMIN',
-          };
-          setWorkspaces([previewOrg]);
-          setMemberships([previewOrg]);
-          persistOrg(previewOrg._id);
-        } finally {
-          setLoading(false);
-        }
-      })();
+      setLoading(false);
     }
-  }, [refreshSession, fetchWorkspacesAndSync, persistOrg]);
+  }, [refreshSession]);
 
   // ── Authentication Actions ────────────────────────────────────────────────
   const loginWithFirebase = useCallback(
@@ -334,46 +301,25 @@ export function AuthProvider({ children }) {
       setLoading(true);
       const normalizedRole = role.toUpperCase();
       try {
-        let tokenToUse = null;
-        let userToUse = null;
-        let wsToUse = null;
-
-        try {
-          const data = await workspaceApi.demoLogin(normalizedRole);
-          if (data.token) {
-            tokenToUse = data.token;
-            userToUse = data.user;
-            wsToUse = data.workspace;
-          }
-        } catch (demoErr) {
-          console.warn('Remote demoLogin fallback:', demoErr.message);
-          tokenToUse = `demo:${normalizedRole.toLowerCase()}@novatech.demo`;
-          userToUse = {
-            _id: `demo_${normalizedRole.toLowerCase()}`,
-            name: `NovaTech ${normalizedRole.charAt(0) + normalizedRole.slice(1).toLowerCase()}`,
-            email: `${normalizedRole.toLowerCase()}@novatech.demo`,
-            role: normalizedRole,
-          };
-          wsToUse = {
-            _id: NOVATECH_GLOBAL_ID,
-            name: 'NovaTech Global',
-            slug: 'novatech-global',
-            role: normalizedRole,
-          };
+        const data = await workspaceApi.demoLogin(normalizedRole);
+        if (!data?.token) {
+          throw new Error('Demo login did not return a valid session token.');
         }
 
-        if (tokenToUse) {
-          localStorage.setItem('brandlens_token', tokenToUse);
-          setToken(tokenToUse);
-          if (userToUse) {
-            localStorage.setItem('brandlens_user', JSON.stringify(userToUse));
-            setUser(userToUse);
-          }
-          if (wsToUse?._id) {
-            persistOrg(extractOrgId(wsToUse));
-          }
-          await fetchWorkspacesAndSync(tokenToUse);
+        const tokenToUse = data.token;
+        const userToUse = data.user;
+        const wsToUse = data.workspace;
+
+        localStorage.setItem('brandlens_token', tokenToUse);
+        setToken(tokenToUse);
+        if (userToUse) {
+          localStorage.setItem('brandlens_user', JSON.stringify(userToUse));
+          setUser(userToUse);
         }
+        if (wsToUse?._id) {
+          persistOrg(extractOrgId(wsToUse));
+        }
+        await fetchWorkspacesAndSync(tokenToUse);
         return { token: tokenToUse, user: userToUse, workspace: wsToUse };
       } finally {
         setLoading(false);
@@ -470,6 +416,9 @@ export function AuthProvider({ children }) {
           setUser(data.user);
           if (data.user) {
             localStorage.setItem('brandlens_user', JSON.stringify(data.user));
+          }
+          if (data.organisation?._id) {
+            persistOrg(extractOrgId(data.organisation._id));
           }
           await fetchWorkspacesAndSync(data.token);
           return data;

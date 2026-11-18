@@ -11,7 +11,7 @@ services:
       - key: NODE_ENV
         value: production
       - key: FRONTEND_ORIGIN
-        value: '*'
+        sync: false
       - key: MONGODB_URI
         sync: false
       - key: JWT_SECRET
@@ -19,10 +19,10 @@ services:
       - key: CLOUDINARY_URL
         sync: false
       - key: CLOUDINARY_CLOUD_NAME
-        value: kewdjwvy
+        sync: false
       - key: CLOUDINARY_API_KEY
         sync: false
       - key: CLOUDINARY_API_SECRET
         sync: false
       - key: AI_SERVICE_API_KEY
-        value: local_dev_key
+        sync: false

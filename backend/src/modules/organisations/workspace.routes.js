@@ -5,6 +5,8 @@ import { User } from '../auth/user.model.js';
 import { verifyFirebaseToken } from '../../middleware/verifyFirebaseToken.js';
 import { requireWorkspaceRole } from '../../middleware/requireWorkspaceRole.js';
 import { generateToken } from '../../middleware/auth.js';
+import { validateObjectIdParam } from '../../middleware/security.js';
+import { authRateLimiter } from '../../middleware/rateLimiter.js';
 
 const router = express.Router();
 
@@ -217,6 +219,7 @@ router.patch(
   '/:organisationId/members/:memberId',
   verifyFirebaseToken,
   requireWorkspaceRole([ROLES.ADMIN]),
+  validateObjectIdParam('memberId'),
   async (req, res, next) => {
     try {
       const { organisationId, memberId } = req.params;
@@ -302,10 +305,10 @@ router.get(
 // ─────────────────────────────────────────────────────────────────────────────
 // 6. POST /api/workspaces/demo-login - 1-Click Demo Login for Hackathon Judges
 // ─────────────────────────────────────────────────────────────────────────────
-router.post('/demo-login', async (req, res, next) => {
+router.post('/demo-login', authRateLimiter, async (req, res, next) => {
   try {
     const { role = 'ADMIN' } = req.body;
-    const normalizedRole = role.toUpperCase();
+    const normalizedRole = typeof role === 'string' ? role.toUpperCase().trim() : '';
 
     if (!Object.values(ROLES).includes(normalizedRole)) {
       return res.status(400).json({

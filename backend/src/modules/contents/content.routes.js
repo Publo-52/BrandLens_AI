@@ -6,17 +6,21 @@ import { Review, REVIEW_STATUS } from '../reviews/review.model.js';
 import { executeReview } from '../reviews/review.service.js';
 import { BrandAsset, ASSET_TYPES } from '../assets/asset.model.js';
 import { authenticate, requireOrgAccess } from '../../middleware/auth.js';
+import { validateObjectIdParam } from '../../middleware/security.js';
+import { uploadRateLimiter } from '../../middleware/rateLimiter.js';
 import { uploadToCloudinary } from '../../utils/cloudinary.js';
+import { validateUploadedFile, MAX_UPLOAD_SIZE_BYTES } from '../../utils/fileValidation.js';
 import { extractAndAnalyzeFile } from '../../services/extractionService.js';
 
 const upload = multer({
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+  storage: multer.memoryStorage(),
+  limits: { fileSize: MAX_UPLOAD_SIZE_BYTES, files: 5 },
 });
 
 const router = express.Router({ mergeParams: true });
 
 // POST /api/organisations/:organisationId/contents - Create draft and run automated review
-router.post('/', authenticate, requireOrgAccess(), upload.array('files', 5), async (req, res, next) => {
+router.post('/', authenticate, requireOrgAccess(), uploadRateLimiter, upload.array('files', 5), async (req, res, next) => {
   try {
     const { title, channel, audience, text } = req.body;
     const orgId = req.params.organisationId;
@@ -51,67 +55,52 @@ router.post('/', authenticate, requireOrgAccess(), upload.array('files', 5), asy
     }).lean();
     const brandPalette = paletteAssets.flatMap((a) => a.metadata?.hexColors || []);
 
-    const allowedMimes = [
-      'application/pdf',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'application/msword',
-      'image/jpeg',
-      'image/jpg',
-      'image/png',
-      'image/webp',
-      'text/plain',
-    ];
-
-    const allowedExts = /\.(pdf|docx|doc|jpg|jpeg|png|webp|txt)$/i;
-
     // Extract text and visual checks from uploaded files (Multi-Format Intake)
     if (req.files && req.files.length > 0) {
       for (let idx = 0; idx < req.files.length; idx++) {
         const file = req.files[idx];
 
-        // Format validation
-        if (!allowedExts.test(file.originalname) && !allowedMimes.includes(file.mimetype)) {
+        // Strict extension + MIME + size + magic-byte signature validation
+        const validation = validateUploadedFile(file, { mode: 'content' });
+        if (!validation.valid) {
           return res.status(400).json({
             success: false,
             error: {
-              message: `Unsupported file format for "${file.originalname}". Allowed formats: PDF, DOCX, JPG, and PNG.`,
+              message: validation.error,
               statusCode: 400,
             },
           });
         }
 
-        // File size limit check (10MB)
-        if (file.size > 10 * 1024 * 1024) {
-          return res.status(400).json({
-            success: false,
-            error: {
-              message: `File "${file.originalname}" exceeds the 10MB limit (${(file.size / (1024 * 1024)).toFixed(1)}MB).`,
-              statusCode: 400,
-            },
-          });
-        }
+        const safeName = validation.safeName;
 
         const fileAltText =
           altTextsMap[file.originalname] ||
+          altTextsMap[safeName] ||
           altTextsMap[String(idx)] ||
           req.body[`altText_${idx}`] ||
           req.body.altText ||
           '';
 
         // Extract text & run visual accessibility checks via extraction engine
-        const analysis = await extractAndAnalyzeFile(file, {
-          altText: fileAltText,
-          brandPalette,
-        });
+        const analysis = await extractAndAnalyzeFile(
+          { ...file, originalname: safeName },
+          {
+            altText: typeof fileAltText === 'string' ? fileAltText : '',
+            brandPalette,
+          }
+        );
 
         const extracted = analysis.extractedText || '';
 
-        // Upload to Cloudinary for durable CDN asset delivery
-        let storageKey = `local_uploads/${Date.now()}_${file.originalname}`;
+        // Upload to Cloudinary for durable CDN asset delivery (explicit safe resource type)
+        let storageKey = `local_uploads/${Date.now()}_${safeName}`;
         try {
+          const resourceType = validation.ext === '.pdf' || validation.ext === '.docx' || validation.ext === '.doc' || validation.ext === '.txt' ? 'raw' : 'image';
           const uploadResult = await uploadToCloudinary(file.buffer, {
             folder: `brandlens/${orgId}/drafts`,
-            public_id: `${Date.now()}_${file.originalname.replace(/[^a-zA-Z0-9_-]/g, '_')}`,
+            resource_type: resourceType,
+            public_id: `${Date.now()}_${safeName.replace(/[^a-zA-Z0-9_-]/g, '_')}`,
           });
           if (uploadResult?.secure_url) {
             storageKey = uploadResult.secure_url;
@@ -121,19 +110,19 @@ router.post('/', authenticate, requireOrgAccess(), upload.array('files', 5), asy
         }
 
         fileReferences.push({
-          originalName: file.originalname,
+          originalName: safeName,
           mimeType: file.mimetype,
           size: file.size,
           storageKey,
           extractedText: extracted,
-          altText: fileAltText,
+          altText: typeof fileAltText === 'string' ? fileAltText : '',
           visualChecks: analysis.visualChecks,
         });
 
         if (!submittedText && extracted) {
           submittedText = extracted;
         } else if (submittedText && extracted && !submittedText.includes(extracted)) {
-          submittedText = `${submittedText}\n\n[Extracted from ${file.originalname}]:\n${extracted}`;
+          submittedText = `${submittedText}\n\n[Extracted from ${safeName}]:\n${extracted}`;
         }
       }
     }
@@ -198,8 +187,12 @@ router.get('/', authenticate, requireOrgAccess(), async (req, res, next) => {
     const { status, channel } = req.query;
     const filter = { organisationId: req.params.organisationId };
 
-    if (status) filter.status = status;
-    if (channel) filter.channel = channel;
+    if (typeof status === 'string' && Object.values(CONTENT_STATUS).includes(status)) {
+      filter.status = status;
+    }
+    if (typeof channel === 'string' && Object.values(CHANNELS).includes(channel)) {
+      filter.channel = channel;
+    }
 
     const contents = await Content.find(filter)
       .populate('createdBy', 'name email')
@@ -218,7 +211,7 @@ router.get('/', authenticate, requireOrgAccess(), async (req, res, next) => {
 });
 
 // GET /api/organisations/:organisationId/contents/:contentId - Get submission with versions and review findings
-router.get('/:contentId', authenticate, requireOrgAccess(), async (req, res, next) => {
+router.get('/:contentId', authenticate, requireOrgAccess(), validateObjectIdParam('contentId'), async (req, res, next) => {
   try {
     const content = await Content.findOne({
       _id: req.params.contentId,
@@ -259,12 +252,12 @@ router.get('/:contentId', authenticate, requireOrgAccess(), async (req, res, nex
 });
 
 // POST /api/organisations/:organisationId/contents/:contentId/versions - Submit a revised version
-router.post('/:contentId/versions', authenticate, requireOrgAccess(), async (req, res, next) => {
+router.post('/:contentId/versions', authenticate, requireOrgAccess(), validateObjectIdParam('contentId'), async (req, res, next) => {
   try {
     const { text, changeSummary } = req.body;
     const { contentId, organisationId } = req.params;
 
-    if (!text || !text.trim()) {
+    if (typeof text !== 'string' || !text.trim()) {
       return res.status(400).json({
         success: false,
         error: { message: 'Revised text is required.', statusCode: 400 },
@@ -279,8 +272,8 @@ router.post('/:contentId/versions', authenticate, requireOrgAccess(), async (req
       });
     }
 
-    // Blueprint Section 6.9: Approved version is locked!
-    if (content.status === CONTENT_STATUS.APPROVED) {
+    // Blueprint Section 6.9: Approved & Published versions are locked!
+    if (content.status === CONTENT_STATUS.APPROVED || content.status === CONTENT_STATUS.PUBLISHED) {
       return res.status(403).json({
         success: false,
         error: { message: 'This content version is officially approved and locked. Cannot edit approved content.', statusCode: 403 },
@@ -322,12 +315,17 @@ router.post('/:contentId/versions', authenticate, requireOrgAccess(), async (req
 });
 
 // PATCH /api/organisations/:organisationId/contents/:contentId/findings/:findingId - Decision on finding
-router.patch('/:contentId/findings/:findingId', authenticate, requireOrgAccess(), async (req, res, next) => {
+router.patch(
+  '/:contentId/findings/:findingId',
+  authenticate,
+  requireOrgAccess(),
+  validateObjectIdParam('contentId', 'findingId'),
+  async (req, res, next) => {
   try {
     const { reviewStatus, rejectionReason, overrideReason, editedText } = req.body;
-    const { contentId, findingId } = req.params;
+    const { organisationId, contentId, findingId } = req.params;
 
-    if (!Object.values(REVIEW_STATUS).includes(reviewStatus)) {
+    if (typeof reviewStatus !== 'string' || !Object.values(REVIEW_STATUS).includes(reviewStatus)) {
       return res.status(400).json({
         success: false,
         error: { message: `Invalid reviewStatus. Allowed: ${Object.values(REVIEW_STATUS).join(', ')}`, statusCode: 400 },
@@ -335,7 +333,7 @@ router.patch('/:contentId/findings/:findingId', authenticate, requireOrgAccess()
     }
 
     // Blueprint Section 5: Overriding requires a reason!
-    if (reviewStatus === REVIEW_STATUS.OVERRIDDEN && (!overrideReason || !overrideReason.trim())) {
+    if (reviewStatus === REVIEW_STATUS.OVERRIDDEN && (typeof overrideReason !== 'string' || !overrideReason.trim())) {
       return res.status(400).json({
         success: false,
         error: { message: 'A justified override reason is mandatory when overriding an AI flag.', statusCode: 400 },
@@ -343,14 +341,16 @@ router.patch('/:contentId/findings/:findingId', authenticate, requireOrgAccess()
     }
 
     // Blueprint Section 5: Rejection requires a reason!
-    if (reviewStatus === REVIEW_STATUS.REJECTED && (!rejectionReason || !rejectionReason.trim())) {
+    if (reviewStatus === REVIEW_STATUS.REJECTED && (typeof rejectionReason !== 'string' || !rejectionReason.trim())) {
       return res.status(400).json({
         success: false,
         error: { message: 'A rejection reason is mandatory when declining a suggestion.', statusCode: 400 },
       });
     }
 
+    // Enforce tenant isolation by scoping query to organisationId
     const review = await Review.findOne({
+      organisationId,
       contentId,
       'findings._id': findingId,
     });

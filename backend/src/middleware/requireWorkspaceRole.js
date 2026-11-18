@@ -4,11 +4,28 @@ import { Membership } from '../modules/members/membership.model.js';
 export function requireWorkspaceRole(allowedRoles = []) {
   return async (req, res, next) => {
     try {
+      const paramOrgId = req.params.organisationId ? String(req.params.organisationId).trim() : null;
+      const headerOrgId = req.headers['x-organisation-id']
+        ? String(req.headers['x-organisation-id']).trim()
+        : null;
+
+      // Cross-tenant RBAC defense: if both URL param and header are supplied, they MUST match
+      if (paramOrgId && headerOrgId && paramOrgId !== headerOrgId) {
+        return res.status(403).json({
+          success: false,
+          error: {
+            message: 'Access denied: Workspace header does not match target route workspace.',
+            statusCode: 403,
+          },
+        });
+      }
+
+      // Always prioritize route param over header/body/query so route-scoped resources match RBAC check
       const organisationId =
-        req.headers['x-organisation-id'] ||
-        req.params.organisationId ||
-        req.body?.organisationId ||
-        req.query?.organisationId;
+        paramOrgId ||
+        headerOrgId ||
+        (typeof req.body?.organisationId === 'string' ? req.body.organisationId.trim() : null) ||
+        (typeof req.query?.organisationId === 'string' ? req.query.organisationId.trim() : null);
 
       if (!organisationId) {
         return res.status(400).json({

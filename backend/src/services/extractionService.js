@@ -67,8 +67,14 @@ export async function extractAndAnalyzeFile(file, { altText = '', brandPalette =
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 12000); // 12s timeout
 
+      const headers = {};
+      if (config.aiServiceApiKey) {
+        headers['X-API-Key'] = config.aiServiceApiKey;
+      }
+
       const res = await fetch(`${baseUrl}/api/extract`, {
         method: 'POST',
+        headers,
         body: formData,
         signal: controller.signal,
       });

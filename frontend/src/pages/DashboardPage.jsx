@@ -29,41 +29,54 @@ export function DashboardPage({ onNavigate }) {
     guidelinesCount: 0,
   });
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState(null);
+
+  const loadDashboardData = React.useCallback(async () => {
+    if (!activeOrg?._id || !token) {
+      setContents([]);
+      setStats({ totalDrafts: 0, inReview: 0, approved: 0, guidelinesCount: 0 });
+      setLoadError(null);
+      return;
+    }
+    setLoading(true);
+    setLoadError(null);
+    try {
+      const [contentsRes, guidelinesRes, factsRes] = await Promise.allSettled([
+        api.getContents(activeOrg._id, token),
+        api.getGuidelines(activeOrg._id, token),
+        api.getFacts(activeOrg._id, token),
+      ]);
+
+      const rejected = [contentsRes, guidelinesRes, factsRes].filter((r) => r.status === 'rejected');
+      if (rejected.length === 3) {
+        setLoadError(rejected[0].reason?.message || 'Unable to load workspace metrics. Please check your connection.');
+      }
+
+      const allContents = contentsRes.status === 'fulfilled' ? contentsRes.value.contents || [] : [];
+      setContents(allContents);
+
+      const inReviewCount = allContents.filter((c) => c.status === 'IN_REVIEW').length;
+      const approvedCount = allContents.filter((c) => c.status === 'APPROVED' || c.status === 'PUBLISHED').length;
+      const totalGuidelines =
+        (guidelinesRes.status === 'fulfilled' ? guidelinesRes.value.guidelines?.length || 0 : 0) +
+        (factsRes.status === 'fulfilled' ? factsRes.value.facts?.length || 0 : 0);
+
+      setStats({
+        totalDrafts: allContents.length,
+        inReview: inReviewCount,
+        approved: approvedCount,
+        guidelinesCount: totalGuidelines,
+      });
+    } catch (err) {
+      setLoadError(err.message || 'Failed to load dashboard metrics.');
+    } finally {
+      setLoading(false);
+    }
+  }, [activeOrg?._id, token]);
 
   useEffect(() => {
-    async function loadDashboardData() {
-      if (!activeOrg?._id || !token) return;
-      setLoading(true);
-      try {
-        const [contentsRes, guidelinesRes, factsRes] = await Promise.allSettled([
-          api.getContents(activeOrg._id, token),
-          api.getGuidelines(activeOrg._id, token),
-          api.getFacts(activeOrg._id, token),
-        ]);
-
-        const allContents = contentsRes.status === 'fulfilled' ? contentsRes.value.contents || [] : [];
-        setContents(allContents);
-
-        const inReviewCount = allContents.filter((c) => c.status === 'IN_REVIEW').length;
-        const approvedCount = allContents.filter((c) => c.status === 'APPROVED').length;
-        const totalGuidelines = (guidelinesRes.status === 'fulfilled' ? guidelinesRes.value.guidelines?.length || 0 : 0) +
-                                (factsRes.status === 'fulfilled' ? factsRes.value.facts?.length || 0 : 0);
-
-        setStats({
-          totalDrafts: allContents.length,
-          inReview: inReviewCount,
-          approved: approvedCount,
-          guidelinesCount: totalGuidelines,
-        });
-      } catch (err) {
-        console.error('Failed to load dashboard metrics', err);
-      } finally {
-        setLoading(false);
-      }
-    }
-
     loadDashboardData();
-  }, [activeOrg?._id, token]);
+  }, [loadDashboardData]);
 
   const nav = (tab) => {
     if (onNavigate) onNavigate(tab);
@@ -71,6 +84,8 @@ export function DashboardPage({ onNavigate }) {
 
   const getStatusBadge = (status) => {
     switch (status) {
+      case 'PUBLISHED':
+        return <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-200">PUBLISHED</span>;
       case 'APPROVED':
         return <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">APPROVED</span>;
       case 'IN_REVIEW':
@@ -86,6 +101,21 @@ export function DashboardPage({ onNavigate }) {
 
   return (
     <div className="space-y-8">
+      {loadError && (
+        <div className="p-3.5 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0 text-rose-500" />
+            <span>{loadError}</span>
+          </div>
+          <button
+            type="button"
+            onClick={loadDashboardData}
+            className="px-3 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded-lg font-semibold text-xs shrink-0"
+          >
+            Retry
+          </button>
+        </div>
+      )}
       {/* Welcome Banner */}
       <div className="relative overflow-hidden bg-gradient-to-r from-slate-900 via-brand-950 to-slate-900 rounded-3xl p-7 text-white shadow-xl shadow-brand-950/10 border border-slate-800">
         <div className="absolute top-0 right-0 -mr-16 -mt-16 w-80 h-80 rounded-full bg-brand-500/10 blur-3xl pointer-events-none" />
