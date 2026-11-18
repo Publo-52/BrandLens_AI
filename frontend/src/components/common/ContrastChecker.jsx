@@ -2,9 +2,10 @@ import React, { useState, useMemo } from 'react';
 import { Eye, CheckCircle2, XCircle, Sparkles, Sliders } from 'lucide-react';
 
 const PRESET_PALETTES = [
-  { label: 'Nova Primary Dark', bg: '#0F172A', text: '#F8FAFC' },
-  { label: 'Nova Brand Blue', bg: '#2563EB', text: '#FFFFFF' },
-  { label: 'Nova Light Surface', bg: '#FFFFFF', text: '#1E293B' },
+  { label: 'Aurora Mist (Indigo / Pearl)', bg: '#FAFAFC', text: '#4338CA' },
+  { label: 'BrandLens Dark Slate', bg: '#0F172A', text: '#F8FAFC' },
+  { label: 'Indigo Pill Primary', bg: '#4F46E5', text: '#FFFFFF' },
+  { label: 'Clean Glass Light', bg: '#FFFFFF', text: '#0F172A' },
   { label: 'Warning Accent', bg: '#FEF3C7', text: '#92400E' },
   { label: 'Low Contrast Failure', bg: '#E2E8F0', text: '#94A3B8' },
 ];

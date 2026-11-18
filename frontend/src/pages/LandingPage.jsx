@@ -206,10 +206,24 @@ export function LandingPage({ onNavigate, onDemoLogin }) {
 
             {/* Desktop Navigation Links */}
             <div className="hidden md:flex items-center gap-7 text-sm font-medium text-[var(--muted)]">
-              <a href="#how" className="hover:text-[var(--text)] transition-colors">
+              <a
+                href="#how"
+                onClick={(e) => {
+                  e.preventDefault();
+                  document.getElementById('how')?.scrollIntoView({ behavior: 'smooth' });
+                }}
+                className="hover:text-[var(--text)] transition-colors cursor-pointer"
+              >
                 How it works
               </a>
-              <a href="#faq" className="hover:text-[var(--text)] transition-colors">
+              <a
+                href="#faq"
+                onClick={(e) => {
+                  e.preventDefault();
+                  document.getElementById('faq')?.scrollIntoView({ behavior: 'smooth' });
+                }}
+                className="hover:text-[var(--text)] transition-colors cursor-pointer"
+              >
                 FAQ
               </a>
             </div>
@@ -272,15 +286,23 @@ export function LandingPage({ onNavigate, onDemoLogin }) {
             >
               <a
                 href="#how"
-                onClick={() => setMobileMenuOpen(false)}
-                className="block text-sm font-medium text-[var(--muted)] py-1"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setMobileMenuOpen(false);
+                  document.getElementById('how')?.scrollIntoView({ behavior: 'smooth' });
+                }}
+                className="block text-sm font-medium text-[var(--muted)] py-1 cursor-pointer"
               >
                 How it works
               </a>
               <a
                 href="#faq"
-                onClick={() => setMobileMenuOpen(false)}
-                className="block text-sm font-medium text-[var(--muted)] py-1"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setMobileMenuOpen(false);
+                  document.getElementById('faq')?.scrollIntoView({ behavior: 'smooth' });
+                }}
+                className="block text-sm font-medium text-[var(--muted)] py-1 cursor-pointer"
               >
                 FAQ
               </a>
@@ -407,9 +429,9 @@ export function LandingPage({ onNavigate, onDemoLogin }) {
             >
               <div className="flex items-center gap-3">
                 <div className="flex gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-slate-300 dark:bg-slate-700" />
-                  <span className="w-2.5 h-2.5 rounded-full bg-slate-300 dark:bg-slate-700" />
-                  <span className="w-2.5 h-2.5 rounded-full bg-slate-300 dark:bg-slate-700" />
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#f87171] border border-[#ef4444]/40" />
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#fbbf24] border border-[#f59e0b]/40" />
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#34d399] border border-[#10b981]/40" />
                 </div>
                 <span className="font-medium text-[var(--text)]">
                   BrandLens Review Studio • 2 checks verified
@@ -702,10 +724,24 @@ export function LandingPage({ onNavigate, onDemoLogin }) {
             <strong className="text-[var(--text)]">BrandLens AI</strong> • Team ALGO_X • Global Institute of Science and Technology • +91 62955 01027
           </div>
           <div className="flex items-center gap-5 flex-wrap">
-            <a href="#how" className="hover:text-[var(--text)] transition-colors">
+            <a
+              href="#how"
+              onClick={(e) => {
+                e.preventDefault();
+                document.getElementById('how')?.scrollIntoView({ behavior: 'smooth' });
+              }}
+              className="hover:text-[var(--text)] transition-colors cursor-pointer"
+            >
               How it works
             </a>
-            <a href="#faq" className="hover:text-[var(--text)] transition-colors">
+            <a
+              href="#faq"
+              onClick={(e) => {
+                e.preventDefault();
+                document.getElementById('faq')?.scrollIntoView({ behavior: 'smooth' });
+              }}
+              className="hover:text-[var(--text)] transition-colors cursor-pointer"
+            >
               FAQ
             </a>
             <button

@@ -69,7 +69,7 @@ export function KnowledgeBasePage() {
   const [assetForm, setAssetForm] = useState({
     name: '',
     type: 'PALETTE',
-    hexColors: '#0c8ee9, #0259a1, #072849',
+    hexColors: '#6366f1, #0f172a, #fafafc',
     clearSpaceRule: '',
   });
 

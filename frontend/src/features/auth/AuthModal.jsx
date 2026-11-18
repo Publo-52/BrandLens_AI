@@ -148,10 +148,10 @@ export function AuthModal({ isOpen, onClose }) {
         className="bg-white rounded-3xl shadow-2xl border border-slate-200/80 w-full max-w-md max-h-[92vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200"
       >
         {/* Header */}
-        <div className="bg-gradient-to-r from-slate-900 via-brand-950 to-slate-900 p-6 text-white relative border-b border-white/10">
+        <div className="bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 p-6 text-white relative border-b border-white/10">
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 p-2 text-slate-400 hover:text-white rounded-xl hover:bg-white/10 transition-colors"
+            className="absolute top-4 right-4 p-2 text-slate-400 hover:text-white rounded-xl hover:bg-white/10 transition-colors cursor-pointer"
             title="Close modal (Esc)"
             aria-label="Close modal"
           >
@@ -177,11 +177,11 @@ export function AuthModal({ isOpen, onClose }) {
           </p>
 
           {/* Segmented Tab Switcher */}
-          <div className="flex bg-white/10 p-1 rounded-xl mt-4 text-xs font-semibold">
+          <div className="flex bg-white/10 p-1 rounded-xl mt-4 text-xs font-semibold backdrop-blur-sm">
             <button
               type="button"
               onClick={() => { setIsRegister(false); setError(null); }}
-              className={`flex-1 py-1.5 rounded-lg transition-all ${
+              className={`flex-1 py-1.5 rounded-lg transition-all cursor-pointer ${
                 !isRegister 
                   ? 'bg-white text-slate-900 shadow-sm' 
                   : 'text-slate-300 hover:text-white'
@@ -192,7 +192,7 @@ export function AuthModal({ isOpen, onClose }) {
             <button
               type="button"
               onClick={() => { setIsRegister(true); setError(null); }}
-              className={`flex-1 py-1.5 rounded-lg transition-all ${
+              className={`flex-1 py-1.5 rounded-lg transition-all cursor-pointer ${
                 isRegister 
                   ? 'bg-white text-slate-900 shadow-sm' 
                   : 'text-slate-300 hover:text-white'

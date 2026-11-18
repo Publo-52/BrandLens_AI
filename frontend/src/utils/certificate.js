@@ -179,31 +179,31 @@ export function printCertificatePdf(cert) {
   <title>Pre-Publication Compliance Certificate — ${esc(cert.certificateId)}</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-    body { padding: 36px; background: #f8fafc; color: #0f172a; line-height: 1.5; }
-    .cert-frame { max-width: 780px; margin: 0 auto; background: #ffffff; border: 3px solid #1e3a8a; border-radius: 16px; padding: 40px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); position: relative; }
+    body { padding: 36px; background: #fafafc; color: #0f172a; line-height: 1.5; }
+    .cert-frame { max-width: 780px; margin: 0 auto; background: #ffffff; border: 2.5px solid #6366f1; border-radius: 16px; padding: 40px; box-shadow: 0 10px 30px rgba(99,102,241,0.08); position: relative; }
     .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #e2e8f0; padding-bottom: 20px; margin-bottom: 24px; }
     .brand-title { font-size: 22px; font-weight: 800; color: #0f172a; letter-spacing: -0.5px; }
-    .brand-sub { font-size: 11px; color: #475569; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; margin-top: 2px; }
+    .brand-sub { font-size: 11px; color: #6366f1; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; margin-top: 2px; }
     .badge { background: #ecfdf5; color: #065f46; border: 1.5px solid #10b981; padding: 6px 14px; border-radius: 999px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
     .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
-    .meta-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px; }
+    .meta-card { background: #fafafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px; }
     .meta-label { font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
     .meta-val { font-size: 13px; font-weight: 700; color: #0f172a; word-break: break-all; }
     .meta-sub { font-size: 11px; color: #475569; margin-top: 2px; }
-    .section-title { font-size: 12px; font-weight: 800; color: #1e3a8a; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 10px; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px; }
+    .section-title { font-size: 12px; font-weight: 800; color: #4338ca; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 10px; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px; }
     .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 24px; }
-    .stat-box { background: #f1f5f9; border-radius: 8px; padding: 12px; text-align: center; }
+    .stat-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; text-align: center; }
     .stat-num { font-size: 20px; font-weight: 800; color: #0f172a; font-family: monospace; }
     .stat-label { font-size: 10px; font-weight: 600; color: #475569; margin-top: 2px; }
-    .disclosure { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 16px; margin-bottom: 24px; }
+    .disclosure { background: #eef2ff; border: 1px solid #c7d2fe; border-radius: 10px; padding: 16px; margin-bottom: 24px; }
     .disclosure-item { margin-bottom: 10px; font-size: 12px; }
     .disclosure-item:last-child { margin-bottom: 0; }
-    .disclosure-item strong { color: #1e40af; }
+    .disclosure-item strong { color: #3730a3; }
     .footer { display: flex; justify-content: space-between; align-items: flex-end; border-top: 2px solid #e2e8f0; padding-top: 20px; margin-top: 10px; font-size: 11px; color: #64748b; }
     .hash { font-family: monospace; font-size: 10px; background: #f1f5f9; padding: 4px 8px; border-radius: 6px; color: #334155; }
     @media print {
       body { background: #ffffff; padding: 0; }
-      .cert-frame { border: 2px solid #1e3a8a; box-shadow: none; max-width: 100%; }
+      .cert-frame { border: 2px solid #6366f1; box-shadow: none; max-width: 100%; }
       .no-print { display: none; }
     }
   </style>

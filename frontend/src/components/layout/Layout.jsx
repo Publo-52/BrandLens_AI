@@ -35,7 +35,7 @@ export const Layout = memo(function Layout({ children, currentTab, onSelectTab }
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-slate-50 to-slate-100/60 flex flex-col font-sans selection:bg-brand-500 selection:text-white">
+    <div className="min-h-screen bg-[#fafafc] flex flex-col font-sans selection:bg-brand-500 selection:text-white">
       <Navbar
         onToggleMobileMenu={toggleMobileMenu}
         isMobileMenuOpen={isMobileMenuOpen}
@@ -67,7 +67,7 @@ export const Layout = memo(function Layout({ children, currentTab, onSelectTab }
                   onSelectTab(item.id);
                   closeMobileMenu();
                 }}
-                className={`flex flex-col items-center justify-center py-1.5 px-2 rounded-xl transition-all ${
+                className={`flex flex-col items-center justify-center py-1.5 px-2 rounded-xl transition-all cursor-pointer ${
                   isActive 
                     ? 'text-brand-600 font-bold' 
                     : 'text-slate-500 hover:text-slate-800'
@@ -82,6 +82,19 @@ export const Layout = memo(function Layout({ children, currentTab, onSelectTab }
               </button>
             );
           })}
+          {/* 5th item: All / More Menu Drawer toggle */}
+          <button
+            type="button"
+            onClick={toggleMobileMenu}
+            className={`flex flex-col items-center justify-center py-1.5 px-2 rounded-xl transition-all cursor-pointer ${
+              isMobileMenuOpen ? 'text-brand-600 font-bold' : 'text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            <div className={`p-1 rounded-lg transition-transform ${isMobileMenuOpen ? 'bg-brand-50 scale-110' : ''}`}>
+              <Settings className={`w-4 h-4 ${isMobileMenuOpen ? 'stroke-[2.5]' : 'stroke-[1.8]'}`} />
+            </div>
+            <span className="text-[10px] tracking-tight mt-0.5">More</span>
+          </button>
         </div>
       </nav>
     </div>

@@ -83,14 +83,15 @@ function NavContent({ currentTab, onSelectTab, onItemClick }) {
       </div>
 
       {/* Bottom deterministic guarantee card */}
-      <div className="p-3.5 rounded-2xl bg-gradient-to-br from-slate-900 to-brand-950 text-white shadow-sm border border-slate-800">
-        <div className="flex items-center gap-2 mb-1.5">
-          <div className="w-6 h-6 rounded-lg bg-emerald-500/20 flex items-center justify-center text-emerald-400">
+      <div className="p-3.5 rounded-2xl bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-white shadow-md border border-indigo-900/40 relative overflow-hidden">
+        <div className="absolute -right-4 -bottom-4 w-16 h-16 rounded-full bg-brand-500/10 blur-xl pointer-events-none" />
+        <div className="flex items-center gap-2 mb-1.5 relative z-10">
+          <div className="w-6 h-6 rounded-lg bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center text-emerald-400">
             <ShieldCheck className="w-3.5 h-3.5" />
           </div>
-          <span className="text-xs font-bold text-slate-200">Deterministic Guard</span>
+          <span className="text-xs font-bold text-slate-100">Deterministic Guard</span>
         </div>
-        <p className="text-[10px] text-slate-400 leading-relaxed">
+        <p className="text-[10px] text-slate-300 leading-relaxed relative z-10">
           100% Terminology guarantee with exact corporate facts grounding.
         </p>
       </div>
