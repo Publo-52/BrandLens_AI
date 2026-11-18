@@ -20,11 +20,15 @@ import { useAuth } from '../features/auth/AuthContext';
 const THEMES = {
   aurora: {
     id: 'aurora',
-    name: '1. Pearl & Aurora Mist (Light)',
+    name: '1. Pearl & Aurora Mist',
     bg: '#fafafc',
-    mesh: 'radial-gradient(ellipse 80% 60% at 50% -10%, rgba(167, 139, 250, 0.28), transparent 60%), radial-gradient(ellipse 60% 50% at 85% 15%, rgba(56, 189, 248, 0.22), transparent 55%), radial-gradient(ellipse 50% 40% at 15% 25%, rgba(244, 114, 182, 0.16), transparent 55%)',
+    orb1: 'rgba(167, 139, 250, 0.34)',
+    orb2: 'rgba(56, 189, 248, 0.28)',
+    orb3: 'rgba(244, 114, 182, 0.22)',
+    gridColor: 'rgba(15, 23, 42, 0.06)',
+    ringColor: 'rgba(99, 102, 241, 0.14)',
     surface: 'rgba(255, 255, 255, 0.72)',
-    surfaceSolid: '#ffffff',
+    surfaceSolid: 'rgba(255, 255, 255, 0.92)',
     text: '#0f172a',
     muted: '#64748b',
     border: 'rgba(15, 23, 42, 0.08)',
@@ -32,16 +36,20 @@ const THEMES = {
     btnText: '#ffffff',
     btnGhost: 'rgba(15, 23, 42, 0.05)',
     accent: '#6366f1',
-    accentSoft: 'rgba(99, 102, 241, 0.1)',
+    accentSoft: 'rgba(99, 102, 241, 0.11)',
     shadow: '0 20px 50px -15px rgba(15, 23, 42, 0.08)',
     dotGrad: 'linear-gradient(135deg, #a78bfa, #38bdf8, #f472b6)'
   },
   midnight: {
     id: 'midnight',
-    name: '2. Silk Midnight & Sapphire (Dark)',
+    name: '2. Silk Midnight & Sapphire',
     bg: '#09090d',
-    mesh: 'radial-gradient(ellipse 75% 55% at 50% -10%, rgba(99, 102, 241, 0.32), transparent 60%), radial-gradient(ellipse 55% 45% at 80% 20%, rgba(14, 165, 233, 0.2), transparent 55%), radial-gradient(ellipse 50% 40% at 20% 30%, rgba(168, 85, 247, 0.16), transparent 55%)',
-    surface: 'rgba(24, 24, 32, 0.68)',
+    orb1: 'rgba(99, 102, 241, 0.34)',
+    orb2: 'rgba(14, 165, 233, 0.24)',
+    orb3: 'rgba(168, 85, 247, 0.2)',
+    gridColor: 'rgba(255, 255, 255, 0.07)',
+    ringColor: 'rgba(129, 140, 248, 0.16)',
+    surface: 'rgba(24, 24, 32, 0.65)',
     surfaceSolid: 'rgba(255, 255, 255, 0.04)',
     text: '#f8fafc',
     muted: '#94a3b8',
@@ -52,25 +60,51 @@ const THEMES = {
     accent: '#818cf8',
     accentSoft: 'rgba(129, 140, 248, 0.16)',
     shadow: '0 20px 50px -15px rgba(0, 0, 0, 0.5)',
-    dotGrad: 'linear-gradient(135deg, #09090d, #4f46e5, #0ea5e9)'
+    dotGrad: 'linear-gradient(135deg, #09090d, #6366f1, #0ea5e9)'
   },
-  peach: {
-    id: 'peach',
-    name: '3. Warm Ivory & Sunlit Mist',
-    bg: '#fcfbf9',
-    mesh: 'radial-gradient(ellipse 80% 55% at 50% -10%, rgba(251, 146, 60, 0.22), transparent 60%), radial-gradient(ellipse 55% 45% at 85% 20%, rgba(244, 114, 182, 0.18), transparent 55%), radial-gradient(ellipse 55% 45% at 15% 25%, rgba(52, 211, 153, 0.16), transparent 55%)',
-    surface: 'rgba(255, 255, 255, 0.74)',
-    surfaceSolid: '#ffffff',
-    text: '#18181b',
-    muted: '#71717a',
-    border: 'rgba(24, 24, 27, 0.08)',
-    btnBg: '#18181b',
+  glacier: {
+    id: 'glacier',
+    name: '3. Glacier Mint & Frosted Sky',
+    bg: '#f6fbfa',
+    orb1: 'rgba(45, 212, 191, 0.28)',
+    orb2: 'rgba(56, 189, 248, 0.26)',
+    orb3: 'rgba(167, 243, 208, 0.32)',
+    gridColor: 'rgba(13, 148, 136, 0.08)',
+    ringColor: 'rgba(13, 148, 136, 0.15)',
+    surface: 'rgba(255, 255, 255, 0.72)',
+    surfaceSolid: 'rgba(255, 255, 255, 0.92)',
+    text: '#0f2724',
+    muted: '#475569',
+    border: 'rgba(15, 39, 36, 0.08)',
+    btnBg: '#0d9488',
     btnText: '#ffffff',
-    btnGhost: 'rgba(24, 24, 27, 0.05)',
-    accent: '#ea580c',
-    accentSoft: 'rgba(234, 88, 12, 0.1)',
-    shadow: '0 20px 50px -15px rgba(24, 24, 27, 0.06)',
-    dotGrad: 'linear-gradient(135deg, #fed7aa, #fda4af, #a7f3d0)'
+    btnGhost: 'rgba(13, 148, 136, 0.07)',
+    accent: '#0d9488',
+    accentSoft: 'rgba(13, 148, 136, 0.12)',
+    shadow: '0 20px 50px -15px rgba(13, 148, 136, 0.08)',
+    dotGrad: 'linear-gradient(135deg, #99f6e4, #bae6fd, #e0e7ff)'
+  },
+  dusk: {
+    id: 'dusk',
+    name: '4. Obsidian Rose & Dusk',
+    bg: '#0c090e',
+    orb1: 'rgba(244, 63, 94, 0.26)',
+    orb2: 'rgba(245, 158, 11, 0.2)',
+    orb3: 'rgba(168, 85, 247, 0.22)',
+    gridColor: 'rgba(255, 255, 255, 0.06)',
+    ringColor: 'rgba(251, 113, 133, 0.16)',
+    surface: 'rgba(28, 21, 32, 0.66)',
+    surfaceSolid: 'rgba(255, 255, 255, 0.04)',
+    text: '#faf5ff',
+    muted: '#a1a1aa',
+    border: 'rgba(255, 255, 255, 0.1)',
+    btnBg: '#fb7185',
+    btnText: '#0c090e',
+    btnGhost: 'rgba(255, 255, 255, 0.08)',
+    accent: '#fb7185',
+    accentSoft: 'rgba(251, 113, 133, 0.16)',
+    shadow: '0 20px 50px -15px rgba(0, 0, 0, 0.6)',
+    dotGrad: 'linear-gradient(135deg, #120d14, #fb7185, #f59e0b)'
   }
 };
 
@@ -105,8 +139,8 @@ export function LandingPage({ onNavigate, onDemoLogin }) {
   const [demoRoleLoading, setDemoRoleLoading] = useState(false);
 
   // Showcase interactive action states
-  const [previewActionStatus, setPreviewActionStatus] = useState(null); // 'ACCEPTED' | 'EDITED' | 'REJECTED' | null
-  const [showcaseSample, setShowcaseSample] = useState(0); // 0 or 1
+  const [previewActionStatus, setPreviewActionStatus] = useState(null);
+  const [showcaseSample, setShowcaseSample] = useState(0);
 
   const activeTheme = THEMES[activeThemeKey] || THEMES.aurora;
 
@@ -128,7 +162,11 @@ export function LandingPage({ onNavigate, onDemoLogin }) {
 
   const cssVariables = {
     '--bg': activeTheme.bg,
-    '--mesh': activeTheme.mesh,
+    '--orb-1': activeTheme.orb1,
+    '--orb-2': activeTheme.orb2,
+    '--orb-3': activeTheme.orb3,
+    '--grid-color': activeTheme.gridColor,
+    '--ring-color': activeTheme.ringColor,
     '--surface': activeTheme.surface,
     '--surface-solid': activeTheme.surfaceSolid,
     '--text': activeTheme.text,
@@ -145,35 +183,104 @@ export function LandingPage({ onNavigate, onDemoLogin }) {
   return (
     <div
       style={cssVariables}
-      className="min-h-screen text-[var(--text)] transition-colors duration-500 selection:bg-[var(--accent)] selection:text-white relative font-sans"
+      className="min-h-screen text-[var(--text)] transition-colors duration-500 selection:bg-[var(--accent)] selection:text-white relative font-sans overflow-x-hidden bg-[var(--bg)]"
     >
-      {/* Background Mesh */}
-      <div
-        className="fixed inset-0 pointer-events-none transition-all duration-500"
-        style={{
-          backgroundColor: 'var(--bg)',
-          backgroundImage: 'var(--mesh)',
-          backgroundAttachment: 'fixed',
-        }}
-      />
+      <style>{`
+        @keyframes drift1 {
+          0% { transform: translate(-65%, 0px) scale(1); }
+          100% { transform: translate(-45%, 50px) scale(1.08); }
+        }
+        @keyframes drift2 {
+          0% { transform: translate(0px, 0px) scale(1); }
+          100% { transform: translate(-60px, 70px) scale(1.1); }
+        }
+        @keyframes drift3 {
+          0% { transform: translate(0px, 0px) scale(1); }
+          100% { transform: translate(70px, -50px) scale(1.06); }
+        }
+        .anim-orb-1 {
+          animation: drift1 16s ease-in-out infinite alternate;
+        }
+        .anim-orb-2 {
+          animation: drift2 20s ease-in-out infinite alternate;
+        }
+        .anim-orb-3 {
+          animation: drift3 18s ease-in-out infinite alternate;
+        }
+        .dot-grid-canvas {
+          background-image: radial-gradient(var(--grid-color) 1.25px, transparent 1.25px);
+          background-size: 28px 28px;
+          -webkit-mask-image: radial-gradient(ellipse 75% 65% at 50% 25%, #000 30%, transparent 100%);
+          mask-image: radial-gradient(ellipse 75% 65% at 50% 25%, #000 30%, transparent 100%);
+        }
+      `}</style>
+
+      {/* ── Abstract Background Canvas ────────────────────────────────────────── */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+        {/* Subtle Masked Dot Grid */}
+        <div className="absolute inset-0 dot-grid-canvas" />
+
+        {/* Drifting Abstract Gradient Orbs */}
+        <div
+          style={{ background: 'var(--orb-1)' }}
+          className="absolute w-[560px] h-[560px] -top-40 left-1/2 -translate-x-[65%] rounded-full blur-[85px] will-change-transform transition-colors duration-700 anim-orb-1"
+        />
+        <div
+          style={{ background: 'var(--orb-2)' }}
+          className="absolute w-[480px] h-[480px] top-10 -right-24 rounded-full blur-[85px] will-change-transform transition-colors duration-700 anim-orb-2"
+        />
+        <div
+          style={{ background: 'var(--orb-3)' }}
+          className="absolute w-[440px] h-[440px] -bottom-32 -left-20 rounded-full blur-[85px] will-change-transform transition-colors duration-700 anim-orb-3"
+        />
+
+        {/* Minimal Abstract SVG Rings & Flowing Curve */}
+        <svg
+          className="absolute -top-10 left-1/2 -translate-x-1/2 w-[1200px] h-[700px] opacity-75 pointer-events-none"
+          viewBox="0 0 1200 700"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <circle
+            cx="600"
+            cy="240"
+            r="240"
+            stroke="var(--ring-color)"
+            strokeWidth="1"
+            strokeDasharray="6 8"
+          />
+          <circle
+            cx="600"
+            cy="240"
+            r="360"
+            stroke="var(--ring-color)"
+            strokeWidth="1"
+          />
+          <path
+            d="M-40 420 C 260 280, 480 540, 780 360 C 980 240, 1120 380, 1260 300"
+            stroke="var(--ring-color)"
+            strokeWidth="1.5"
+          />
+        </svg>
+      </div>
 
       {/* ── 1. Minimal Palette Switcher Bar (Sticky) ────────────────────────── */}
-      <div className="sticky top-0 z-50 bg-slate-900/90 backdrop-blur-md text-slate-100 py-2.5 px-4 sm:px-6 flex flex-wrap items-center justify-center gap-2.5 text-xs border-b border-white/10 shadow-sm">
-        <span className="text-slate-300 font-medium tracking-wide">Minimalist Gradient Themes:</span>
+      <div className="sticky top-0 z-50 bg-slate-900/90 backdrop-blur-md text-slate-100 py-2.5 px-4 sm:px-6 flex flex-wrap items-center justify-center gap-2 text-xs border-b border-white/10 shadow-sm">
+        <span className="text-slate-300 font-medium tracking-wide">Abstract + Minimalist Themes:</span>
         {Object.values(THEMES).map((t) => {
           const isActive = activeThemeKey === t.id;
           return (
             <button
               key={t.id}
               onClick={() => setActiveThemeKey(t.id)}
-              className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs transition-all cursor-pointer ${
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs transition-all cursor-pointer ${
                 isActive
                   ? 'bg-white text-slate-900 font-bold shadow-xs'
                   : 'bg-white/10 text-slate-200 hover:bg-white/20 border border-white/15'
               }`}
             >
               <span
-                className="w-3 h-3 rounded-full shrink-0 shadow-xs"
+                className="w-2.5 h-2.5 rounded-full shrink-0 shadow-xs"
                 style={{ background: t.dotGrad }}
               />
               <span>{t.name}</span>
