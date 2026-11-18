@@ -22,19 +22,65 @@ import {
   Edit3,
   Layers,
   Building2,
-  UserCheck
+  RotateCcw,
+  CheckSquare,
+  ExternalLink,
+  Sliders,
+  Scale,
+  BadgeCheck,
+  Search,
+  FileText
 } from 'lucide-react';
 import { useAuth } from '../features/auth/AuthContext';
+
+const HERO_SAMPLES = [
+  {
+    id: 'sample-1',
+    name: 'NovaTech Cloud Launch Draft.docx',
+    channel: 'Social Media & Web',
+    score: 94,
+    textPrefix: 'Experience ',
+    flaggedWord: 'Nova Cloud',
+    textSuffix: ' today! We deliver enterprise high availability with automated scheduled backups across regions.',
+    ruleTitle: 'Banned Colloquialism: Single camelCase Name Required',
+    citation: 'NovaTech Voice & Messaging Guide 2026, Section 2.1',
+    explanation: '"Nova Cloud" is a discouraged colloquialism. The brand name must always be formatted as "NovaTech Cloud".',
+    suggestedFix: 'NovaTech Cloud',
+    verifiedFact: 'Automated scheduled backups with multi-region redundancy (Architecture Spec 2026, Sec 4.1)',
+  },
+  {
+    id: 'sample-2',
+    name: 'Enterprise SLA Overview.pdf',
+    channel: 'Sales Collateral',
+    score: 88,
+    textPrefix: 'Sign up for NovaTech Cloud today! We deliver ',
+    flaggedWord: '100% risk-free uptime guarantee',
+    textSuffix: ' with automated regional failover for mission-critical infrastructure.',
+    ruleTitle: 'Unsupported Absolute Claim (Overpromise)',
+    citation: 'NovaTech Master Services Agreement 2026, SLA Appendix A',
+    explanation: 'Absolute "100% risk-free" claims are legally unverified. Replace with our contractually backed SLA metric.',
+    suggestedFix: 'guaranteed 99.9% uptime SLA',
+    verifiedFact: 'NovaTech Enterprise Tier includes verified 99.9% uptime Service Level Agreement (SLA Appendix A)',
+  },
+];
 
 export function LandingPage({ onNavigate, onDemoLogin }) {
   const { user, loginWithDemoRole } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [openFaqIndex, setOpenFaqIndex] = useState(0); // First FAQ open by default
+  const [openFaqIndex, setOpenFaqIndex] = useState(0);
   const [demoRoleLoading, setDemoRoleLoading] = useState(false);
 
-  // Interactive UI preview state in Hero
+  // Hero interactive simulator state
+  const [selectedSampleIndex, setSelectedSampleIndex] = useState(0);
+  const [isScanning, setIsScanning] = useState(false);
   const [previewActionStatus, setPreviewActionStatus] = useState(null); // 'ACCEPTED' | 'EDITED' | 'REJECTED' | null
-  const [previewText, setPreviewText] = useState('Nova Cloud');
+  const [customEditText, setCustomEditText] = useState('');
+  const [isEditing, setIsEditing] = useState(false);
+
+  // Before vs After interactive comparison state
+  const [comparisonMode, setComparisonMode] = useState('governed'); // 'raw' | 'governed'
+
+  const activeSample = HERO_SAMPLES[selectedSampleIndex];
 
   // Smooth scroll-reveal observer
   useEffect(() => {
@@ -81,6 +127,22 @@ export function LandingPage({ onNavigate, onDemoLogin }) {
     }
   };
 
+  const triggerScanAnimation = (index) => {
+    setSelectedSampleIndex(index);
+    setIsScanning(true);
+    setPreviewActionStatus(null);
+    setIsEditing(false);
+    setTimeout(() => {
+      setIsScanning(false);
+    }, 450);
+  };
+
+  const getDisplayedFlaggedText = () => {
+    if (previewActionStatus === 'ACCEPTED') return activeSample.suggestedFix;
+    if (previewActionStatus === 'EDITED') return customEditText || activeSample.suggestedFix;
+    return activeSample.flaggedWord;
+  };
+
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-900 font-sans selection:bg-teal-500 selection:text-white">
       {/* ───────────────────────────────────────────────────────────────────── */}
@@ -108,7 +170,7 @@ export function LandingPage({ onNavigate, onDemoLogin }) {
             </button>
           </div>
 
-          {/* Center Links (Desktop) */}
+          {/* Center Links (Desktop Smooth Scroll) */}
           <nav className="hidden md:flex items-center gap-8">
             <button
               onClick={() => handleScrollTo('how-it-works')}
@@ -121,6 +183,12 @@ export function LandingPage({ onNavigate, onDemoLogin }) {
               className="text-xs font-semibold text-slate-300 hover:text-teal-300 transition-colors focus:outline-none"
             >
               Features
+            </button>
+            <button
+              onClick={() => handleScrollTo('comparison')}
+              className="text-xs font-semibold text-slate-300 hover:text-teal-300 transition-colors focus:outline-none"
+            >
+              Governance Comparison
             </button>
             <button
               onClick={() => handleScrollTo('faq')}
@@ -187,6 +255,12 @@ export function LandingPage({ onNavigate, onDemoLogin }) {
               Features
             </button>
             <button
+              onClick={() => handleScrollTo('comparison')}
+              className="w-full text-left py-2 text-xs font-semibold text-slate-300 hover:text-teal-300"
+            >
+              Governance Comparison
+            </button>
+            <button
               onClick={() => handleScrollTo('faq')}
               className="w-full text-left py-2 text-xs font-semibold text-slate-300 hover:text-teal-300"
             >
@@ -239,9 +313,16 @@ export function LandingPage({ onNavigate, onDemoLogin }) {
         id="hero"
         className="relative overflow-hidden pt-12 pb-20 lg:pt-20 lg:pb-28 bg-gradient-to-b from-[#0f2744] via-[#0c2037] to-[#071322] text-white border-b border-slate-800/80"
       >
-        {/* Subtle Ambient Radial Glows */}
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[350px] bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute top-10 right-10 w-72 h-72 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+        {/* Subtle Ambient Radial Glows & SVG Grid Texture */}
+        <div
+          className="absolute inset-0 opacity-[0.035] pointer-events-none"
+          style={{
+            backgroundImage: 'radial-gradient(rgba(255, 255, 255, 0.4) 1px, transparent 1px)',
+            backgroundSize: '24px 24px',
+          }}
+        />
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[700px] h-[380px] bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-10 right-10 w-80 h-80 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center">
@@ -308,7 +389,7 @@ export function LandingPage({ onNavigate, onDemoLogin }) {
                 </div>
                 <div className="flex items-center gap-1.5">
                   <CheckCircle2 className="w-3.5 h-3.5 text-teal-400 shrink-0" />
-                  <span>Zero Hallucination Citations</span>
+                  <span>Zero-Hallucination Citations</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <CheckCircle2 className="w-3.5 h-3.5 text-teal-400 shrink-0" />
@@ -317,33 +398,64 @@ export function LandingPage({ onNavigate, onDemoLogin }) {
               </div>
             </div>
 
-            {/* Right Column: Clean Animated UI Preview Card */}
+            {/* Right Column: Clean Interactive Hero Product Console */}
             <div className="lg:col-span-5">
               <div className="relative group">
                 {/* Glow behind card */}
                 <div className="absolute -inset-1 bg-gradient-to-r from-teal-500/30 to-indigo-500/30 rounded-3xl blur-xl opacity-75 group-hover:opacity-100 transition duration-500" />
 
                 <div className="relative bg-[#0c1f35]/95 border border-teal-500/30 rounded-2xl p-5 sm:p-6 shadow-2xl backdrop-blur-md space-y-4 text-left">
-                  {/* Card Header bar */}
-                  <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                  {/* Console Header Bar with Sample Selector Tabs */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-3 border-b border-slate-800">
                     <div className="flex items-center gap-2">
                       <div className="flex gap-1.5">
                         <span className="w-2.5 h-2.5 rounded-full bg-rose-500/80" />
                         <span className="w-2.5 h-2.5 rounded-full bg-amber-500/80" />
                         <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/80" />
                       </div>
-                      <span className="text-[11px] font-mono text-slate-400 ml-1 truncate max-w-[160px] sm:max-w-[200px]">
-                        NovaTech Cloud Launch Draft.docx
+                      <span className="text-[11px] font-mono text-slate-400 ml-1">
+                        Live Review Studio
                       </span>
                     </div>
-                    <span className="text-[10px] font-bold font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                      94% Score
+
+                    {/* Interactive Sample Switcher */}
+                    <div className="flex items-center gap-1 bg-slate-900/80 p-0.5 rounded-lg border border-slate-800 text-[10px] font-mono">
+                      {HERO_SAMPLES.map((s, idx) => (
+                        <button
+                          key={s.id}
+                          type="button"
+                          onClick={() => triggerScanAnimation(idx)}
+                          className={`px-2 py-1 rounded transition-colors ${
+                            selectedSampleIndex === idx
+                              ? 'bg-teal-500 text-slate-950 font-bold'
+                              : 'text-slate-400 hover:text-white'
+                          }`}
+                        >
+                          Draft {idx + 1}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Document Meta Row */}
+                  <div className="flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <FileText className="w-4 h-4 text-teal-400 shrink-0" />
+                      <span className="font-semibold text-slate-200 truncate">
+                        {activeSample.name}
+                      </span>
+                    </div>
+                    <span className="text-[10px] font-bold font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 shrink-0">
+                      {activeSample.score}% Score
                     </span>
                   </div>
 
-                  {/* Sample content text with highlight */}
-                  <div className="p-3.5 bg-slate-900/60 rounded-xl border border-slate-800 text-xs text-slate-300 leading-relaxed">
-                    <span>Experience </span>
+                  {/* Sample content text with animated scanning overlay */}
+                  <div className="relative p-3.5 bg-slate-900/80 rounded-xl border border-slate-800 text-xs text-slate-300 leading-relaxed overflow-hidden">
+                    {isScanning && (
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-teal-400/20 to-transparent animate-pulse" />
+                    )}
+                    <span>{activeSample.textPrefix}</span>
                     <span
                       className={`font-bold px-1.5 py-0.5 rounded transition-all duration-300 ${
                         previewActionStatus === 'ACCEPTED'
@@ -352,12 +464,12 @@ export function LandingPage({ onNavigate, onDemoLogin }) {
                           ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40'
                           : previewActionStatus === 'REJECTED'
                           ? 'line-through bg-slate-800 text-slate-400'
-                          : 'bg-rose-500/20 text-rose-300 border-b-2 border-rose-400 animate-pulse'
+                          : 'bg-rose-500/20 text-rose-300 border-b-2 border-rose-400'
                       }`}
                     >
-                      {previewText}
+                      {getDisplayedFlaggedText()}
                     </span>
-                    <span> today! We deliver high availability with automated scheduled backups across regions.</span>
+                    <span>{activeSample.textSuffix}</span>
                   </div>
 
                   {/* Finding callout card */}
@@ -371,89 +483,146 @@ export function LandingPage({ onNavigate, onDemoLogin }) {
                           High Severity
                         </span>
                       </div>
-                      <span className="text-[10px] font-mono text-slate-400">100% Match</span>
+                      <span className="text-[10px] font-mono text-slate-400">100% Precision</span>
                     </div>
 
                     <div className="space-y-1">
                       <p className="text-[11px] font-medium text-slate-300">
-                        Rule Citation: <span className="text-teal-300">NovaTech Voice & Messaging Guide 2026, Sec 2.1</span>
+                        Rule Citation: <span className="text-teal-300">{activeSample.citation}</span>
                       </p>
                       <p className="text-[11px] text-slate-400">
-                        "Nova Cloud" is a banned colloquialism. The brand name must always be formatted as <span className="text-white font-semibold">"NovaTech Cloud"</span>.
+                        {activeSample.explanation}
                       </p>
                     </div>
 
+                    {/* Custom Edit Inline Input */}
+                    {isEditing && (
+                      <div className="pt-2 flex items-center gap-2">
+                        <input
+                          type="text"
+                          value={customEditText}
+                          onChange={(e) => setCustomEditText(e.target.value)}
+                          placeholder="Type custom replacement..."
+                          className="flex-1 px-3 py-1.5 text-xs bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-1 focus:ring-teal-400"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setPreviewActionStatus('EDITED');
+                            setIsEditing(false);
+                          }}
+                          className="px-2.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold"
+                        >
+                          Apply
+                        </button>
+                      </div>
+                    )}
+
                     {/* Action Pills */}
-                    <div className="pt-2 border-t border-slate-800/80 flex flex-wrap items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setPreviewActionStatus('ACCEPTED');
-                          setPreviewText('NovaTech Cloud');
-                        }}
-                        className={`px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1 transition-all ${
-                          previewActionStatus === 'ACCEPTED'
-                            ? 'bg-emerald-500 text-slate-950 ring-2 ring-emerald-400'
-                            : 'bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 border border-emerald-500/30'
-                        }`}
-                      >
-                        <Check className="w-3 h-3 stroke-[2.5]" />
-                        <span>Accept ("NovaTech Cloud")</span>
-                      </button>
+                    {!isEditing && (
+                      <div className="pt-2 border-t border-slate-800/80 flex flex-wrap items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setPreviewActionStatus('ACCEPTED');
+                          }}
+                          className={`px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1 transition-all ${
+                            previewActionStatus === 'ACCEPTED'
+                              ? 'bg-emerald-500 text-slate-950 ring-2 ring-emerald-400'
+                              : 'bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 border border-emerald-500/30'
+                          }`}
+                        >
+                          <Check className="w-3 h-3 stroke-[2.5]" />
+                          <span>Accept ("{activeSample.suggestedFix}")</span>
+                        </button>
 
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setPreviewActionStatus('EDITED');
-                          setPreviewText('NovaTech Enterprise');
-                        }}
-                        className={`px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1 transition-all ${
-                          previewActionStatus === 'EDITED'
-                            ? 'bg-indigo-500 text-white ring-2 ring-indigo-400'
-                            : 'bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500/30 border border-indigo-500/30'
-                        }`}
-                      >
-                        <Edit3 className="w-3 h-3" />
-                        <span>Edit</span>
-                      </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsEditing(true);
+                            setCustomEditText(activeSample.suggestedFix);
+                          }}
+                          className={`px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1 transition-all ${
+                            previewActionStatus === 'EDITED'
+                              ? 'bg-indigo-500 text-white ring-2 ring-indigo-400'
+                              : 'bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500/30 border border-indigo-500/30'
+                          }`}
+                        >
+                          <Edit3 className="w-3 h-3" />
+                          <span>Edit</span>
+                        </button>
 
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setPreviewActionStatus('REJECTED');
-                          setPreviewText('Nova Cloud');
-                        }}
-                        className={`px-2.5 py-1 rounded-lg text-[11px] font-medium flex items-center gap-1 transition-all ${
-                          previewActionStatus === 'REJECTED'
-                            ? 'bg-slate-700 text-white ring-2 ring-slate-400'
-                            : 'bg-slate-800 text-slate-400 hover:text-slate-200 border border-slate-700'
-                        }`}
-                      >
-                        <X className="w-3 h-3" />
-                        <span>Reject</span>
-                      </button>
-                    </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setPreviewActionStatus('REJECTED');
+                          }}
+                          className={`px-2.5 py-1 rounded-lg text-[11px] font-medium flex items-center gap-1 transition-all ${
+                            previewActionStatus === 'REJECTED'
+                              ? 'bg-slate-700 text-white ring-2 ring-slate-400'
+                              : 'bg-slate-800 text-slate-400 hover:text-slate-200 border border-slate-700'
+                          }`}
+                        >
+                          <X className="w-3 h-3" />
+                          <span>Reject</span>
+                        </button>
+                      </div>
+                    )}
 
                     {previewActionStatus && (
                       <p className="text-[10px] text-teal-300 pt-1 flex items-center gap-1">
                         <CheckCircle2 className="w-3 h-3 text-teal-400" />
-                        <span>Action recorded: {previewActionStatus}. Human remains in control.</span>
+                        <span>Action recorded: {previewActionStatus}. Human reviewer remains in full control.</span>
                       </p>
                     )}
                   </div>
 
                   {/* Grounded Fact Verified Sub-row */}
                   <div className="flex items-center justify-between px-3 py-2 bg-emerald-950/30 border border-emerald-500/20 rounded-xl text-[11px] text-emerald-300">
-                    <div className="flex items-center gap-2">
-                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                      <span>Verified Claim: 99.9% SLA (Master Services Agreement, App. A)</span>
+                    <div className="flex items-center gap-2 truncate pr-2">
+                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                      <span className="truncate">Verified Fact: {activeSample.verifiedFact}</span>
                     </div>
-                    <span className="font-mono text-[9px] uppercase tracking-wider bg-emerald-500/20 px-1.5 py-0.2 rounded font-bold">
+                    <span className="font-mono text-[9px] uppercase tracking-wider bg-emerald-500/20 px-1.5 py-0.2 rounded font-bold shrink-0">
                       Grounded
                     </span>
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ───────────────────────────────────────────────────────────────────── */}
+      {/* ENTERPRISE METRICS STRIP                                              */}
+      {/* ───────────────────────────────────────────────────────────────────── */}
+      <section className="bg-[#0b1c31] border-b border-slate-800 py-6 text-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+            <div className="space-y-0.5">
+              <p className="text-2xl sm:text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-teal-300 to-cyan-300 font-mono">
+                100%
+              </p>
+              <p className="text-xs text-slate-400 font-medium">Deterministic RegEx Precision</p>
+            </div>
+            <div className="space-y-0.5">
+              <p className="text-2xl sm:text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-teal-300 to-cyan-300 font-mono">
+                0
+              </p>
+              <p className="text-xs text-slate-400 font-medium">Hallucinated Citations</p>
+            </div>
+            <div className="space-y-0.5">
+              <p className="text-2xl sm:text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-teal-300 to-cyan-300 font-mono">
+                &lt; 250ms
+              </p>
+              <p className="text-xs text-slate-400 font-medium">Rule Engine Scanning Latency</p>
+            </div>
+            <div className="space-y-0.5">
+              <p className="text-2xl sm:text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-teal-300 to-cyan-300 font-mono">
+                SHA-256
+              </p>
+              <p className="text-xs text-slate-400 font-medium">Pre-Publication Certificates</p>
             </div>
           </div>
         </div>
@@ -495,10 +664,15 @@ export function LandingPage({ onNavigate, onDemoLogin }) {
                   Store tone guidelines, verified corporate facts, and banned or preferred terms once. Your knowledge base becomes the single source of truth for the entire company.
                 </p>
               </div>
-              <div className="pt-3 border-t border-slate-100 flex flex-wrap gap-1.5 text-[10px] font-mono text-slate-600">
-                <span className="px-2 py-0.5 rounded bg-slate-100">Preferred Terms</span>
-                <span className="px-2 py-0.5 rounded bg-slate-100">Approved Facts</span>
-                <span className="px-2 py-0.5 rounded bg-slate-100">WCAG Palettes</span>
+
+              {/* Step 1 Micro-UI Preview Card */}
+              <div className="p-3 bg-slate-50 border border-slate-200/80 rounded-xl space-y-1.5 text-[11px] font-mono">
+                <div className="flex items-center justify-between text-slate-500">
+                  <span>RULE #KB-201</span>
+                  <span className="text-teal-700 font-bold">ACTIVE</span>
+                </div>
+                <p className="font-semibold text-slate-800">Preferred: "NovaTech Cloud"</p>
+                <p className="text-rose-600 text-[10px]">Banned: ["Nova Cloud", "Nova-Tech"]</p>
               </div>
             </div>
 
@@ -521,9 +695,15 @@ export function LandingPage({ onNavigate, onDemoLogin }) {
                   Deterministic regex engines catch banned terminology with 100% precision, while retrieval-grounded AI verifies factual claims without hallucinating citations.
                 </p>
               </div>
-              <div className="pt-3 border-t border-slate-100 flex flex-wrap gap-1.5 text-[10px] font-mono text-teal-700 font-semibold">
-                <span className="px-2 py-0.5 rounded bg-teal-50 border border-teal-200/60">Deterministic Guard</span>
-                <span className="px-2 py-0.5 rounded bg-teal-50 border border-teal-200/60">Grounded Claims</span>
+
+              {/* Step 2 Micro-UI Preview Card */}
+              <div className="p-3 bg-teal-50/50 border border-teal-200/80 rounded-xl space-y-1.5 text-[11px] font-mono">
+                <div className="flex items-center justify-between text-teal-800">
+                  <span>HYBRID SCAN</span>
+                  <span className="font-bold">&lt; 250ms</span>
+                </div>
+                <p className="text-slate-700 font-semibold">1 Terminology Flag • 1 Claim Grounded</p>
+                <p className="text-teal-700 text-[10px]">WCAG AA Contrast Verified (7.2:1)</p>
               </div>
             </div>
 
@@ -543,10 +723,140 @@ export function LandingPage({ onNavigate, onDemoLogin }) {
                   Creators revise with side-by-side diffs. Managers approve with cryptographic audit logging, issuing an immutable Pre-Publication Certificate before the draft goes live.
                 </p>
               </div>
-              <div className="pt-3 border-t border-slate-100 flex flex-wrap gap-1.5 text-[10px] font-mono text-slate-600">
-                <span className="px-2 py-0.5 rounded bg-slate-100">Accept / Edit / Reject</span>
-                <span className="px-2 py-0.5 rounded bg-slate-100">Immutable Ledger</span>
+
+              {/* Step 3 Micro-UI Preview Card */}
+              <div className="p-3 bg-indigo-50/50 border border-indigo-200/80 rounded-xl space-y-1.5 text-[11px] font-mono">
+                <div className="flex items-center justify-between text-indigo-800">
+                  <span>CERTIFICATE</span>
+                  <span className="font-bold text-emerald-700">APPROVED</span>
+                </div>
+                <p className="text-slate-800 font-semibold truncate">Hash: e8b7...4f2a (SHA-256)</p>
+                <p className="text-slate-500 text-[10px]">Actor: manager@novatech.demo</p>
               </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ───────────────────────────────────────────────────────────────────── */}
+      {/* INTERACTIVE BEFORE VS AFTER COMPARISON                                */}
+      {/* ───────────────────────────────────────────────────────────────────── */}
+      <section id="comparison" className="py-20 bg-slate-900 text-white relative overflow-hidden border-t border-slate-800">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <div className="text-center max-w-2xl mx-auto space-y-3 mb-12 scroll-reveal opacity-0 translate-y-8 duration-700">
+            <span className="text-[11px] font-mono font-bold uppercase tracking-widest text-teal-400 bg-teal-950 border border-teal-500/30 px-3 py-1 rounded-full">
+              Real-World Impact
+            </span>
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-white">
+              The Cost of Ungoverned Publishing
+            </h2>
+            <p className="text-slate-300 text-xs sm:text-sm">
+              See what happens when marketing campaigns ship with vs. without BrandLens AI guardrails.
+            </p>
+
+            {/* Toggle Switch */}
+            <div className="pt-4 flex items-center justify-center">
+              <div className="inline-flex p-1 rounded-xl bg-slate-800 border border-slate-700 text-xs font-semibold">
+                <button
+                  type="button"
+                  onClick={() => setComparisonMode('raw')}
+                  className={`px-4 py-2 rounded-lg transition-colors ${
+                    comparisonMode === 'raw'
+                      ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40 font-bold'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  Without BrandLens (Risk)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setComparisonMode('governed')}
+                  className={`px-4 py-2 rounded-lg transition-colors ${
+                    comparisonMode === 'governed'
+                      ? 'bg-teal-500 text-slate-950 font-bold shadow-xs'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  With BrandLens (Governed)
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Comparison Cards Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+            {/* Without Card */}
+            <div
+              className={`p-6 sm:p-8 rounded-2xl border transition-all duration-300 ${
+                comparisonMode === 'raw'
+                  ? 'bg-rose-950/20 border-rose-500/40 ring-1 ring-rose-500/30'
+                  : 'bg-slate-800/40 border-slate-700 opacity-60'
+              }`}
+            >
+              <div className="flex items-center justify-between pb-4 border-b border-slate-800">
+                <span className="font-bold text-sm text-rose-300 flex items-center gap-2">
+                  <X className="w-4 h-4 text-rose-400" />
+                  Ungoverned Campaign Draft
+                </span>
+                <span className="text-[10px] font-mono uppercase bg-rose-500/20 text-rose-300 px-2 py-0.5 rounded font-bold">
+                  High Risk
+                </span>
+              </div>
+              <ul className="mt-5 space-y-3 text-xs text-slate-300">
+                <li className="flex items-start gap-2.5">
+                  <X className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                  <span><strong>Rogue Brand Terminology:</strong> Inconsistent usage ("Nova Cloud", "Nova-Tech") dilutes corporate identity.</span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <X className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                  <span><strong>Unsubstantiated Guarantees:</strong> "100% risk-free" promises expose company to regulatory and legal liability.</span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <X className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                  <span><strong>Inaccessible Colors:</strong> Low-contrast text on buttons fails WCAG 2.1 compliance standards.</span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <X className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                  <span><strong>Zero Audit Trail:</strong> No verifiable record of who approved what or which version was signed off.</span>
+                </li>
+              </ul>
+            </div>
+
+            {/* With BrandLens Card */}
+            <div
+              className={`p-6 sm:p-8 rounded-2xl border transition-all duration-300 ${
+                comparisonMode === 'governed'
+                  ? 'bg-teal-950/20 border-teal-500/40 ring-1 ring-teal-500/30 shadow-xl'
+                  : 'bg-slate-800/40 border-slate-700 opacity-60'
+              }`}
+            >
+              <div className="flex items-center justify-between pb-4 border-b border-slate-800">
+                <span className="font-bold text-sm text-teal-300 flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-teal-400" />
+                  BrandLens AI Governed Publication
+                </span>
+                <span className="text-[10px] font-mono uppercase bg-teal-500/20 text-teal-300 px-2 py-0.5 rounded font-bold">
+                  Verified Safe
+                </span>
+              </div>
+              <ul className="mt-5 space-y-3 text-xs text-slate-300">
+                <li className="flex items-start gap-2.5">
+                  <Check className="w-4 h-4 text-teal-400 shrink-0 mt-0.5" />
+                  <span><strong>100% Deterministic Consistency:</strong> RegEx automatically replaces non-compliant terms with camelCase "NovaTech Cloud".</span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <Check className="w-4 h-4 text-teal-400 shrink-0 mt-0.5" />
+                  <span><strong>Strict Fact Grounding:</strong> Claims link to active Master Services Agreement citations or flag as UNSUPPORTED.</span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <Check className="w-4 h-4 text-teal-400 shrink-0 mt-0.5" />
+                  <span><strong>WCAG AA Compliance:</strong> Palette contrast analyzer verifies color luminance before visual assets ship.</span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <Check className="w-4 h-4 text-teal-400 shrink-0 mt-0.5" />
+                  <span><strong>Cryptographic Certificate:</strong> Immutable append-only ledger issues a SHA-256 signed audit certificate upon manager sign-off.</span>
+                </li>
+              </ul>
             </div>
           </div>
         </div>
@@ -566,7 +876,7 @@ export function LandingPage({ onNavigate, onDemoLogin }) {
               Core Capabilities
             </h2>
             <p className="text-slate-600 text-xs sm:text-sm leading-relaxed">
-              Designed specifically for deterministic brand safety and legal compliance—not ungrounded text generation.
+              Built specifically for deterministic brand safety and legal compliance—not ungrounded text generation.
             </p>
           </div>
 
@@ -722,22 +1032,27 @@ export function LandingPage({ onNavigate, onDemoLogin }) {
           <div className="space-y-3.5">
             {[
               {
+                category: 'Engine Scope',
                 q: 'What does BrandLens AI check?',
                 a: 'BrandLens AI validates terminology (preferred vs. banned brand names with 100% deterministic precision), tone & voice (exaggerated or superlative marketing claims), factual claims (grounded against approved company facts), and visual accessibility (WCAG 2.1 color contrast and missing alt text).',
               },
               {
+                category: 'Human-in-the-Loop',
                 q: 'Does AI automatically rewrite or publish my content?',
                 a: 'No. BrandLens AI follows a strict human-in-the-loop philosophy. The system flags issues and proposes contextual suggestions that humans can Accept, Edit, or Reject. A draft can never be published without explicit sign-off from an authorized Manager or Admin.',
               },
               {
+                category: 'Grounding & Citations',
                 q: 'What happens if a claim has no approved source?',
                 a: 'BrandLens AI explicitly marks the statement as CLAIM_UNSUPPORTED with an empty citation list. It never manufactures, guesses, or hallucinates citations. Reviewers must either provide an approved source reference or remove the claim before the draft can be approved.',
               },
               {
+                category: 'Multi-Tenant Collaboration',
                 q: 'Can multiple team members collaborate in the same workspace?',
                 a: 'Yes. Workspaces support multi-tenant team collaboration with strict server-side RBAC (Admin, Manager, Reviewer, and Creator roles). Admins can invite teammates by email, and invited members gain role-appropriate access instantly upon sign-in.',
               },
               {
+                category: 'Evaluator Testing',
                 q: 'How can judges test the platform quickly?',
                 a: 'Judges can click the "1-Click Judge Demo" button on the hero or sign-in page to instantly access a pre-seeded NovaTech Global workspace with pre-populated brand guidelines, facts, terminology rules, and pending approval drafts.',
               },
@@ -753,7 +1068,12 @@ export function LandingPage({ onNavigate, onDemoLogin }) {
                     onClick={() => setOpenFaqIndex(isOpen ? null : idx)}
                     className="w-full px-5 py-4 text-left flex items-center justify-between gap-4 font-bold text-xs sm:text-sm text-slate-900 hover:text-teal-700 transition-colors focus:outline-none"
                   >
-                    <span>{faq.q}</span>
+                    <div className="flex items-center gap-2.5">
+                      <span className="text-[10px] font-mono uppercase bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-semibold hidden sm:inline-block">
+                        {faq.category}
+                      </span>
+                      <span>{faq.q}</span>
+                    </div>
                     <ChevronDown
                       className={`w-4 h-4 text-slate-400 transition-transform duration-200 shrink-0 ${
                         isOpen ? 'rotate-180 text-teal-600' : ''
@@ -814,6 +1134,14 @@ export function LandingPage({ onNavigate, onDemoLogin }) {
                     className="hover:text-teal-300 transition-colors"
                   >
                     Features
+                  </button>
+                </li>
+                <li>
+                  <button
+                    onClick={() => handleScrollTo('comparison')}
+                    className="hover:text-teal-300 transition-colors"
+                  >
+                    Governance Comparison
                   </button>
                 </li>
                 <li>
