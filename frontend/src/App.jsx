@@ -22,9 +22,16 @@ function resolveRouteFromUrl() {
     return { view: 'landing', authMode: 'signin', tab: 'dashboard' };
   }
 
+  const isExplicitlyLoggedOut = localStorage.getItem('brandlens_logged_out') === 'true';
+  const hasToken = !isExplicitlyLoggedOut && !!localStorage.getItem('brandlens_token');
   const pathname = window.location.pathname.toLowerCase().replace(/\/+$/, '') || '/';
   const search = window.location.search.toLowerCase();
   const hash = window.location.hash.toLowerCase().replace(/^#\/?/, '').trim();
+
+  // If user is unauthenticated or explicitly logged out, clear leftover workspace hash
+  if (!hasToken && VALID_TABS.has(hash)) {
+    window.location.hash = '';
+  }
 
   // 1. Explicit Login / Signup routes or hashes
   if (
@@ -53,6 +60,13 @@ function resolveRouteFromUrl() {
     pathname.startsWith('/dashboard') ||
     VALID_TABS.has(hash)
   ) {
+    // If not authenticated or logged out, block workspace route and send to login or landing
+    if (!hasToken) {
+      if (pathname.startsWith('/app') || pathname.startsWith('/dashboard')) {
+        return { view: 'login', authMode: 'signin', tab: 'dashboard' };
+      }
+      return { view: 'landing', authMode: 'signin', tab: 'dashboard' };
+    }
     const tab = VALID_TABS.has(hash) ? hash : 'dashboard';
     return { view: 'app', authMode: 'signin', tab };
   }

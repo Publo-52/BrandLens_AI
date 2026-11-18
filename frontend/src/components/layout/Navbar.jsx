@@ -30,6 +30,19 @@ export function Navbar({ onToggleMobileMenu, isMobileMenuOpen = false }) {
   const roleDropdownRef = useRef(null);
   const userDropdownRef = useRef(null);
 
+  const handleSignOut = async () => {
+    setShowUserDropdown(false);
+    try {
+      await logout();
+    } catch (err) {
+      console.warn('Sign out error:', err);
+    }
+    if (typeof window !== 'undefined') {
+      window.location.hash = '';
+      window.location.replace('/');
+    }
+  };
+
   useEffect(() => {
     function handleClickOutside(event) {
       if (orgDropdownRef.current && !orgDropdownRef.current.contains(event.target)) {
@@ -322,11 +335,8 @@ export function Navbar({ onToggleMobileMenu, isMobileMenuOpen = false }) {
                     </div>
                   </div>
                   <button
-                    onClick={() => {
-                      logout();
-                      setShowUserDropdown(false);
-                    }}
-                    className="w-full px-3.5 py-2 text-left text-xs text-rose-600 hover:bg-rose-50 flex items-center gap-2 font-medium transition-colors"
+                    onClick={handleSignOut}
+                    className="w-full px-3.5 py-2 text-left text-xs text-rose-600 hover:bg-rose-50 flex items-center gap-2 font-medium transition-colors cursor-pointer"
                   >
                     <LogOut className="w-3.5 h-3.5" />
                     <span>Sign Out</span>

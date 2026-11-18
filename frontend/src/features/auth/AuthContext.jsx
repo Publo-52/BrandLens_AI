@@ -25,11 +25,19 @@ function extractOrgId(org) {
 }
 
 export function AuthProvider({ children }) {
-  const [token, setToken] = useState(() => localStorage.getItem('brandlens_token'));
+  const [token, setToken] = useState(() => {
+    if (typeof window !== 'undefined' && localStorage.getItem('brandlens_logged_out') === 'true') {
+      return null;
+    }
+    return typeof window !== 'undefined' ? localStorage.getItem('brandlens_token') : null;
+  });
   const [firebaseUser, setFirebaseUser] = useState(null);
   const [user, setUser] = useState(() => {
+    if (typeof window !== 'undefined' && localStorage.getItem('brandlens_logged_out') === 'true') {
+      return null;
+    }
     try {
-      const saved = localStorage.getItem('brandlens_user');
+      const saved = typeof window !== 'undefined' ? localStorage.getItem('brandlens_user') : null;
       return saved ? JSON.parse(saved) : null;
     } catch (e) {
       return null;
@@ -113,7 +121,11 @@ export function AuthProvider({ children }) {
 
   // Load user profile & sync with backend session
   const refreshSession = useCallback(async () => {
-    const currentToken = localStorage.getItem('brandlens_token');
+    if (typeof window !== 'undefined' && localStorage.getItem('brandlens_logged_out') === 'true') {
+      setLoading(false);
+      return;
+    }
+    const currentToken = typeof window !== 'undefined' ? localStorage.getItem('brandlens_token') : null;
     if (!currentToken) {
       setLoading(false);
       return;
@@ -150,6 +162,22 @@ export function AuthProvider({ children }) {
   // Listen to Firebase Auth state changes
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
+      // If user has explicitly logged out, ensure we NEVER restore session or token
+      if (typeof window !== 'undefined' && localStorage.getItem('brandlens_logged_out') === 'true') {
+        if (fbUser) {
+          try {
+            await fbLogOut();
+          } catch (e) {}
+        }
+        setFirebaseUser(null);
+        setUser(null);
+        setToken(null);
+        setWorkspaces([]);
+        setMemberships([]);
+        setLoading(false);
+        return;
+      }
+
       if (fbUser) {
         setFirebaseUser(fbUser);
         try {
@@ -173,11 +201,9 @@ export function AuthProvider({ children }) {
         }
       } else {
         setFirebaseUser(null);
-        // Only clear if not using a demo token
-        const savedToken = localStorage.getItem('brandlens_token');
-        if (savedToken && !savedToken.startsWith('demo:') && !token) {
+        const savedToken = typeof window !== 'undefined' ? localStorage.getItem('brandlens_token') : null;
+        if (!savedToken) {
           setUser(null);
-          localStorage.removeItem('brandlens_user');
           setWorkspaces([]);
           setMemberships([]);
         }
@@ -186,11 +212,15 @@ export function AuthProvider({ children }) {
     });
 
     return () => unsubscribe();
-  }, [fetchWorkspacesAndSync, token]);
+  }, [fetchWorkspacesAndSync]);
 
   // Initial check on mount: restore existing session, never auto-relogin after explicit Sign Out
   useEffect(() => {
-    const savedToken = localStorage.getItem('brandlens_token');
+    if (typeof window !== 'undefined' && localStorage.getItem('brandlens_logged_out') === 'true') {
+      setLoading(false);
+      return;
+    }
+    const savedToken = typeof window !== 'undefined' ? localStorage.getItem('brandlens_token') : null;
     if (savedToken) {
       refreshSession();
     } else {
@@ -203,6 +233,7 @@ export function AuthProvider({ children }) {
     async (email, password) => {
       setLoading(true);
       try {
+        localStorage.removeItem('brandlens_logged_out');
         const fbUser = await fbSignInWithEmail(email, password);
         const idToken = await fbUser.getIdToken();
         localStorage.setItem('brandlens_token', idToken);
@@ -229,6 +260,7 @@ export function AuthProvider({ children }) {
     async ({ email, password, displayName, workspaceName }) => {
       setLoading(true);
       try {
+        localStorage.removeItem('brandlens_logged_out');
         const fbUser = await fbSignUpWithEmail(email, password, displayName);
         const idToken = await fbUser.getIdToken();
         localStorage.setItem('brandlens_token', idToken);
@@ -271,6 +303,7 @@ export function AuthProvider({ children }) {
   const loginWithGoogle = useCallback(async () => {
     setLoading(true);
     try {
+      localStorage.removeItem('brandlens_logged_out');
       const fbUser = await fbSignInWithGoogle();
       const idToken = await fbUser.getIdToken();
       localStorage.setItem('brandlens_token', idToken);
@@ -314,6 +347,7 @@ export function AuthProvider({ children }) {
       setLoading(true);
       const normalizedRole = role.toUpperCase();
       try {
+        localStorage.removeItem('brandlens_logged_out');
         const data = await workspaceApi.demoLogin(normalizedRole);
         if (!data?.token) {
           throw new Error('Demo login did not return a valid session token.');
@@ -346,6 +380,7 @@ export function AuthProvider({ children }) {
     async (email, password) => {
       setLoading(true);
       try {
+        localStorage.removeItem('brandlens_logged_out');
         try {
           const fbUser = await fbSignInWithEmail(email, password);
           const idToken = await fbUser.getIdToken();
@@ -393,6 +428,7 @@ export function AuthProvider({ children }) {
     async ({ name, email, password, organisationName }) => {
       setLoading(true);
       try {
+        localStorage.removeItem('brandlens_logged_out');
         try {
           const fbUser = await fbSignUpWithEmail(email, password, name);
           const idToken = await fbUser.getIdToken();
@@ -445,17 +481,24 @@ export function AuthProvider({ children }) {
 
   const logout = useCallback(async () => {
     try {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('brandlens_logged_out', 'true');
+        localStorage.removeItem('brandlens_token');
+        localStorage.removeItem('brandlens_user');
+        localStorage.removeItem('brandlens_active_org_id');
+      }
       await fbLogOut();
-    } catch (e) {}
-    localStorage.removeItem('brandlens_token');
-    localStorage.removeItem('brandlens_user');
-    localStorage.removeItem('brandlens_active_org_id');
-    setToken(null);
-    setFirebaseUser(null);
-    setUser(null);
-    setMemberships([]);
-    setWorkspaces([]);
-    setActiveOrgId(null);
+    } catch (e) {
+      console.warn('Logout notice:', e?.message || e);
+    } finally {
+      setToken(null);
+      setFirebaseUser(null);
+      setUser(null);
+      setMemberships([]);
+      setWorkspaces([]);
+      setActiveOrgId(null);
+      setLoading(false);
+    }
   }, []);
 
   const switchOrg = useCallback(
