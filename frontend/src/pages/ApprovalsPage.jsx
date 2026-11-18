@@ -264,7 +264,7 @@ export function ApprovalsPage() {
       {/* Main Approval Queue Layout */}
       <div className={`grid grid-cols-1 lg:grid-cols-12 gap-6 ${selectedContent ? 'items-start' : 'items-stretch'}`}>
         {/* Left: Queue Items List (4 cols) */}
-        <div className="lg:col-span-4 flex flex-col">
+        <div className={`lg:col-span-4 flex flex-col ${selectedContent ? 'lg:sticky lg:top-6' : ''}`}>
           <div className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-sm flex-1 flex flex-col space-y-4 overflow-hidden">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 gap-2">
               <div className="flex items-center gap-2 min-w-0">
@@ -311,11 +311,18 @@ export function ApprovalsPage() {
                           : 'border-slate-200/80 hover:border-slate-300 bg-white hover:bg-slate-50/60'
                       }`}
                     >
-                      <div className="flex items-start justify-between gap-2 mb-1.5">
-                        <span className="font-bold text-slate-900 text-xs truncate max-w-[170px]">
+                      <div className="mb-2">
+                        <span className="font-bold text-slate-900 text-xs block truncate" title={item.title}>
                           {item.title}
                         </span>
-                        <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full border ${
+                      </div>
+                      <div className="flex items-center justify-between gap-2 text-[11px] text-slate-500 font-medium">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <span className="truncate">{item.channel}</span>
+                          <span className="text-slate-300">&middot;</span>
+                          <span className="font-mono text-slate-400 shrink-0">v{item.currentVersionNumber || 1}</span>
+                        </div>
+                        <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full border shrink-0 whitespace-nowrap ${
                           isApproved
                             ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                             : isInReview
@@ -324,10 +331,6 @@ export function ApprovalsPage() {
                         }`}>
                           {item.status}
                         </span>
-                      </div>
-                      <div className="text-[11px] text-slate-500 flex justify-between font-medium">
-                        <span>{item.channel}</span>
-                        <span className="font-mono text-slate-400">v{item.currentVersionNumber || 1}</span>
                       </div>
                     </button>
                   );
@@ -342,24 +345,22 @@ export function ApprovalsPage() {
           {selectedContent ? (
             <div className="bg-white rounded-2xl border border-slate-200/90 p-6 shadow-xs space-y-6">
               {/* Submission Details Header */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
-                <div>
-                  <div className="flex items-center gap-2">
+              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 pb-4 border-b border-slate-100">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <h3 className="font-extrabold text-slate-900 text-base">{selectedContent.title}</h3>
-                    <span className="text-[10px] font-mono bg-slate-100 text-slate-700 px-2 py-0.5 rounded-md font-bold">
+                    <span className="text-[10px] font-mono bg-slate-100 text-slate-700 px-2 py-0.5 rounded-md font-bold shrink-0">
                       v{selectedContent.currentVersionNumber}
                     </span>
                   </div>
-                  <div className="text-xs text-slate-500 mt-1 flex flex-wrap items-center gap-2.5">
-                    <span>Submitted By: <strong className="text-slate-700">{selectedContent.createdBy?.name || 'Creator'}</strong></span>
-                    <span>&bull;</span>
-                    <span>Channel: <strong className="text-slate-700">{selectedContent.channel}</strong></span>
-                    <span>&bull;</span>
-                    <span>Audience: <strong className="text-slate-700">{selectedContent.audience}</strong></span>
+                  <div className="text-xs text-slate-500 mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1">
+                    <span className="whitespace-nowrap">Submitted By: <strong className="text-slate-700">{selectedContent.createdBy?.name || 'Creator'}</strong></span>
+                    <span className="whitespace-nowrap">Channel: <strong className="text-slate-700">{selectedContent.channel}</strong></span>
+                    <span className="whitespace-nowrap">Audience: <strong className="text-slate-700">{selectedContent.audience}</strong></span>
                   </div>
                 </div>
 
-                <div className={`px-3 py-1 rounded-full text-xs font-bold uppercase border self-start sm:self-auto ${
+                <div className={`px-3 py-1 rounded-full text-xs font-bold uppercase border self-start shrink-0 whitespace-nowrap ${
                   selectedContent.status === 'APPROVED'
                     ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                     : selectedContent.status === 'IN_REVIEW'
@@ -372,8 +373,8 @@ export function ApprovalsPage() {
 
               {/* Reviewed Text Preview & Visual Diff */}
               <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider text-[10px]">
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider">
                     Submitted Content Body (Version {selectedContent.currentVersionNumber})
                   </label>
                   {versions.length > 1 && (
@@ -463,7 +464,7 @@ export function ApprovalsPage() {
                 <div className="space-y-2 text-xs text-slate-600">
                   {latestReview?.findings?.map((f) => (
                     <div key={f._id} className="flex items-start justify-between gap-3 p-3 bg-white rounded-xl border border-slate-200/70 shadow-2xs">
-                      <div>
+                      <div className="min-w-0 flex-1 leading-relaxed">
                         <span className="font-bold text-slate-800">[{f.type}]</span> {f.explanation}
                         {f.reviewStatus === 'OVERRIDDEN' && (
                           <div className="mt-1 text-[11px] text-amber-800 font-semibold bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200 w-fit">
@@ -481,7 +482,7 @@ export function ApprovalsPage() {
                           </div>
                         )}
                       </div>
-                      <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full shrink-0 border ${
+                      <span className={`mt-0.5 text-[10px] font-bold uppercase px-2 py-0.5 rounded-full shrink-0 border ${
                         f.reviewStatus === 'ACCEPTED' 
                           ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                           : f.reviewStatus === 'EDITED'

@@ -783,15 +783,15 @@ export function ReviewPage() {
               {/* Content Editor / Draft Box */}
               <form onSubmit={handleSubmitRevision} className="space-y-4">
                 <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                  <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-1 mb-2">
+                    <label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5 shrink-0 whitespace-nowrap">
                       {isApproved && <Lock className="w-3.5 h-3.5 text-emerald-600" />}
                       <span>Draft Body Copy {isApproved ? '(Locked)' : '(Live Editor)'}</span>
                     </label>
-                    <span className="text-[11px] text-slate-400">
+                    <span className="text-[11px] text-slate-400 sm:text-right leading-snug">
                       {isApproved
                         ? 'Approved versions are immutable across all publishing channels'
-                        : 'Click "Accept", "Edit", or "Reject" on findings to manage AI suggestions.'}
+                        : 'Use Accept, Edit, or Reject on findings to apply suggestions.'}
                     </span>
                   </div>
                   <textarea
@@ -804,18 +804,18 @@ export function ReviewPage() {
                 </div>
 
                 {!isApproved ? (
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pt-1">
                     <input
                       type="text"
-                      placeholder="What changed? e.g. Replaced unverified claim with SLA citation"
+                      placeholder="Summary of changes (e.g. Verified SLA claim)"
                       value={revisionSummary}
                       onChange={(e) => setRevisionSummary(e.target.value)}
-                      className="flex-1 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none"
+                      className="flex-1 px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:outline-none"
                     />
                     <button
                       type="submit"
                       disabled={submittingRevision}
-                      className="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-xs font-semibold shadow-sm transition-colors shrink-0"
+                      className="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-semibold shadow-sm transition-colors shrink-0"
                     >
                       {submittingRevision ? 'Re-reviewing...' : `Submit Revision (v${(selectedContent.currentVersionNumber || 1) + 1})`}
                     </button>
@@ -839,26 +839,28 @@ export function ReviewPage() {
                   <MessageSquare className="w-3.5 h-3.5 text-slate-400" />
                   Review Comments & Thread ({comments.length})
                 </h4>
-                <div className="space-y-2 max-h-48 overflow-y-auto">
-                  {comments.map((cm) => (
-                    <div key={cm._id} className="p-2.5 bg-slate-50 rounded-lg text-xs space-y-1 border border-slate-100">
-                      <div className="flex justify-between text-slate-400 text-[10px]">
-                        <strong>{cm.authorId?.name || 'Reviewer'}</strong>
-                        <span>{new Date(cm.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                {comments.length > 0 && (
+                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                    {comments.map((cm) => (
+                      <div key={cm._id} className="p-2.5 bg-slate-50 rounded-lg text-xs space-y-1 border border-slate-100">
+                        <div className="flex justify-between text-slate-400 text-[10px]">
+                          <strong>{cm.authorId?.name || 'Reviewer'}</strong>
+                          <span>{new Date(cm.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                        </div>
+                        <p className="text-slate-700">{cm.body}</p>
                       </div>
-                      <p className="text-slate-700">{cm.body}</p>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
                 <form onSubmit={handleAddComment} className="flex gap-2">
                   <input
                     type="text"
                     placeholder="Leave feedback or reply..."
                     value={commentInput}
                     onChange={(e) => setCommentInput(e.target.value)}
-                    className="flex-1 px-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none"
+                    className="flex-1 px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:outline-none"
                   />
-                  <button type="submit" className="px-3 py-1.5 bg-slate-800 text-white rounded-lg text-xs font-medium">
+                  <button type="submit" className="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-semibold transition-colors shrink-0">
                     Send
                   </button>
                 </form>
@@ -997,8 +999,8 @@ export function ReviewPage() {
                         <p className="text-slate-600 italic">"{f.sourceReferences[0].quote}"</p>
                       </div>
                     ) : f.type === 'CLAIM_UNSUPPORTED' ? (
-                      <div className="p-2 bg-purple-50 rounded-lg border border-purple-200 text-[11px] text-purple-900 flex items-center gap-1.5">
-                        <HelpCircle className="w-3.5 h-3.5 text-purple-600 shrink-0" />
+                      <div className="p-2.5 bg-purple-50 rounded-lg border border-purple-200 text-[11px] text-purple-900 flex items-start gap-2 leading-snug">
+                        <HelpCircle className="w-3.5 h-3.5 text-purple-600 shrink-0 mt-0.5" />
                         <span><strong>No Approved Citation Found:</strong> System does not fabricate facts.</span>
                       </div>
                     ) : null}
@@ -1051,54 +1053,56 @@ export function ReviewPage() {
 
                         {/* Action Buttons: Accept / Edit / Reject */}
                         {!isApproved ? (
-                          <div className="flex items-center gap-2 pt-1 flex-wrap">
-                            <button
-                              type="button"
-                              onClick={() => handleApplyFix(f)}
-                              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all shadow-xs ${
-                                f.reviewStatus === 'ACCEPTED'
-                                  ? 'bg-emerald-700 text-white ring-2 ring-emerald-400'
-                                  : 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                              }`}
-                              title="Auto-apply suggestion to draft copy"
-                            >
-                              <Check className="w-3.5 h-3.5 stroke-[2.5]" />
-                              <span>{f.reviewStatus === 'ACCEPTED' ? 'Accepted' : 'Accept Fix'}</span>
-                            </button>
+                          <div className="flex items-center justify-between gap-2 pt-1 flex-wrap">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <button
+                                type="button"
+                                onClick={() => handleApplyFix(f)}
+                                className={`px-2.5 py-1.5 rounded-lg text-[11px] font-semibold flex items-center gap-1 transition-all shadow-xs whitespace-nowrap ${
+                                  f.reviewStatus === 'ACCEPTED'
+                                    ? 'bg-emerald-700 text-white ring-2 ring-emerald-400'
+                                    : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                                }`}
+                                title="Auto-apply suggestion to draft copy"
+                              >
+                                <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+                                <span>{f.reviewStatus === 'ACCEPTED' ? 'Accepted' : 'Accept Fix'}</span>
+                              </button>
 
-                            <button
-                              type="button"
-                              onClick={() => handleOpenEditModal(f)}
-                              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all border shadow-xs ${
-                                f.reviewStatus === 'EDITED'
-                                  ? 'bg-indigo-600 text-white border-indigo-700 ring-2 ring-indigo-400'
-                                  : 'bg-white hover:bg-indigo-50 text-indigo-700 border-indigo-300'
-                              }`}
-                              title="Modify suggestion before applying to draft"
-                            >
-                              <Edit3 className="w-3.5 h-3.5" />
-                              <span>{f.reviewStatus === 'EDITED' ? 'Edit Again' : 'Edit'}</span>
-                            </button>
+                              <button
+                                type="button"
+                                onClick={() => handleOpenEditModal(f)}
+                                className={`px-2.5 py-1.5 rounded-lg text-[11px] font-semibold flex items-center gap-1 transition-all border shadow-xs whitespace-nowrap ${
+                                  f.reviewStatus === 'EDITED'
+                                    ? 'bg-indigo-600 text-white border-indigo-700 ring-2 ring-indigo-400'
+                                    : 'bg-white hover:bg-indigo-50 text-indigo-700 border-indigo-300'
+                                }`}
+                                title="Modify suggestion before applying to draft"
+                              >
+                                <Edit3 className="w-3.5 h-3.5" />
+                                <span>{f.reviewStatus === 'EDITED' ? 'Edit Again' : 'Edit'}</span>
+                              </button>
 
-                            <button
-                              type="button"
-                              onClick={() => setRejectModalFinding(f)}
-                              className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all border ${
-                                f.reviewStatus === 'REJECTED'
-                                  ? 'bg-rose-100 text-rose-800 border-rose-300 font-semibold'
-                                  : 'bg-white hover:bg-rose-50 text-slate-700 hover:text-rose-700 border-slate-300'
-                              }`}
-                              title="Decline this suggestion with a reason"
-                            >
-                              <X className="w-3.5 h-3.5" />
-                              <span>{f.reviewStatus === 'REJECTED' ? 'Declined' : 'Reject'}</span>
-                            </button>
+                              <button
+                                type="button"
+                                onClick={() => setRejectModalFinding(f)}
+                                className={`px-2.5 py-1.5 rounded-lg text-[11px] font-medium flex items-center gap-1 transition-all border whitespace-nowrap ${
+                                  f.reviewStatus === 'REJECTED'
+                                    ? 'bg-rose-100 text-rose-800 border-rose-300 font-semibold'
+                                    : 'bg-white hover:bg-rose-50 text-slate-700 hover:text-rose-700 border-slate-300'
+                                }`}
+                                title="Decline this suggestion with a reason"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                                <span>{f.reviewStatus === 'REJECTED' ? 'Declined' : 'Reject'}</span>
+                              </button>
+                            </div>
 
                             {(activeRole === 'ADMIN' || activeRole === 'REVIEWER' || activeRole === 'MANAGER') && (
                               <button
                                 type="button"
                                 onClick={() => setOverrideModalFinding(f)}
-                                className="px-2.5 py-1.5 bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-800 rounded-lg text-[11px] font-semibold transition-colors ml-auto"
+                                className="px-2.5 py-1.5 bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-800 rounded-lg text-[11px] font-semibold transition-colors whitespace-nowrap"
                               >
                                 Override Flag
                               </button>
