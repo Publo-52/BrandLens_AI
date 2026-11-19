@@ -113,8 +113,9 @@ router.post(
   requireWorkspaceRole([ROLES.ADMIN]),
   async (req, res, next) => {
     try {
-      const { email, role = ROLES.CREATOR, name } = req.body;
+      const { email, role = ROLES.CREATOR, name, fullName } = req.body;
       const { organisationId } = req.params;
+      const enteredName = (fullName || name || '').trim();
 
       if (!email || !email.trim()) {
         return res.status(400).json({
@@ -139,8 +140,8 @@ router.post(
       const existingUser = await User.findOne({ email: normalizedEmail });
 
       if (existingUser) {
-        if (name && name.trim() && (!existingUser.name || existingUser.name === normalizedEmail.split('@')[0])) {
-          existingUser.name = name.trim();
+        if (enteredName && (!existingUser.name || existingUser.name === normalizedEmail.split('@')[0])) {
+          existingUser.name = enteredName;
           await existingUser.save();
         }
 
@@ -163,7 +164,7 @@ router.post(
           // Reactivate suspended or previously invited membership
           membership.status = MEMBERSHIP_STATUS.ACTIVE;
           membership.role = role;
-          if (name && name.trim()) membership.invitedName = name.trim();
+          if (enteredName) membership.invitedName = enteredName;
           membership.invitedEmail = normalizedEmail;
           await membership.save();
         } else {
@@ -172,7 +173,7 @@ router.post(
             userId: existingUser._id,
             role,
             status: MEMBERSHIP_STATUS.ACTIVE,
-            invitedName: name ? name.trim() : '',
+            invitedName: enteredName,
             invitedEmail: normalizedEmail,
           });
         }
@@ -183,7 +184,11 @@ router.post(
 
         return res.status(201).json({
           success: true,
-          membership: populated,
+          membership: {
+            ...populated.toJSON(),
+            invitedName: enteredName || populated.invitedName,
+            fullName: enteredName || populated.fullName || populated.invitedName,
+          },
           status: 'ACTIVE',
           message: `Active membership created for ${normalizedEmail}.`,
         });
@@ -198,22 +203,29 @@ router.post(
       if (pendingMembership) {
         pendingMembership.role = role;
         pendingMembership.status = MEMBERSHIP_STATUS.INVITED;
-        if (name && name.trim()) pendingMembership.invitedName = name.trim();
+        if (enteredName) pendingMembership.invitedName = enteredName;
         await pendingMembership.save();
       } else {
         pendingMembership = await Membership.create({
           organisationId,
           invitedEmail: normalizedEmail,
-          invitedName: name ? name.trim() : '',
+          invitedName: enteredName,
           userId: null,
           role,
           status: MEMBERSHIP_STATUS.INVITED,
         });
       }
 
+      const populatedPending = await Membership.findById(pendingMembership._id)
+        .populate('organisationId', 'name slug');
+
       res.status(201).json({
         success: true,
-        membership: pendingMembership,
+        membership: {
+          ...populatedPending.toJSON(),
+          invitedName: enteredName || populatedPending.invitedName,
+          fullName: enteredName || populatedPending.fullName || populatedPending.invitedName,
+        },
         status: 'INVITED',
         message: `Invitation sent to ${normalizedEmail}. Workspace access will activate upon sign up.`,
       });

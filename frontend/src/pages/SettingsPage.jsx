@@ -75,7 +75,7 @@ export function SettingsPage() {
     try {
       await api.inviteMember(
         activeOrg._id,
-        { email: inviteEmail, name: inviteName, role: inviteRole },
+        { email: inviteEmail, name: inviteName, fullName: inviteName, role: inviteRole },
         token
       );
       setSuccessMsg(`Successfully added ${inviteEmail} as ${inviteRole}!`);
@@ -401,7 +401,7 @@ export function SettingsPage() {
                     (u?.firebaseUid && user?.firebaseUid && u.firebaseUid === user.firebaseUid) ||
                     (u?.email && user?.email && u.email.toLowerCase() === user.email.toLowerCase())
                 );
-                const nameDisplay = m.invitedName || (u?.name && !u.name.includes('@') ? u.name : null) || u?.name || (m.invitedEmail ? m.invitedEmail.split('@')[0] : 'Pending Teammate');
+                const nameDisplay = m.fullName || m.invitedName || (u?.name && !u.name.includes('@') ? u.name : null) || u?.name || (m.invitedEmail ? m.invitedEmail.split('@')[0] : 'Pending Teammate');
                 const emailDisplay = u?.email || m.invitedEmail || '—';
                 const initial = nameDisplay ? nameDisplay.charAt(0).toUpperCase() : 'U';
                 const isInvited = m.status === 'INVITED';

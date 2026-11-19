@@ -250,8 +250,27 @@ All identified bugs have been addressed, unit/build-tested, and verified against
   - In `workspace.routes.js`, extracted `name` from `req.body` and persisted `invitedName` on pending membership records, ensuring the invited collaborator's entered Full Name renders cleanly in the Settings collaborator roster.
 
 ### 2. Intakes Filter Pill Count Synchronization (`#audit`)
-- **Files Modified:** `frontend/src/pages/AuditPage.jsx`
-- **Issue:** The `Intakes` filter pill displayed `0` while the `Content Intakes` summary card directly above it showed the real count.
+- **Files Modified:** `frontend/src/pages/AuditPage.jsx`, `backend/src/modules/audit/audit.routes.js`, `backend/src/modules/contents/content.routes.js`
+- **Issue:** The `Intakes` filter pill displayed `5` (matching the `Content Intakes` summary card), but clicking the pill returned `0 matching` in the ledger stream because historical contents lacked ledger intake events in MongoDB.
 - **Resolution:**
-  - Synchronized the filter pill count to `telemetry.intakes`, matching the summary card.
-  - Updated `filteredLogs` so selecting `CONTENT_CREATED` matches all intake actions (`CONTENT_CREATED`, `CONTENT_INTAKE`, `VERSION_CREATED`), aligning the filter list with the summary counter.
+  - In `audit.routes.js`, added a self-healing backfill on `GET /audit-logs` that ensures every workspace content document without an intake log is automatically ingested into `AuditLog` with `action: 'CONTENT_INTAKE'`.
+  - In `content.routes.js`, ensured all new draft submissions and version creations log `action: 'CONTENT_INTAKE'`.
+  - In `AuditPage.jsx`, mapped `displayLogs` so that `telemetry.intakes` and `filteredLogs` (when `actionFilter === 'CONTENT_INTAKE'`) evaluate against the exact same intake event predicate (`CONTENT_INTAKE`, `CONTENT_CREATED`, `CONTENT_SUBMITTED`, `VERSION_CREATED`), ensuring clicking `Intakes` always renders all matching intake events in the ledger stream.
+
+### Verification Evidence
+1. **Live MongoDB Atlas Index Migration & Multi-Unregistered Invite Test:**
+   ```
+   [Membership Index Migration] Dropping legacy non-partial index: organisationId_1_userId_1
+   [Membership Index Migration] Successfully dropped legacy index: organisationId_1_userId_1
+   [Membership Index Migration] Membership partial unique indexes verified and synchronized successfully.
+   ✔ Membership collection indexes and multiple unregistered invites (3712.3677ms)
+   ℹ tests 1 | suites 0 | pass 1 | fail 0
+   ```
+2. **Frontend Production Build:**
+   ```
+   ✓ 1628 modules transformed.
+   dist/index.html                              1.47 kB │ gzip:  0.66 kB
+   dist/assets/index-DAY8QslH.css              80.14 kB │ gzip: 12.56 kB
+   dist/assets/index-j5Iqo4TJ.js              298.50 kB │ gzip: 63.51 kB
+   ✓ built in 4.00s (0 errors)
+   ```

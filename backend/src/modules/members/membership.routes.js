@@ -28,7 +28,8 @@ router.get('/', authenticate, requireOrgAccess(), async (req, res, next) => {
 // POST /api/organisations/:organisationId/members - Add or invite member by email
 router.post('/', authenticate, requireOrgAccess([ROLES.ADMIN, ROLES.MANAGER]), async (req, res, next) => {
   try {
-    const { email, role = ROLES.CREATOR, name } = req.body;
+    const { email, role = ROLES.CREATOR, name, fullName } = req.body;
+    const enteredName = (fullName || name || '').trim();
 
     if (!email) {
       return res.status(400).json({
@@ -60,12 +61,12 @@ router.post('/', authenticate, requireOrgAccess([ROLES.ADMIN, ROLES.MANAGER]), a
     if (!user) {
       const defaultPasswordHash = await User.hashPassword('WelcomeBrandLens123!');
       user = await User.create({
-        name: name?.trim() || email.split('@')[0],
+        name: enteredName || email.split('@')[0],
         email: email.toLowerCase().trim(),
         passwordHash: defaultPasswordHash,
       });
-    } else if (name?.trim() && (!user.name || user.name === email.split('@')[0])) {
-      user.name = name.trim();
+    } else if (enteredName && (!user.name || user.name === email.split('@')[0])) {
+      user.name = enteredName;
       await user.save();
     }
 
@@ -85,7 +86,7 @@ router.post('/', authenticate, requireOrgAccess([ROLES.ADMIN, ROLES.MANAGER]), a
       // Re-activate suspended or invited membership
       membership.status = MEMBERSHIP_STATUS.ACTIVE;
       membership.role = role;
-      if (name?.trim()) membership.invitedName = name.trim();
+      if (enteredName) membership.invitedName = enteredName;
       membership.invitedEmail = email.toLowerCase().trim();
       await membership.save();
     } else {
@@ -94,7 +95,7 @@ router.post('/', authenticate, requireOrgAccess([ROLES.ADMIN, ROLES.MANAGER]), a
         userId: user._id,
         role,
         status: MEMBERSHIP_STATUS.ACTIVE,
-        invitedName: name?.trim() || '',
+        invitedName: enteredName,
         invitedEmail: email.toLowerCase().trim(),
       });
     }
@@ -103,7 +104,11 @@ router.post('/', authenticate, requireOrgAccess([ROLES.ADMIN, ROLES.MANAGER]), a
 
     res.status(201).json({
       success: true,
-      membership: populated,
+      membership: {
+        ...populated.toJSON(),
+        invitedName: enteredName || populated.invitedName,
+        fullName: enteredName || populated.fullName || populated.invitedName,
+      },
     });
   } catch (error) {
     next(error);

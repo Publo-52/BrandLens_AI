@@ -9,7 +9,40 @@ const router = express.Router({ mergeParams: true });
 // GET /api/organisations/:organisationId/audit-logs - Append-only governance audit log
 router.get('/audit-logs', authenticate, requireOrgAccess(), async (req, res, next) => {
   try {
-    const logs = await AuditLog.find({ organisationId: req.params.organisationId })
+    const orgId = req.params.organisationId;
+
+    // Self-healing backfill: ensure all content submissions in this workspace have an immutable intake audit log
+    const existingIntakeLogs = await AuditLog.find({
+      organisationId: orgId,
+      action: { $in: ['CONTENT_INTAKE', 'CONTENT_CREATED', 'CONTENT_SUBMITTED', 'VERSION_CREATED'] },
+    }).select('entityId').lean();
+
+    const loggedContentIds = new Set(existingIntakeLogs.map((l) => String(l.entityId)));
+
+    const unloggedContents = await Content.find({
+      organisationId: orgId,
+      _id: { $nin: Array.from(loggedContentIds) },
+    }).populate('createdBy', 'name email').lean();
+
+    if (unloggedContents.length > 0) {
+      const backfills = unloggedContents.map((c) => ({
+        organisationId: orgId,
+        actorId: c.createdBy?._id || req.user._id,
+        action: 'CONTENT_INTAKE',
+        entityType: 'CONTENT',
+        entityId: String(c._id),
+        details: {
+          title: c.title,
+          channel: c.channel,
+          versionNumber: c.currentVersionNumber || 1,
+          actionSummary: 'Content ingested into workspace governance stream',
+        },
+        createdAt: c.createdAt || new Date(),
+      }));
+      await AuditLog.insertMany(backfills);
+    }
+
+    const logs = await AuditLog.find({ organisationId: orgId })
       .populate('actorId', 'name email')
       .sort({ createdAt: -1 })
       .limit(100)

@@ -171,7 +171,7 @@ router.post('/', authenticate, requireOrgAccess(), uploadRateLimiter, upload.arr
     await AuditLog.create({
       organisationId: orgId,
       actorId: req.user._id,
-      action: 'CONTENT_CREATED',
+      action: 'CONTENT_INTAKE',
       entityType: 'CONTENT',
       entityId: String(content._id),
       details: {
@@ -179,6 +179,7 @@ router.post('/', authenticate, requireOrgAccess(), uploadRateLimiter, upload.arr
         channel: content.channel,
         versionNumber: 1,
         findingsCount: review?.findings?.length || 0,
+        actionSummary: 'Content draft submitted for brand compliance evaluation',
       },
     });
 
@@ -343,7 +344,7 @@ router.post('/:contentId/versions', authenticate, requireOrgAccess(), validateOb
     await AuditLog.create({
       organisationId,
       actorId: req.user._id,
-      action: 'VERSION_CREATED',
+      action: 'CONTENT_INTAKE',
       entityType: 'CONTENT',
       entityId: String(contentId),
       details: {
@@ -351,6 +352,7 @@ router.post('/:contentId/versions', authenticate, requireOrgAccess(), validateOb
         versionNumber: nextVersionNumber,
         changeSummary: newVersion.changeSummary,
         findingsCount: review?.findings?.length || 0,
+        actionSummary: 'New version revision submitted for brand compliance evaluation',
       },
     });
 

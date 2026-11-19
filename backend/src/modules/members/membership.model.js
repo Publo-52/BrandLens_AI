@@ -68,9 +68,16 @@ membershipSchema.index(
   { unique: true, partialFilterExpression: { invitedEmail: { $type: 'string' } } }
 );
 
+membershipSchema.virtual('fullName').get(function () {
+  return this.invitedName || this.userId?.name || '';
+});
+
 membershipSchema.methods.toJSON = function () {
-  const obj = this.toObject();
+  const obj = this.toObject({ virtuals: true });
   delete obj.__v;
+  if (!obj.fullName) {
+    obj.fullName = obj.invitedName || obj.userId?.name || '';
+  }
   return obj;
 };
 
@@ -89,28 +96,49 @@ export async function migrateMembershipIndexes() {
     try {
       existingIndexes = await collection.indexes();
     } catch {
-      // Collection may not exist yet
+      // Collection may not exist yet in fresh database
       return;
     }
 
-    const legacyIndex = existingIndexes.find(
-      (idx) => idx.name === 'organisationId_1_userId_1'
-    );
+    // Inspect all indexes and drop any index on { organisationId: 1, userId: 1 }
+    // that lacks the partialFilterExpression { userId: { $type: 'objectId' } }
+    for (const idx of existingIndexes) {
+      const keys = idx.key || {};
+      const isOrgUserIndex = keys.organisationId === 1 && keys.userId === 1;
+      if (isOrgUserIndex) {
+        const isPartialObjectId = idx.partialFilterExpression?.userId?.$type === 'objectId';
+        if (!isPartialObjectId) {
+          try {
+            console.log(`[Membership Index Migration] Dropping legacy non-partial index: ${idx.name}`);
+            await collection.dropIndex(idx.name);
+            console.log(`[Membership Index Migration] Successfully dropped legacy index: ${idx.name}`);
+          } catch (dropErr) {
+            console.warn(`[Membership Index Migration] Drop index note: ${dropErr.message}`);
+          }
+        }
+      }
 
-    // If legacy index exists without partialFilterExpression matching objectId
-    if (legacyIndex && (!legacyIndex.partialFilterExpression || legacyIndex.partialFilterExpression.userId?.$type !== 'objectId')) {
-      try {
-        await collection.dropIndex('organisationId_1_userId_1');
-      } catch (dropErr) {
-        // Ignore if already dropped concurrently
+      // Also check { organisationId: 1, invitedEmail: 1 }
+      const isOrgEmailIndex = keys.organisationId === 1 && keys.invitedEmail === 1;
+      if (isOrgEmailIndex) {
+        const isPartialEmail = idx.partialFilterExpression?.invitedEmail?.$type === 'string';
+        if (!isPartialEmail) {
+          try {
+            console.log(`[Membership Index Migration] Dropping legacy non-partial index: ${idx.name}`);
+            await collection.dropIndex(idx.name);
+            console.log(`[Membership Index Migration] Successfully dropped legacy index: ${idx.name}`);
+          } catch (dropErr) {
+            console.warn(`[Membership Index Migration] Drop index note: ${dropErr.message}`);
+          }
+        }
       }
     }
 
-    // Synchronize current schema indexes with partial unique definitions
+    // Rebuild/sync indexes with partial unique definitions
     await Membership.syncIndexes();
+    console.log('[Membership Index Migration] Membership partial unique indexes verified and synchronized successfully.');
   } catch (error) {
-    // Non-blocking warning on startup/migration
-    console.warn(`[Membership Index Migration] Notice: ${error.message}`);
+    console.warn(`[Membership Index Migration] Non-blocking migration warning: ${error.message}`);
   }
 }
 

@@ -44,6 +44,9 @@ export async function connectDB() {
       minPoolSize: 2,
       socketTimeoutMS: 45000,
     });
+
+    // Run index migrations immediately upon connection to drop legacy unique indexes
+    await migrateMembershipIndexes();
   } catch (error) {
     logger.warn(`Initial MongoDB connection failed (${error.message}). Retrying in 5 seconds...`);
     setTimeout(() => {
