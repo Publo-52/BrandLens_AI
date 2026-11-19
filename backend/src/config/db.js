@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import dns from 'node:dns';
 import { config } from './env.js';
 import { logger } from '../utils/logger.js';
+import { migrateMembershipIndexes } from '../modules/members/membership.model.js';
 
 // Ensure reliable SRV DNS resolution on Windows environments (do not override Linux container resolver)
 if (process.platform === 'win32') {
@@ -23,6 +24,7 @@ export async function connectDB() {
     mongoose.connection.on('connected', () => {
       isConnected = true;
       logger.info('MongoDB connection established successfully.');
+      migrateMembershipIndexes().catch(() => {});
     });
 
     mongoose.connection.on('error', (err) => {

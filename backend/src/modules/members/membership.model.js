@@ -57,7 +57,7 @@ const membershipSchema = new mongoose.Schema(
   }
 );
 
-// Unique compound indexes
+// Unique compound indexes: partialFilterExpression allows multiple pending INVITED records with userId: null
 membershipSchema.index(
   { organisationId: 1, userId: 1 },
   { unique: true, partialFilterExpression: { userId: { $type: 'objectId' } } }
@@ -75,4 +75,43 @@ membershipSchema.methods.toJSON = function () {
 };
 
 export const Membership = mongoose.models.Membership || mongoose.model('Membership', membershipSchema);
+
+/**
+ * Migration helper to drop legacy non-partial organisationId_1_userId_1 index if it exists,
+ * allowing multiple pending INVITED records with userId: null per workspace.
+ */
+export async function migrateMembershipIndexes() {
+  try {
+    const collection = Membership.collection;
+    if (!collection) return;
+
+    let existingIndexes = [];
+    try {
+      existingIndexes = await collection.indexes();
+    } catch {
+      // Collection may not exist yet
+      return;
+    }
+
+    const legacyIndex = existingIndexes.find(
+      (idx) => idx.name === 'organisationId_1_userId_1'
+    );
+
+    // If legacy index exists without partialFilterExpression matching objectId
+    if (legacyIndex && (!legacyIndex.partialFilterExpression || legacyIndex.partialFilterExpression.userId?.$type !== 'objectId')) {
+      try {
+        await collection.dropIndex('organisationId_1_userId_1');
+      } catch (dropErr) {
+        // Ignore if already dropped concurrently
+      }
+    }
+
+    // Synchronize current schema indexes with partial unique definitions
+    await Membership.syncIndexes();
+  } catch (error) {
+    // Non-blocking warning on startup/migration
+    console.warn(`[Membership Index Migration] Notice: ${error.message}`);
+  }
+}
+
 export default Membership;

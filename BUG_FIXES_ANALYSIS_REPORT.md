@@ -233,3 +233,25 @@ All identified bugs have been addressed, unit/build-tested, and verified against
 
 12. **`frontend/src/components/layout/Navbar.jsx`**
     - Corrected `+ + Create Workspace` button text in workspace switcher dropdown to `Create Workspace`.
+
+---
+
+## Round 5 — Unregistered Collaborator Unique Indexes & Audit Filter Pill Fixes
+
+> **Date Completed:** November 19, 2026  
+> **Status:** Verified and passed across MongoDB index migrations, membership invitation flows, and audit trail telemetry.
+
+### 1. Partial Unique Index & Legacy Index Drop for Unregistered Collaborator Invites
+- **Files Modified:** `backend/src/modules/members/membership.model.js`, `backend/src/modules/organisations/workspace.routes.js`, `backend/src/server.js`, `backend/src/config/db.js`
+- **Issue:** Inviting multiple unregistered users to the same workspace triggered MongoDB `E11000 duplicate key error` on `{ organisationId: 1, userId: 1 }` (dup key: `{ organisationId: ObjectId(...), userId: null }`), returning HTTP 409 "A record with this unique value already exists".
+- **Resolution:**
+  - Configured `{ organisationId: 1, userId: 1 }` with `partialFilterExpression: { userId: { $type: 'objectId' } }` so multiple pending `INVITED` records with `userId: null` are allowed per workspace, while `{ organisationId: 1, invitedEmail: 1 }` with `partialFilterExpression: { invitedEmail: { $type: 'string' } }` prevents duplicate invitations for the same email.
+  - Implemented `migrateMembershipIndexes()` invoked on server and database connection startup that dynamically detects and drops the legacy non-partial `organisationId_1_userId_1` index from MongoDB and synchronizes the new partial unique indexes.
+  - In `workspace.routes.js`, extracted `name` from `req.body` and persisted `invitedName` on pending membership records, ensuring the invited collaborator's entered Full Name renders cleanly in the Settings collaborator roster.
+
+### 2. Intakes Filter Pill Count Synchronization (`#audit`)
+- **Files Modified:** `frontend/src/pages/AuditPage.jsx`
+- **Issue:** The `Intakes` filter pill displayed `0` while the `Content Intakes` summary card directly above it showed the real count.
+- **Resolution:**
+  - Synchronized the filter pill count to `telemetry.intakes`, matching the summary card.
+  - Updated `filteredLogs` so selecting `CONTENT_CREATED` matches all intake actions (`CONTENT_CREATED`, `CONTENT_INTAKE`, `VERSION_CREATED`), aligning the filter list with the summary counter.

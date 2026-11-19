@@ -3,10 +3,12 @@ import app from './app.js';
 import { config } from './config/env.js';
 import { connectDB } from './config/db.js';
 import { logger } from './utils/logger.js';
+import { migrateMembershipIndexes } from './modules/members/membership.model.js';
 
 async function startServer() {
   // Connect to database (graceful fallback if DB is not yet running)
   await connectDB();
+  await migrateMembershipIndexes();
 
   const server = app.listen(config.port, '0.0.0.0', () => {
     logger.info(`BrandLens AI Backend running on port ${config.port} on 0.0.0.0 (${config.env})`);

@@ -113,7 +113,7 @@ router.post(
   requireWorkspaceRole([ROLES.ADMIN]),
   async (req, res, next) => {
     try {
-      const { email, role = ROLES.CREATOR } = req.body;
+      const { email, role = ROLES.CREATOR, name } = req.body;
       const { organisationId } = req.params;
 
       if (!email || !email.trim()) {
@@ -139,6 +139,11 @@ router.post(
       const existingUser = await User.findOne({ email: normalizedEmail });
 
       if (existingUser) {
+        if (name && name.trim() && (!existingUser.name || existingUser.name === normalizedEmail.split('@')[0])) {
+          existingUser.name = name.trim();
+          await existingUser.save();
+        }
+
         // Check if membership already exists for this user in this workspace
         let membership = await Membership.findOne({
           organisationId,
@@ -158,6 +163,8 @@ router.post(
           // Reactivate suspended or previously invited membership
           membership.status = MEMBERSHIP_STATUS.ACTIVE;
           membership.role = role;
+          if (name && name.trim()) membership.invitedName = name.trim();
+          membership.invitedEmail = normalizedEmail;
           await membership.save();
         } else {
           membership = await Membership.create({
@@ -165,6 +172,8 @@ router.post(
             userId: existingUser._id,
             role,
             status: MEMBERSHIP_STATUS.ACTIVE,
+            invitedName: name ? name.trim() : '',
+            invitedEmail: normalizedEmail,
           });
         }
 
@@ -189,11 +198,13 @@ router.post(
       if (pendingMembership) {
         pendingMembership.role = role;
         pendingMembership.status = MEMBERSHIP_STATUS.INVITED;
+        if (name && name.trim()) pendingMembership.invitedName = name.trim();
         await pendingMembership.save();
       } else {
         pendingMembership = await Membership.create({
           organisationId,
           invitedEmail: normalizedEmail,
+          invitedName: name ? name.trim() : '',
           userId: null,
           role,
           status: MEMBERSHIP_STATUS.INVITED,

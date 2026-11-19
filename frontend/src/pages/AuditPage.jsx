@@ -157,10 +157,18 @@ export function AuditPage() {
     return { total, approvals, overrides, reviews, intakes };
   }, [logs, contents]);
 
+  const INTAKE_ACTIONS = new Set([
+    'CONTENT_CREATED',
+    'CONTENT_INTAKE',
+    'VERSION_CREATED',
+  ]);
+
   const filteredLogs = useMemo(() => {
     return logs.filter((log) => {
       if (actionFilter === 'APPROVAL_DECISION') {
         if (!APPROVAL_ACTIONS.has(log.action)) return false;
+      } else if (actionFilter === 'CONTENT_CREATED') {
+        if (!INTAKE_ACTIONS.has(log.action)) return false;
       } else if (actionFilter !== 'ALL' && log.action !== actionFilter) {
         return false;
       }
@@ -417,11 +425,11 @@ export function AuditPage() {
 
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0">
           {[
-            { id: 'ALL', label: 'All Events', count: logs.length },
+            { id: 'ALL', label: 'All Events', count: telemetry.total },
             { id: 'APPROVAL_DECISION', label: 'Approvals', count: telemetry.approvals },
             { id: 'FINDING_DECISION', label: 'Overrides', count: telemetry.overrides },
             { id: 'REVIEW_RUN', label: 'Reviews', count: telemetry.reviews },
-            { id: 'CONTENT_CREATED', label: 'Intakes', count: logs.filter(l => l.action === 'CONTENT_CREATED').length },
+            { id: 'CONTENT_CREATED', label: 'Intakes', count: telemetry.intakes },
           ].map((f) => {
             const active = actionFilter === f.id;
             return (
