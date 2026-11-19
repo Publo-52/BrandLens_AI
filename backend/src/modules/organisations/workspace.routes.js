@@ -113,9 +113,9 @@ router.post(
   requireWorkspaceRole([ROLES.ADMIN]),
   async (req, res, next) => {
     try {
-      const { email, role = ROLES.CREATOR, name, fullName } = req.body;
+      const { email, role = ROLES.CREATOR, name, fullName, invitedName } = req.body;
       const { organisationId } = req.params;
-      const enteredName = (fullName || name || '').trim();
+      const enteredName = (invitedName || fullName || name || '').trim();
 
       if (!email || !email.trim()) {
         return res.status(400).json({
@@ -188,6 +188,7 @@ router.post(
             ...populated.toJSON(),
             invitedName: enteredName || populated.invitedName,
             fullName: enteredName || populated.fullName || populated.invitedName,
+            name: enteredName || populated.name || populated.invitedName,
           },
           status: 'ACTIVE',
           message: `Active membership created for ${normalizedEmail}.`,
@@ -225,6 +226,7 @@ router.post(
           ...populatedPending.toJSON(),
           invitedName: enteredName || populatedPending.invitedName,
           fullName: enteredName || populatedPending.fullName || populatedPending.invitedName,
+          name: enteredName || populatedPending.name || populatedPending.invitedName,
         },
         status: 'INVITED',
         message: `Invitation sent to ${normalizedEmail}. Workspace access will activate upon sign up.`,
@@ -343,9 +345,20 @@ router.get(
         .populate('userId', 'name email firebaseUid avatarUrl isActive')
         .sort({ createdAt: 1 });
 
+      const serializedMembers = members.map((m) => {
+        const obj = m.toJSON ? m.toJSON() : m.toObject ? m.toObject({ virtuals: true }) : { ...m };
+        const invName = m.invitedName || obj.invitedName || '';
+        return {
+          ...obj,
+          invitedName: invName,
+          fullName: obj.fullName || invName || obj.userId?.name || '',
+          name: obj.name || invName || obj.fullName || obj.userId?.name || '',
+        };
+      });
+
       res.json({
         success: true,
-        members,
+        members: serializedMembers,
       });
     } catch (error) {
       next(error);

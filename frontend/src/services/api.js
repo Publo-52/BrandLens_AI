@@ -187,20 +187,27 @@ export const api = {
     });
   },
 
-  async inviteMember(orgId, { email, role, name, fullName }, token) {
-    const enteredName = (fullName || name || '').trim();
+  async inviteMember(orgId, { email, role, name, fullName, invitedName }, token) {
+    const enteredName = (invitedName || fullName || name || '').trim();
+    const payload = {
+      email: (email || '').trim(),
+      role,
+      name: enteredName,
+      fullName: enteredName,
+      invitedName: enteredName,
+    };
     try {
       return await request(`${API_BASE}/api/workspaces/${orgId}/invite`, {
         method: 'POST',
         headers: getHeaders(token, orgId),
-        body: JSON.stringify({ email, role, name: enteredName, fullName: enteredName }),
+        body: JSON.stringify(payload),
       });
     } catch (err) {
       if (err.status !== 404) throw err;
       return await request(`${API_BASE}/api/organisations/${orgId}/members`, {
         method: 'POST',
         headers: getHeaders(token, orgId),
-        body: JSON.stringify({ email, role, name: enteredName, fullName: enteredName }),
+        body: JSON.stringify(payload),
       });
     }
   },

@@ -16,9 +16,20 @@ router.get('/', authenticate, requireOrgAccess(), async (req, res, next) => {
       .populate('userId', 'name email firebaseUid isActive')
       .sort({ createdAt: -1 });
 
+    const serializedMembers = members.map((m) => {
+      const obj = m.toJSON ? m.toJSON() : m.toObject ? m.toObject({ virtuals: true }) : { ...m };
+      const invName = m.invitedName || obj.invitedName || '';
+      return {
+        ...obj,
+        invitedName: invName,
+        fullName: obj.fullName || invName || obj.userId?.name || '',
+        name: obj.name || invName || obj.fullName || obj.userId?.name || '',
+      };
+    });
+
     res.json({
       success: true,
-      members,
+      members: serializedMembers,
     });
   } catch (error) {
     next(error);
@@ -28,8 +39,8 @@ router.get('/', authenticate, requireOrgAccess(), async (req, res, next) => {
 // POST /api/organisations/:organisationId/members - Add or invite member by email
 router.post('/', authenticate, requireOrgAccess([ROLES.ADMIN, ROLES.MANAGER]), async (req, res, next) => {
   try {
-    const { email, role = ROLES.CREATOR, name, fullName } = req.body;
-    const enteredName = (fullName || name || '').trim();
+    const { email, role = ROLES.CREATOR, name, fullName, invitedName } = req.body;
+    const enteredName = (invitedName || fullName || name || '').trim();
 
     if (!email) {
       return res.status(400).json({
@@ -108,6 +119,7 @@ router.post('/', authenticate, requireOrgAccess([ROLES.ADMIN, ROLES.MANAGER]), a
         ...populated.toJSON(),
         invitedName: enteredName || populated.invitedName,
         fullName: enteredName || populated.fullName || populated.invitedName,
+        name: enteredName || populated.name || populated.invitedName,
       },
     });
   } catch (error) {

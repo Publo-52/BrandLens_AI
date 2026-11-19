@@ -88,13 +88,22 @@ export function SettingsPage() {
     setError(null);
     setSuccessMsg(null);
 
+    const trimmedName = inviteName.trim();
+    const trimmedEmail = inviteEmail.trim().toLowerCase();
+
     try {
       await api.inviteMember(
         activeOrg._id,
-        { email: inviteEmail, name: inviteName, fullName: inviteName, role: inviteRole },
+        {
+          email: trimmedEmail,
+          name: trimmedName,
+          fullName: trimmedName,
+          invitedName: trimmedName,
+          role: inviteRole,
+        },
         token
       );
-      setSuccessMsg(`Successfully added ${inviteEmail} as ${inviteRole}!`);
+      setSuccessMsg(`Successfully added ${trimmedEmail} as ${inviteRole}!`);
       setInviteEmail('');
       setInviteName('');
       setInviteRole('CREATOR');
@@ -424,11 +433,12 @@ export function SettingsPage() {
                     (u?.email && user?.email && u.email.toLowerCase() === user.email.toLowerCase())
                 );
                 const nameDisplay =
-                  (u?.name && !u.name.includes('@') && u.name !== m.invitedEmail?.split('@')[0] ? u.name : null) ||
+                  m.userId?.name ||
                   m.invitedName ||
                   m.fullName ||
-                  u?.name ||
-                  (m.invitedEmail ? m.invitedEmail.split('@')[0] : 'Pending Teammate');
+                  m.name ||
+                  m.invitedEmail?.split('@')[0] ||
+                  'Pending Teammate';
                 const emailDisplay = u?.email || m.invitedEmail || '—';
                 const initial = nameDisplay ? nameDisplay.charAt(0).toUpperCase() : 'U';
                 const isInvited = m.status === 'INVITED';

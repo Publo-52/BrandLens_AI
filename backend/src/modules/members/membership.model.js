@@ -54,6 +54,8 @@ const membershipSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
   }
 );
 
@@ -72,12 +74,16 @@ membershipSchema.virtual('fullName').get(function () {
   return this.invitedName || this.userId?.name || '';
 });
 
+membershipSchema.virtual('name').get(function () {
+  return this.invitedName || this.userId?.name || '';
+});
+
 membershipSchema.methods.toJSON = function () {
   const obj = this.toObject({ virtuals: true });
   delete obj.__v;
-  if (!obj.fullName) {
-    obj.fullName = obj.invitedName || obj.userId?.name || '';
-  }
+  obj.invitedName = this.invitedName || obj.invitedName || '';
+  obj.fullName = obj.fullName || this.invitedName || obj.invitedName || obj.userId?.name || '';
+  obj.name = obj.name || this.invitedName || obj.fullName || obj.userId?.name || '';
   return obj;
 };
 

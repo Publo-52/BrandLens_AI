@@ -324,3 +324,52 @@ All identified bugs have been addressed, unit/build-tested, and verified against
    - Index Migration & Multi-Unregistered Invite Test: `node --test backend/tests/index-migration.test.js` passed (1/1 pass, 0 fail).
    - Document & Visual Extraction Service Tests: `node --test backend/tests/extraction.test.js` passed (4/4 pass, 0 fail).
 
+---
+
+## Round 7 — Full Name Display for Pending Invited Collaborators in Settings
+
+> **Date Completed:** November 19, 2026  
+> **Status:** Fully resolved and verified with automated test (`backend/tests/invite-fullname.test.js`).
+
+### 1. Frontend Invite Payload & Roster Rendering (`#settings`)
+- **Files Modified:** `frontend/src/pages/SettingsPage.jsx`, `frontend/src/services/api.js`
+- **Issue:** Pending invited collaborators with `userId: null` could fall back to email prefixes if `invitedName` was not consistently propagated in the payload or rendered in the table.
+- **Resolution:**
+  - In `SettingsPage.jsx` `handleInvite`, trimmed `inviteName` and `inviteEmail` and ensured the invite API call dispatches `{ email: trimmedEmail, name: trimmedName, fullName: trimmedName, invitedName: trimmedName, role: inviteRole }`.
+  - In `api.js` `inviteMember`, explicitly structured `payload` to contain `name: enteredName`, `fullName: enteredName`, and `invitedName: enteredName` for both `/api/workspaces/:orgId/invite` and `/api/organisations/:orgId/members`.
+  - In the Collaborators roster table (`SettingsPage.jsx`), updated name resolution to:
+    ```jsx
+    const nameDisplay =
+      member.userId?.name ||
+      member.invitedName ||
+      member.fullName ||
+      member.name ||
+      member.invitedEmail?.split('@')[0] ||
+      'Pending Teammate';
+    ```
+
+### 2. Backend Schema, Serializers, and Endpoints
+- **Files Modified:** `backend/src/modules/members/membership.model.js`, `backend/src/modules/organisations/workspace.routes.js`, `backend/src/modules/members/membership.routes.js`
+- **Issue:** Endpoint parameters and serialization needed to guarantee `invitedName`, `fullName`, and `name` are always present when returning member lists.
+- **Resolution:**
+  - In `membership.model.js`, enabled `{ toJSON: { virtuals: true }, toObject: { virtuals: true } }` on `membershipSchema`.
+  - Added virtuals for `fullName` and `name` returning `this.invitedName || this.userId?.name || ''`.
+  - In `membership.methods.toJSON`, attached `invitedName`, `fullName`, and `name`.
+  - In `workspace.routes.js` and `membership.routes.js`, accepted `req.body.invitedName || req.body.fullName || req.body.name`, persisted `invitedName`, and explicitly mapped returned member records in `GET /members` and `POST /invite` to include `invitedName`, `fullName`, and `name`.
+
+### 3. Verification Evidence
+- **Automated Integration Test:** `backend/tests/invite-fullname.test.js`
+  - Created a test organization and invited an unregistered collaborator with Full Name `"Test User"`.
+  - Verified `pendingMembership.invitedName === "Test User"` and `pendingMembership.userId === null`.
+  - Verified `serialized.invitedName === "Test User"`, `serialized.fullName === "Test User"`, and `serialized.name === "Test User"`.
+  - Evaluated the frontend roster rendering expression:
+    `const nameDisplay = member.userId?.name || member.invitedName || member.fullName || member.name || member.invitedEmail?.split('@')[0];`
+  - Confirmed `nameDisplay === "Test User"` and `nameDisplay !== "test.user"`.
+  - Test result:
+    ```
+    ✔ Invite unregistered collaborator with Full Name "Test User" and verify table rendering (3936.7648ms)
+    ℹ tests 1 | suites 0 | pass 1 | fail 0
+    ```
+- **Production Frontend Build:** `npm run build --prefix frontend` built in 6.25s with 0 errors.
+
+
