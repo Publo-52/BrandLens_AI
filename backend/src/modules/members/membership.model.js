@@ -34,6 +34,11 @@ const membershipSchema = new mongoose.Schema(
       default: null,
       index: true,
     },
+    invitedName: {
+      type: String,
+      trim: true,
+      default: '',
+    },
     role: {
       type: String,
       enum: Object.values(ROLES),

@@ -31,7 +31,7 @@ router.post('/approval-request', authenticate, requireOrgAccess(), async (req, r
       action: 'APPROVAL_REQUESTED',
       entityType: 'CONTENT',
       entityId: String(contentId),
-      details: { versionNumber: content.currentVersionNumber },
+      details: { title: content.title, versionNumber: content.currentVersionNumber },
     });
 
     res.json({
@@ -93,6 +93,9 @@ router.post('/decision', authenticate, requireOrgAccess([ROLES.ADMIN, ROLES.MANA
       entityId: String(contentId),
       reason: reason?.trim() || '',
       details: {
+        title: content.title,
+        decision,
+        reason: reason?.trim() || '',
         versionNumber: content.currentVersionNumber,
         approverName: req.user.name,
         approverRole: req.membership.role,
@@ -158,6 +161,19 @@ router.post('/comments', authenticate, requireOrgAccess(), async (req, res, next
 
     const populated = await Comment.findById(comment._id).populate('authorId', 'name email');
 
+    await AuditLog.create({
+      organisationId,
+      actorId: req.user._id,
+      action: 'COMMENT_ADDED',
+      entityType: 'CONTENT',
+      entityId: String(contentId),
+      details: {
+        title: content.title,
+        body: body.trim(),
+        versionNumber: content.currentVersionNumber,
+      },
+    });
+
     res.status(201).json({
       success: true,
       comment: populated,
@@ -203,6 +219,7 @@ router.post('/publish', authenticate, requireOrgAccess([ROLES.ADMIN, ROLES.MANAG
       entityType: 'CONTENT',
       entityId: String(contentId),
       details: {
+        title: content.title,
         destination: destination || 'Live Production Hub',
         liveUrl: liveUrl || `https://publish.brandlens.ai/p/${contentId}`,
         certificateId: certId,

@@ -161,3 +161,75 @@ All identified bugs have been addressed, unit/build-tested, and verified against
    Access-Control-Allow-Origin: https://brand-lens-ai-ten.vercel.app
    Access-Control-Allow-Headers: Content-Type, Authorization, x-organisation-id
    ```
+
+---
+
+## Round 4 — Verified UI, Data-Sync, and UX Enhancements
+
+> **Date Completed:** November 19, 2026  
+> **Status:** All 6 verified UI/data-sync issues resolved and validated across frontend and backend.  
+> **Vite Production Build:** Passed (9.01s, 0 errors)  
+> **Backend Unit Tests:** Passed (4/4 test suites green)  
+
+### Summary of Round 4 Fixes
+
+| Item | Component | Issue Description | Root Cause | Resolution | Status |
+|------|-----------|-------------------|------------|------------|--------|
+| **1** | **Audit Passport (`#audit`)** | Pre-publication certificate modal and exports showed 0 for checks analyzed, deterministic rules, and AI grounded checks. | Findings were not resolved from latest review or version records; partition logic lacked type/method classification. | Added latest review fallback in `content.routes.js`, updated `buildCertificatePayload` to search all review/version sources, and cleanly partitioned deterministic rules (terminology, contrast, alt-text, accessibility) vs. AI grounded checks (tone, claims). Added loading skeleton. | **Fixed** |
+| **2** | **Audit Trail Metadata (`#audit`)** | Cards showed `Target Scoped: #N/A` with empty gray boxes; top counters showed 0. | Card template referenced `log.targetType`/`log.targetId` instead of Mongoose `log.entityType`/`log.entityId`; `REVIEW_RUN`, `CONTENT_CREATED`, and `FINDING_DECISION` lacked server-side audit logs. | Added server-side audit logs in `content.routes.js` and `approval.routes.js`. Mapped real entity types/IDs and titles in `AuditPage.jsx`, rendered rich metadata (title, decision, justification, rule, comment), prevented empty gray boxes, and computed telemetry across 5 responsive cards. | **Fixed** |
+| **3** | **Review Modal (`#review`)** | "Edit & Customize Fix" modal remained open after clicking "Apply Edited Fix to Draft". | Modal state reset was executed after asynchronous network calls without immediate closure upon working draft update. | Immediately closed modal and cleared input state upon updating `workingText`, providing instant UI feedback while persisting the decision in background. | **Fixed** |
+| **4** | **Auth Tab Sync (`/login`)** | Toggling Sign In / Create Account tabs did not synchronize URL query parameter (`?mode=signin` / `?mode=signup`) or highlight state. | Tab click handler only modified local React state without updating browser URL or listening to navigation events. | Added `handleModeChange` utilizing `history.replaceState`, added `popstate` navigation listener, and updated high-contrast tab active indicator styles. | **Fixed** |
+| **5** | **Dashboard & Knowledge Polish (`#dashboard`, `#knowledge`)** | KPI cards showed `—` dashes; Seed Demo Pack lacked in-flight spinner and omitted visual assets count; button displayed truncated `+ Add terminolog`. | Static dashes used instead of animated skeletons; `handleSeedDemo` omitted assets count; `'terminology'.slice(0, -1)` truncated last letter. | Replaced dashes with animated loading skeletons and numeric 0 fallback; added `seedingDemo` loading spinner and disabled state; included visual assets in success banner; implemented `getAddLabel()` cleanly rendering `+ Add Terminology`. | **Fixed** |
+| **6** | **Settings & Switcher Polish (`#settings`)** | Non-admins could edit invite inputs; invited teammates showed email prefixes instead of full names; top bar had `+ + Create Workspace` typo. | Invite form inputs lacked `!isAdmin` disablement; `invitedName` was not saved on `Membership`; Navbar had both icon and plus symbol. | Added `disabled={!isAdmin}` with admin-only helper note; added `invitedName` to `Membership` schema and routes; resolved full entered names in roster table; fixed double plus typo in `Navbar.jsx`. | **Fixed** |
+
+---
+
+### File Modifications Summary (Round 4)
+
+1. **`backend/src/modules/members/membership.model.js`**
+   - Added `invitedName: { type: String, trim: true, default: '' }` to persist collaborator full name.
+
+2. **`backend/src/modules/members/membership.routes.js`**
+   - In `POST /`, persisted provided `name` into user record and saved `invitedName` on `Membership`.
+
+3. **`backend/src/modules/approvals/approval.routes.js`**
+   - Injected content `title` into audit log details for `APPROVAL_REQUESTED`, `DECISION_APPROVED`, `DECISION_REJECTED`, and `CONTENT_PUBLISHED`.
+   - Added tamper-evident audit logging for `COMMENT_ADDED` with author and content details.
+
+4. **`backend/src/modules/contents/content.routes.js`**
+   - Added `AuditLog.create` for `CONTENT_CREATED` and automated `REVIEW_RUN`.
+   - In `GET /:contentId`, added fallback lookup for `latestReview` to ensure findings are always returned.
+   - Added `AuditLog.create` for `VERSION_CREATED` and `REVIEW_RUN` upon revision submissions.
+   - Added `AuditLog.create` for `FINDING_DECISION` recording finding type, term, decision status, and justification reason.
+
+5. **`frontend/src/utils/certificate.js`**
+   - Enhanced `buildCertificatePayload` to search `review.findings`, `content.findings`, `content.latestReview.findings`, and `content.currentVersionId.findings`.
+   - Partitioned findings into exact sets: `deterministicChecks` (Terminology, Contrast, Alt-Text, Accessibility) and `aiChecks` (Tone, Factual Claims, Grounded Substantiation).
+
+6. **`frontend/src/pages/AuditPage.jsx`**
+   - Added `loadingCertReview` spinner state when loading review findings for pre-publication certificate.
+   - Expanded Telemetry strip to 5 responsive cards (`Total Logged Events`, `Compliance Passes`, `Reviews Analyzed`, `Content Intakes`, `Human Overrides`) with content fallback.
+   - Mapped `entityType` and `entityId`, resolved real content titles, rendered rich metadata cards, and eliminated empty gray boxes.
+
+7. **`frontend/src/pages/ReviewPage.jsx`**
+   - In `handleApplyEditedFix`, immediately closed the edit modal and reset form state upon applying replacement to `workingText`.
+
+8. **`frontend/src/pages/AuthPage.jsx`**
+   - Added `handleModeChange` syncing `?mode=signin` and `?mode=signup` via `history.replaceState`.
+   - Added `popstate` event listener for browser history navigation.
+   - Styled active tab indicator with `border-indigo-600 text-indigo-600 font-extrabold shadow-[0_1px_0_0_#4f46e5]`.
+
+9. **`frontend/src/pages/DashboardPage.jsx`**
+   - Replaced initial `—` dashes with animated pulse loading skeletons on all 4 Command Center KPI cards, defaulting to numeric `0` when empty.
+
+10. **`frontend/src/pages/KnowledgeBasePage.jsx`**
+    - Added `seedingDemo` state with loading spinner and disabled state for `Seed Demo Pack` button.
+    - Updated success notification to report guidelines, facts, terminology rules, and visual brand assets counts.
+    - Implemented `getAddLabel()` so the button renders `+ Add Terminology` without clipping.
+
+11. **`frontend/src/pages/SettingsPage.jsx`**
+    - Disabled `Invite New Collaborator` input fields and submit button for non-ADMIN users, displaying helper note.
+    - Displayed entered `Full Name` (or `invitedName`) in the collaborator roster rather than `Invited (email_prefix)`.
+
+12. **`frontend/src/components/layout/Navbar.jsx`**
+    - Corrected `+ + Create Workspace` button text in workspace switcher dropdown to `Create Workspace`.

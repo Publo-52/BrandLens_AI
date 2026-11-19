@@ -57,9 +57,41 @@ export function AuthPage({ onAuthSuccess, initialMode = 'signin', onBackToHome }
     return initialMode || 'signin';
   });
 
+  const handleModeChange = (newMode) => {
+    setMode(newMode);
+    resetForm();
+    if (typeof window !== 'undefined') {
+      try {
+        const url = new URL(window.location.href);
+        url.searchParams.set('mode', newMode);
+        window.history.replaceState(null, '', url.pathname + url.search + url.hash);
+      } catch (e) {
+        // Fallback for non-standard environments
+      }
+    }
+  };
+
   useEffect(() => {
-    if (initialMode) setMode(initialMode);
+    if (initialMode && initialMode !== mode) {
+      setMode(initialMode);
+    }
   }, [initialMode]);
+
+  useEffect(() => {
+    const handlePopState = () => {
+      if (typeof window !== 'undefined') {
+        const urlParams = new URLSearchParams(window.location.search);
+        const queryMode = urlParams.get('mode');
+        if (queryMode === 'signup' || queryMode === 'register') {
+          setMode('signup');
+        } else if (queryMode === 'signin' || queryMode === 'login') {
+          setMode('signin');
+        }
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -219,10 +251,10 @@ export function AuthPage({ onAuthSuccess, initialMode = 'signin', onBackToHome }
               <button
                 key={m}
                 type="button"
-                onClick={() => { setMode(m); resetForm(); }}
-                className={`flex-1 pb-3 text-xs font-bold text-center border-b-2 transition-colors cursor-pointer ${
+                onClick={() => handleModeChange(m)}
+                className={`flex-1 pb-3 text-xs font-bold text-center border-b-2 transition-all cursor-pointer ${
                   mode === m
-                    ? 'border-indigo-500 text-indigo-600'
+                    ? 'border-indigo-600 text-indigo-600 font-extrabold shadow-[0_1px_0_0_#4f46e5]'
                     : 'border-transparent text-slate-400 hover:text-slate-700'
                 }`}
               >

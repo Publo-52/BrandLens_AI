@@ -64,6 +64,9 @@ router.post('/', authenticate, requireOrgAccess([ROLES.ADMIN, ROLES.MANAGER]), a
         email: email.toLowerCase().trim(),
         passwordHash: defaultPasswordHash,
       });
+    } else if (name?.trim() && (!user.name || user.name === email.split('@')[0])) {
+      user.name = name.trim();
+      await user.save();
     }
 
     // Check if membership already exists
@@ -82,6 +85,8 @@ router.post('/', authenticate, requireOrgAccess([ROLES.ADMIN, ROLES.MANAGER]), a
       // Re-activate suspended or invited membership
       membership.status = MEMBERSHIP_STATUS.ACTIVE;
       membership.role = role;
+      if (name?.trim()) membership.invitedName = name.trim();
+      membership.invitedEmail = email.toLowerCase().trim();
       await membership.save();
     } else {
       membership = await Membership.create({
@@ -89,6 +94,8 @@ router.post('/', authenticate, requireOrgAccess([ROLES.ADMIN, ROLES.MANAGER]), a
         userId: user._id,
         role,
         status: MEMBERSHIP_STATUS.ACTIVE,
+        invitedName: name?.trim() || '',
+        invitedEmail: email.toLowerCase().trim(),
       });
     }
 

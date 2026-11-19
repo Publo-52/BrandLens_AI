@@ -12,9 +12,14 @@ export function buildCertificatePayload(content, review, org, fallbackUser) {
   const certId = `BL-CERT-${String(content._id).slice(-6).toUpperCase()}-V${versionNumber}-${Date.now().toString(36).toUpperCase().slice(-4)}`;
   const timestamp = content.approvedAt ? new Date(content.approvedAt).toISOString() : new Date().toISOString();
 
-  const findings = review?.findings || [];
-  const deterministicChecks = findings.filter((f) => f.checkMethod === 'DETERMINISTIC');
-  const aiChecks = findings.filter((f) => f.checkMethod !== 'DETERMINISTIC');
+  const findings = review?.findings || content?.findings || content?.latestReview?.findings || content?.currentVersionId?.findings || [];
+  const deterministicChecks = findings.filter(
+    (f) =>
+      f.checkMethod === 'DETERMINISTIC' ||
+      (['TERMINOLOGY', 'CONTRAST_FAIL', 'ALT_TEXT_MISSING', 'ACCESSIBILITY'].includes(f.type) && f.checkMethod !== 'AI')
+  );
+  const deterministicIndices = new Set(deterministicChecks.map((f, idx) => f._id || idx));
+  const aiChecks = findings.filter((f, idx) => !deterministicIndices.has(f._id || idx));
   const criticalCount = findings.filter((f) => f.severity === 'CRITICAL' && f.reviewStatus !== 'ACCEPTED' && f.reviewStatus !== 'EDITED').length;
   const acceptedCount = findings.filter((f) => f.reviewStatus === 'ACCEPTED').length;
   const editedCount = findings.filter((f) => f.reviewStatus === 'EDITED').length;

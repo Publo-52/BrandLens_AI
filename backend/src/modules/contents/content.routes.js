@@ -4,6 +4,7 @@ import { Content, CONTENT_STATUS, CHANNELS } from './content.model.js';
 import { ContentVersion } from './contentVersion.model.js';
 import { Review, REVIEW_STATUS } from '../reviews/review.model.js';
 import { executeReview } from '../reviews/review.service.js';
+import { AuditLog } from '../audit/audit.model.js';
 import { BrandAsset, ASSET_TYPES } from '../assets/asset.model.js';
 import { authenticate, requireOrgAccess } from '../../middleware/auth.js';
 import { validateObjectIdParam } from '../../middleware/security.js';
@@ -166,6 +167,35 @@ router.post('/', authenticate, requireOrgAccess(), uploadRateLimiter, upload.arr
       organisationId: orgId,
     });
 
+    // Record immutable audit logs for Intake & Review
+    await AuditLog.create({
+      organisationId: orgId,
+      actorId: req.user._id,
+      action: 'CONTENT_CREATED',
+      entityType: 'CONTENT',
+      entityId: String(content._id),
+      details: {
+        title: content.title,
+        channel: content.channel,
+        versionNumber: 1,
+        findingsCount: review?.findings?.length || 0,
+      },
+    });
+
+    await AuditLog.create({
+      organisationId: orgId,
+      actorId: req.user._id,
+      action: 'REVIEW_RUN',
+      entityType: 'CONTENT',
+      entityId: String(content._id),
+      details: {
+        title: content.title,
+        versionNumber: 1,
+        findingsCount: review?.findings?.length || 0,
+        executionTimeMs: review?.processingMetadata?.executionTimeMs || 0,
+      },
+    });
+
     const populatedContent = await Content.findById(content._id)
       .populate('createdBy', 'name email')
       .populate('currentVersionId');
@@ -235,10 +265,16 @@ router.get('/:contentId', authenticate, requireOrgAccess(), validateObjectIdPara
       organisationId: req.params.organisationId,
     }).sort({ versionNumber: 1 }).lean();
 
-    const latestReview = await Review.findOne({
+    let latestReview = await Review.findOne({
       contentId: content._id,
-      contentVersionId: content.currentVersionId?._id || versions[versions.length - 1]?._id,
+      contentVersionId: content.currentVersionId?._id || content.currentVersionId || versions[versions.length - 1]?._id,
     }).sort({ createdAt: -1 }).lean();
+
+    if (!latestReview) {
+      latestReview = await Review.findOne({
+        contentId: content._id,
+      }).sort({ createdAt: -1 }).lean();
+    }
 
     res.json({
       success: true,
@@ -302,6 +338,34 @@ router.post('/:contentId/versions', authenticate, requireOrgAccess(), validateOb
       contentId,
       contentVersionId: newVersion._id,
       organisationId,
+    });
+
+    await AuditLog.create({
+      organisationId,
+      actorId: req.user._id,
+      action: 'VERSION_CREATED',
+      entityType: 'CONTENT',
+      entityId: String(contentId),
+      details: {
+        title: content.title,
+        versionNumber: nextVersionNumber,
+        changeSummary: newVersion.changeSummary,
+        findingsCount: review?.findings?.length || 0,
+      },
+    });
+
+    await AuditLog.create({
+      organisationId,
+      actorId: req.user._id,
+      action: 'REVIEW_RUN',
+      entityType: 'CONTENT',
+      entityId: String(contentId),
+      details: {
+        title: content.title,
+        versionNumber: nextVersionNumber,
+        findingsCount: review?.findings?.length || 0,
+        executionTimeMs: review?.processingMetadata?.executionTimeMs || 0,
+      },
     });
 
     res.status(201).json({
@@ -369,6 +433,26 @@ router.patch(
     if (editedText) finding.editedText = editedText.trim();
 
     await review.save();
+
+    const content = await Content.findById(contentId).select('title').lean();
+
+    await AuditLog.create({
+      organisationId,
+      actorId: req.user._id,
+      action: 'FINDING_DECISION',
+      entityType: 'FINDING',
+      entityId: String(findingId),
+      reason: overrideReason?.trim() || rejectionReason?.trim() || '',
+      details: {
+        contentId: String(contentId),
+        title: content?.title || 'Draft Submission',
+        reviewStatus,
+        findingType: finding.type,
+        term: finding.originalText,
+        reason: overrideReason?.trim() || rejectionReason?.trim() || '',
+        editedText: editedText?.trim() || '',
+      },
+    });
 
     res.json({
       success: true,

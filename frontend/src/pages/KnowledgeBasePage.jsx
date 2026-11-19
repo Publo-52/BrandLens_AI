@@ -27,6 +27,7 @@ export function KnowledgeBasePage() {
   const { user, token, activeOrg, activeRole } = useAuth();
   const [activeTab, setActiveTab] = useState('guidelines'); // 'guidelines' | 'facts' | 'terminology' | 'assets'
   const [loading, setLoading] = useState(false);
+  const [seedingDemo, setSeedingDemo] = useState(false);
   const [error, setError] = useState(null);
   const [successMsg, setSuccessMsg] = useState(null);
 
@@ -118,17 +119,33 @@ export function KnowledgeBasePage() {
   }, [showAddModal]);
 
   const handleSeedDemo = async () => {
-    if (!activeOrg?._id || !token) return;
-    setLoading(true);
+    if (!activeOrg?._id || !token || seedingDemo) return;
+    setSeedingDemo(true);
     setError(null);
     try {
       const res = await api.seedDemoBrandPack(activeOrg._id, token);
-      setSuccessMsg(`Brand Pack Seeded! Added ${res.seeded?.guidelines || 0} guidelines, ${res.seeded?.facts || 0} facts, ${res.seeded?.terminology || 0} terminology rules.`);
+      const guidelinesCount = res.seeded?.guidelines || 0;
+      const factsCount = res.seeded?.facts || 0;
+      const termsCount = res.seeded?.terminology || 0;
+      const assetsCount = res.seeded?.assets || 0;
+      setSuccessMsg(
+        `Brand Pack Seeded! Added ${guidelinesCount} guidelines, ${factsCount} facts, ${termsCount} terminology rules, and ${assetsCount} visual brand assets.`
+      );
       await loadData();
     } catch (err) {
-      setError(err.message);
+      setError(err.message || 'Failed to seed demo brand pack');
     } finally {
-      setLoading(false);
+      setSeedingDemo(false);
+    }
+  };
+
+  const getAddLabel = (tab = activeTab) => {
+    switch (tab) {
+      case 'guidelines': return 'Guideline';
+      case 'facts': return 'Fact';
+      case 'terminology': return 'Terminology';
+      case 'assets': return 'Asset';
+      default: return 'Item';
     }
   };
 
@@ -288,21 +305,25 @@ export function KnowledgeBasePage() {
           {canManage && (
             <button
               onClick={handleSeedDemo}
-              disabled={loading}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-700 hover:to-indigo-700 text-white rounded-lg text-xs font-semibold shadow-xs transition-all"
+              disabled={loading || seedingDemo}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-700 hover:to-indigo-700 disabled:opacity-60 disabled:cursor-not-allowed text-white rounded-lg text-xs font-semibold shadow-xs transition-all cursor-pointer"
             >
-              <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-              <span>Seed Demo Pack</span>
+              {seedingDemo ? (
+                <RefreshCw className="w-3.5 h-3.5 animate-spin text-amber-300" />
+              ) : (
+                <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+              )}
+              <span>{seedingDemo ? 'Seeding Demo Pack...' : 'Seed Demo Pack'}</span>
             </button>
           )}
 
           {canManage && (
             <button
               onClick={() => setShowAddModal(true)}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-xs font-semibold shadow-xs transition-colors"
+              className="flex items-center gap-1.5 px-3.5 py-1.5 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-xs font-semibold shadow-xs transition-colors cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
-              <span>Add {activeTab.slice(0, -1)}</span>
+              <span>Add {getAddLabel()}</span>
             </button>
           )}
         </div>
@@ -637,7 +658,7 @@ export function KnowledgeBasePage() {
             className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-lg max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-150"
           >
             <div className="bg-slate-900 p-4 sm:p-5 text-white flex items-center justify-between sticky top-0 z-10 border-b border-slate-800">
-              <h3 className="font-bold text-sm sm:text-base">Add New {activeTab.slice(0, -1)}</h3>
+              <h3 className="font-bold text-sm sm:text-base">Add New {getAddLabel()}</h3>
               <button 
                 type="button"
                 onClick={() => setShowAddModal(false)} 

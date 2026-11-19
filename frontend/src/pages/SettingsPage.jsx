@@ -307,65 +307,73 @@ export function SettingsPage() {
           </button>
         </div>
 
-        {/* Invite Member Form (ADMIN or MANAGER) */}
-        {canManageMembers ? (
-          <form onSubmit={handleInvite} className="p-5 bg-gradient-to-br from-slate-50 to-brand-50/20 border border-slate-200/80 rounded-2xl space-y-3.5">
+        {/* Invite Member Form (ADMIN only) */}
+        <form onSubmit={handleInvite} className="p-5 bg-gradient-to-br from-slate-50 to-brand-50/20 border border-slate-200/80 rounded-2xl space-y-3.5">
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-xs font-bold text-slate-700 uppercase tracking-wider">
               <UserPlus className="w-4 h-4 text-brand-600" />
               <span>Invite New Collaborator</span>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
-              <div className="relative">
-                <User className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                <input
-                  type="text"
-                  placeholder="Full Name"
-                  value={inviteName}
-                  onChange={(e) => setInviteName(e.target.value)}
-                  className="w-full pl-10 pr-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white"
-                />
-              </div>
-
-              <div className="relative">
-                <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                <input
-                  type="email"
-                  required
-                  placeholder="colleague@company.com"
-                  value={inviteEmail}
-                  onChange={(e) => setInviteEmail(e.target.value)}
-                  className="w-full pl-10 pr-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white"
-                />
-              </div>
-
-              <select
-                value={inviteRole}
-                onChange={(e) => setInviteRole(e.target.value)}
-                className="px-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white font-medium text-slate-800"
-              >
-                {ALL_ROLES.map((r) => (
-                  <option key={r} value={r} disabled={r === 'ADMIN' && !isAdmin}>
-                    {r} {r === 'ADMIN' && !isAdmin ? '(Admin only)' : ''}
-                  </option>
-                ))}
-              </select>
-
-              <button
-                type="submit"
-                disabled={inviting}
-                className="px-4 py-2 bg-brand-600 hover:bg-brand-700 disabled:opacity-60 text-white rounded-xl text-xs font-semibold shadow-xs transition-colors flex items-center justify-center gap-1.5"
-              >
-                <UserPlus className="w-3.5 h-3.5" />
-                <span>{inviting ? 'Inviting...' : 'Add to Workspace'}</span>
-              </button>
-            </div>
-          </form>
-        ) : (
-          <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 flex items-center gap-2">
-            <ShieldAlert className="w-4 h-4 shrink-0 text-amber-600" />
-            <span>Workspace Admins and Managers have permission to invite new collaborators.</span>
+            {!isAdmin && (
+              <span className="text-[11px] text-slate-400 font-medium">
+                Admin privilege required to invite collaborators
+              </span>
+            )}
           </div>
-        )}
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+            <div className="relative">
+              <User className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="text"
+                placeholder="Full Name"
+                value={inviteName}
+                disabled={!isAdmin}
+                onChange={(e) => setInviteName(e.target.value)}
+                className="w-full pl-10 pr-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white disabled:bg-slate-100/80 disabled:text-slate-400 disabled:cursor-not-allowed"
+              />
+            </div>
+
+            <div className="relative">
+              <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="email"
+                required
+                placeholder="colleague@company.com"
+                value={inviteEmail}
+                disabled={!isAdmin}
+                onChange={(e) => setInviteEmail(e.target.value)}
+                className="w-full pl-10 pr-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white disabled:bg-slate-100/80 disabled:text-slate-400 disabled:cursor-not-allowed"
+              />
+            </div>
+
+            <select
+              value={inviteRole}
+              disabled={!isAdmin}
+              onChange={(e) => setInviteRole(e.target.value)}
+              className="px-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white font-medium text-slate-800 disabled:bg-slate-100/80 disabled:text-slate-400 disabled:cursor-not-allowed"
+            >
+              {ALL_ROLES.map((r) => (
+                <option key={r} value={r} disabled={r === 'ADMIN' && !isAdmin}>
+                  {r} {r === 'ADMIN' && !isAdmin ? '(Admin only)' : ''}
+                </option>
+              ))}
+            </select>
+
+            <button
+              type="submit"
+              disabled={!isAdmin || inviting}
+              className="px-4 py-2 bg-brand-600 hover:bg-brand-700 disabled:opacity-50 disabled:bg-slate-300 disabled:cursor-not-allowed text-white rounded-xl text-xs font-semibold shadow-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              <UserPlus className="w-3.5 h-3.5" />
+              <span>{inviting ? 'Inviting...' : 'Add to Workspace'}</span>
+            </button>
+          </div>
+          {!isAdmin && (
+            <p className="text-[11px] text-slate-400 mt-1.5">
+              Only workspace Admins have permission to invite new collaborators and assign roles.
+            </p>
+          )}
+        </form>
 
         {/* Member Table */}
         <div className="overflow-x-auto rounded-xl border border-slate-200/80">
@@ -393,7 +401,7 @@ export function SettingsPage() {
                     (u?.firebaseUid && user?.firebaseUid && u.firebaseUid === user.firebaseUid) ||
                     (u?.email && user?.email && u.email.toLowerCase() === user.email.toLowerCase())
                 );
-                const nameDisplay = u?.name || (m.invitedEmail ? `Invited (${m.invitedEmail.split('@')[0]})` : 'Pending Teammate');
+                const nameDisplay = m.invitedName || (u?.name && !u.name.includes('@') ? u.name : null) || u?.name || (m.invitedEmail ? m.invitedEmail.split('@')[0] : 'Pending Teammate');
                 const emailDisplay = u?.email || m.invitedEmail || '—';
                 const initial = nameDisplay ? nameDisplay.charAt(0).toUpperCase() : 'U';
                 const isInvited = m.status === 'INVITED';

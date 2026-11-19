@@ -187,7 +187,11 @@ export function DashboardPage({ onNavigate }) {
             </div>
           </div>
           <div className="text-3xl font-extrabold text-slate-900 mt-2 font-mono">
-            {loading && contents.length === 0 ? '—' : stats.inReview}
+            {loading && contents.length === 0 ? (
+              <div className="h-9 w-16 bg-slate-200/80 animate-pulse rounded-lg my-1" />
+            ) : (
+              stats.inReview ?? 0
+            )}
           </div>
           <div className="text-[11px] text-amber-600 font-semibold mt-2 flex items-center gap-1">
             <span>Awaiting Reviewer sign-off</span>
@@ -210,7 +214,11 @@ export function DashboardPage({ onNavigate }) {
             </div>
           </div>
           <div className="text-3xl font-extrabold text-slate-900 mt-2 font-mono">
-            {loading && contents.length === 0 ? '—' : stats.totalDrafts}
+            {loading && contents.length === 0 ? (
+              <div className="h-9 w-16 bg-slate-200/80 animate-pulse rounded-lg my-1" />
+            ) : (
+              stats.totalDrafts ?? 0
+            )}
           </div>
           <div className="text-[11px] text-slate-500 font-medium mt-2 flex items-center gap-1">
             <span>Documents in workspace</span>
@@ -233,7 +241,11 @@ export function DashboardPage({ onNavigate }) {
             </div>
           </div>
           <div className="text-3xl font-extrabold text-emerald-600 mt-2 font-mono">
-            {loading && contents.length === 0 ? '—' : stats.approved}
+            {loading && contents.length === 0 ? (
+              <div className="h-9 w-16 bg-emerald-100/70 animate-pulse rounded-lg my-1" />
+            ) : (
+              stats.approved ?? 0
+            )}
           </div>
           <div className="text-[11px] text-emerald-600 font-semibold mt-2 flex items-center gap-1">
             <span>Locked & compliant copies</span>
@@ -256,7 +268,11 @@ export function DashboardPage({ onNavigate }) {
             </div>
           </div>
           <div className="text-3xl font-extrabold text-indigo-600 mt-2 font-mono">
-            {loading && stats.guidelinesCount === 0 ? '—' : stats.guidelinesCount}
+            {loading && (stats.guidelinesCount === 0 || stats.guidelinesCount === undefined) ? (
+              <div className="h-9 w-16 bg-indigo-100/70 animate-pulse rounded-lg my-1" />
+            ) : (
+              stats.guidelinesCount ?? 0
+            )}
           </div>
           <div className="text-[11px] text-indigo-600 font-semibold mt-2 flex items-center gap-1">
             <span>Tone, terms & approved facts</span>

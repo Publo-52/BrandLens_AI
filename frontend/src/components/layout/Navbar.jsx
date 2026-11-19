@@ -211,7 +211,7 @@ export function Navbar({ onToggleMobileMenu, isMobileMenuOpen = false }) {
                       className="w-full px-3 py-2 text-left text-xs text-brand-600 hover:bg-brand-50/80 rounded-xl flex items-center gap-2 font-bold transition-colors"
                     >
                       <Plus className="w-3.5 h-3.5" />
-                      <span>+ Create Workspace</span>
+                      <span>Create Workspace</span>
                     </button>
                   </div>
                 </div>

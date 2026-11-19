@@ -25,7 +25,8 @@ import {
   ChevronRight,
   Shield,
   FileText,
-  BadgeCheck
+  BadgeCheck,
+  Layers
 } from 'lucide-react';
 import { useAuth } from '../features/auth/AuthContext';
 import { api } from '../services/api';
@@ -67,23 +68,31 @@ export function AuditPage() {
   const [showCertModal, setShowCertModal] = useState(false);
   const [selectedCertContent, setSelectedCertContent] = useState(null);
   const [selectedCertReview, setSelectedCertReview] = useState(null);
+  const [loadingCertReview, setLoadingCertReview] = useState(false);
   const [copiedCert, setCopiedCert] = useState(false);
 
-  // Fetch full details + latest review for selected certificate content
+  // Fetch full details + latest review for selected certificate content immediately
   useEffect(() => {
-    if (!showCertModal || !selectedCertContent?._id || !activeOrg?._id || !token) return;
+    if (!selectedCertContent?._id || !activeOrg?._id || !token) return;
     let cancelled = false;
+    setLoadingCertReview(true);
     api.getContent(activeOrg._id, selectedCertContent._id, token)
       .then((res) => {
         if (!cancelled) {
           setSelectedCertReview(res.latestReview || null);
+          if (res.content) {
+            setSelectedCertContent((prev) => ({ ...prev, ...res.content }));
+          }
         }
       })
       .catch(() => {
         if (!cancelled) setSelectedCertReview(null);
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingCertReview(false);
       });
     return () => { cancelled = true; };
-  }, [showCertModal, selectedCertContent?._id, activeOrg?._id, token]);
+  }, [selectedCertContent?._id, activeOrg?._id, token]);
 
   const loadAuditData = useCallback(async () => {
     if (!activeOrg?._id || !token) return;
@@ -137,11 +146,16 @@ export function AuditPage() {
   // Statistics memo
   const telemetry = useMemo(() => {
     const total = logs.length;
-    const approvals = logs.filter((l) => APPROVAL_ACTIONS.has(l.action)).length;
-    const overrides = logs.filter((l) => l.action === 'FINDING_DECISION').length;
-    const reviews = logs.filter((l) => l.action === 'REVIEW_RUN').length;
-    return { total, approvals, overrides, reviews };
-  }, [logs]);
+    const approvals = logs.filter((l) => APPROVAL_ACTIONS.has(l.action) || l.action === 'CONTENT_PUBLISHED').length 
+      || contents.filter((c) => c.status === 'APPROVED' || c.status === 'PUBLISHED').length;
+    const overrides = logs.filter((l) => l.action === 'FINDING_DECISION' || l.action === 'OVERRIDE_RECORDED' || l.details?.reviewStatus === 'OVERRIDDEN').length;
+    const reviews = logs.filter((l) => l.action === 'REVIEW_RUN' || l.action === 'REVIEW_COMPLETED').length 
+      || contents.filter((c) => (c.reviewsCount && c.reviewsCount > 0) || c.latestReview).length 
+      || contents.length;
+    const intakes = logs.filter((l) => l.action === 'CONTENT_CREATED' || l.action === 'CONTENT_INTAKE' || l.action === 'VERSION_CREATED').length 
+      || contents.length;
+    return { total, approvals, overrides, reviews, intakes };
+  }, [logs, contents]);
 
   const filteredLogs = useMemo(() => {
     return logs.filter((log) => {
@@ -333,7 +347,7 @@ export function AuditPage() {
       )}
 
       {/* Telemetry Strip */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
         <div className="bg-white rounded-xl border border-slate-200/80 p-4 shadow-xs">
           <div className="flex items-center justify-between text-slate-400">
             <span className="text-xs font-medium text-slate-500">Total Logged Events</span>
@@ -345,29 +359,38 @@ export function AuditPage() {
 
         <div className="bg-white rounded-xl border border-slate-200/80 p-4 shadow-xs">
           <div className="flex items-center justify-between text-slate-400">
-            <span className="text-xs font-medium text-slate-500">Approval Sign-Offs</span>
+            <span className="text-xs font-medium text-slate-500">Compliance Passes</span>
             <ShieldCheck className="w-4 h-4 text-emerald-500" />
           </div>
           <div className="text-xl font-bold font-mono text-emerald-600 mt-1">{telemetry.approvals}</div>
-          <div className="text-[10px] text-slate-400 mt-0.5">Manager release authorizations</div>
+          <div className="text-[10px] text-slate-400 mt-0.5">Approved sign-offs</div>
         </div>
 
         <div className="bg-white rounded-xl border border-slate-200/80 p-4 shadow-xs">
+          <div className="flex items-center justify-between text-slate-400">
+            <span className="text-xs font-medium text-slate-500">Reviews Analyzed</span>
+            <FileCheck2 className="w-4 h-4 text-indigo-500" />
+          </div>
+          <div className="text-xl font-bold font-mono text-indigo-600 mt-1">{telemetry.reviews}</div>
+          <div className="text-[10px] text-slate-400 mt-0.5">Rule & AI validations</div>
+        </div>
+
+        <div className="bg-white rounded-xl border border-slate-200/80 p-4 shadow-xs">
+          <div className="flex items-center justify-between text-slate-400">
+            <span className="text-xs font-medium text-slate-500">Content Intakes</span>
+            <Layers className="w-4 h-4 text-sky-500" />
+          </div>
+          <div className="text-xl font-bold font-mono text-sky-600 mt-1">{telemetry.intakes}</div>
+          <div className="text-[10px] text-slate-400 mt-0.5">Submissions & versions</div>
+        </div>
+
+        <div className="bg-white rounded-xl border border-slate-200/80 p-4 shadow-xs col-span-2 sm:col-span-1">
           <div className="flex items-center justify-between text-slate-400">
             <span className="text-xs font-medium text-slate-500">Human Overrides</span>
             <AlertTriangle className="w-4 h-4 text-amber-500" />
           </div>
           <div className="text-xl font-bold font-mono text-amber-600 mt-1">{telemetry.overrides}</div>
           <div className="text-[10px] text-slate-400 mt-0.5">With recorded justifications</div>
-        </div>
-
-        <div className="bg-white rounded-xl border border-slate-200/80 p-4 shadow-xs">
-          <div className="flex items-center justify-between text-slate-400">
-            <span className="text-xs font-medium text-slate-500">Compliance Passes</span>
-            <FileCheck2 className="w-4 h-4 text-indigo-500" />
-          </div>
-          <div className="text-xl font-bold font-mono text-indigo-600 mt-1">{telemetry.reviews}</div>
-          <div className="text-[10px] text-slate-400 mt-0.5">Automated rule validations</div>
         </div>
       </div>
 
@@ -490,58 +513,91 @@ export function AuditPage() {
                       </div>
                     </div>
 
-                    <div className="text-xs text-slate-600 flex items-center gap-2">
-                      <span className="text-slate-400 font-medium">Target Scoped:</span>
-                      <span className="font-mono text-[11px] bg-slate-100 px-2 py-0.5 rounded-md text-slate-700 border border-slate-200/60">
-                        {log.targetType} #{log.targetId ? log.targetId.slice(-6) : 'N/A'}
-                      </span>
-                    </div>
+                    {(() => {
+                      const targetType = log.entityType || log.targetType || 'Content';
+                      const targetId = log.entityId || log.targetId || '';
+                      const matchedContent = contents.find((c) => String(c._id) === String(targetId));
+                      const targetTitle = log.details?.title || matchedContent?.title || '';
+                      const recordedReason = log.reason || log.details?.reason || '';
+                      const hasMetadata = Boolean(
+                        targetTitle ||
+                        log.details?.decision ||
+                        recordedReason ||
+                        log.details?.findingsCount !== undefined ||
+                        log.details?.term ||
+                        log.details?.body
+                      );
 
-                    {/* Metadata Box */}
-                    {log.details && Object.keys(log.details).length > 0 && (
-                      <div className="p-3 bg-slate-50 border border-slate-200/70 rounded-xl text-xs text-slate-700 space-y-1.5 font-sans">
-                        {log.details.title && (
-                          <div className="flex items-center gap-1.5 text-slate-800 font-semibold">
-                            <FileText className="w-3.5 h-3.5 text-slate-400" />
-                            <span>{log.details.title}</span>
-                          </div>
-                        )}
-
-                        {log.details.decision && (
-                          <div className="flex items-center gap-2">
-                            <span className="text-slate-500 text-[11px]">Recorded Decision:</span>
-                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold tracking-wide ${
-                              log.details.decision === 'APPROVED' 
-                                ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' 
-                                : 'bg-rose-100 text-rose-800 border border-rose-300'
-                            }`}>
-                              {log.details.decision}
+                      return (
+                        <>
+                          <div className="text-xs text-slate-600 flex flex-wrap items-center gap-2">
+                            <span className="text-slate-400 font-medium">Target Scoped:</span>
+                            <span className="font-mono text-[11px] bg-slate-100 px-2 py-0.5 rounded-md text-slate-700 border border-slate-200/60 font-semibold">
+                              {targetType} #{targetId ? targetId.slice(-6) : 'N/A'}
                             </span>
+                            {targetTitle && (
+                              <span className="text-[11px] font-semibold text-slate-800 bg-slate-100/80 px-2 py-0.5 rounded border border-slate-200/50 truncate max-w-sm flex items-center gap-1">
+                                <FileText className="w-3 h-3 text-slate-400 shrink-0" />
+                                <span>{targetTitle}</span>
+                              </span>
+                            )}
                           </div>
-                        )}
 
-                        {log.details.reason && (
-                          <div className="bg-white p-2 rounded-lg border border-slate-200/60 text-slate-700 text-xs italic">
-                            <span className="font-semibold not-italic text-slate-500 mr-1.5">Justification:</span>
-                            "{log.details.reason}"
-                          </div>
-                        )}
+                          {/* Metadata Box */}
+                          {hasMetadata && (
+                            <div className="p-3 bg-slate-50 border border-slate-200/70 rounded-xl text-xs text-slate-700 space-y-1.5 font-sans">
+                              {targetTitle && (
+                                <div className="flex items-center gap-1.5 text-slate-800 font-semibold">
+                                  <FileText className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                  <span>{targetTitle}</span>
+                                </div>
+                              )}
 
-                        {log.details.findingsCount !== undefined && (
-                          <div className="text-[11px] text-slate-500 flex items-center gap-1.5">
-                            <span className="font-medium text-slate-700">Findings Detected:</span>
-                            <span className="font-mono font-bold text-slate-800">{log.details.findingsCount}</span>
-                          </div>
-                        )}
+                              {log.details?.decision && (
+                                <div className="flex items-center gap-2">
+                                  <span className="text-slate-500 text-[11px]">Recorded Decision:</span>
+                                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold tracking-wide ${
+                                    log.details.decision === 'APPROVED' 
+                                      ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' 
+                                      : 'bg-rose-100 text-rose-800 border border-rose-300'
+                                  }`}>
+                                    {log.details.decision}
+                                  </span>
+                                </div>
+                              )}
 
-                        {log.details.body && (
-                          <div className="text-xs text-slate-600 bg-white p-2 rounded-lg border border-slate-200/60">
-                            <span className="font-semibold text-slate-500 mr-1">Comment:</span>
-                            "{log.details.body}"
-                          </div>
-                        )}
-                      </div>
-                    )}
+                              {recordedReason && (
+                                <div className="bg-white p-2 rounded-lg border border-slate-200/60 text-slate-700 text-xs italic">
+                                  <span className="font-semibold not-italic text-slate-500 mr-1.5">Justification:</span>
+                                  "{recordedReason}"
+                                </div>
+                              )}
+
+                              {log.details?.findingsCount !== undefined && (
+                                <div className="text-[11px] text-slate-500 flex items-center gap-1.5">
+                                  <span className="font-medium text-slate-700">Findings Detected:</span>
+                                  <span className="font-mono font-bold text-slate-800">{log.details.findingsCount}</span>
+                                </div>
+                              )}
+
+                              {log.details?.term && (
+                                <div className="text-xs text-slate-600 bg-white p-2 rounded-lg border border-slate-200/60">
+                                  <span className="font-semibold text-slate-500 mr-1">Rule / Term:</span>
+                                  "{log.details.term}" {log.details.findingType && <span className="font-mono text-[10px] text-slate-400">({log.details.findingType})</span>}
+                                </div>
+                              )}
+
+                              {log.details?.body && (
+                                <div className="text-xs text-slate-600 bg-white p-2 rounded-lg border border-slate-200/60">
+                                  <span className="font-semibold text-slate-500 mr-1">Comment:</span>
+                                  "{log.details.body}"
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </>
+                      );
+                    })()}
                   </div>
                 </div>
               );
@@ -662,7 +718,12 @@ export function AuditPage() {
                   </div>
 
                   {/* Approver & Findings Summary */}
-                  {currentCertificate && (
+                  {loadingCertReview ? (
+                    <div className="p-4 bg-slate-50 border border-slate-200/80 rounded-xl flex items-center justify-center gap-2.5 text-xs text-slate-500 animate-pulse">
+                      <RefreshCw className="w-4 h-4 animate-spin text-brand-600" />
+                      <span>Loading latest verification findings and audit telemetry...</span>
+                    </div>
+                  ) : currentCertificate && (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                       <div className="p-3.5 bg-white border border-slate-200/80 rounded-xl space-y-1 shadow-xs">
                         <div className="font-bold text-slate-800 flex items-center gap-1.5">
