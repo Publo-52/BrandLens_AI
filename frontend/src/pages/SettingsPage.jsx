@@ -17,7 +17,8 @@ import {
   Layers,
   FileCheck2,
   Lock,
-  ChevronRight
+  ChevronRight,
+  X
 } from 'lucide-react';
 import { useAuth } from '../features/auth/AuthContext';
 import { api } from '../services/api';
@@ -47,6 +48,21 @@ export function SettingsPage() {
       setOrgName(activeOrg.name);
     }
   }, [activeOrg]);
+
+  // Auto-dismiss floating notifications after 4 seconds to prevent layout clutter
+  useEffect(() => {
+    if (successMsg) {
+      const timer = setTimeout(() => setSuccessMsg(null), 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [successMsg]);
+
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => setError(null), 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [error]);
 
   const loadMembers = useCallback(async () => {
     if (!activeOrg?._id || !token) return;
@@ -192,26 +208,32 @@ export function SettingsPage() {
         </div>
       </div>
 
-      {error && (
-        <div className="p-4 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 shrink-0 text-rose-500" />
-            <span>{error}</span>
+      {/* Floating Toast Notification - Fixed Top-Right, Non-Shifting (Auto-dismisses in 4s) */}
+      {(successMsg || error) && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed top-6 right-6 z-50 flex items-center gap-3 px-4 py-3.5 bg-slate-900/95 backdrop-blur-md text-white rounded-2xl shadow-2xl border border-slate-700/60 max-w-md animate-in fade-in slide-in-from-top-4 duration-200"
+        >
+          {successMsg ? (
+            <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+          ) : (
+            <AlertCircle className="w-5 h-5 text-rose-400 shrink-0" />
+          )}
+          <div className="flex-1 text-xs font-medium leading-relaxed">
+            {successMsg || error}
           </div>
-          <button onClick={() => setError(null)} className="font-semibold text-rose-600 hover:underline">
-            Dismiss
-          </button>
-        </div>
-      )}
-
-      {successMsg && (
-        <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl text-xs flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-500" />
-            <span>{successMsg}</span>
-          </div>
-          <button onClick={() => setSuccessMsg(null)} className="font-semibold text-emerald-600 hover:underline">
-            Dismiss
+          <button
+            type="button"
+            onClick={() => {
+              setSuccessMsg(null);
+              setError(null);
+            }}
+            className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer shrink-0"
+            title="Dismiss notification"
+            aria-label="Dismiss notification"
+          >
+            <X className="w-3.5 h-3.5" />
           </button>
         </div>
       )}
@@ -401,7 +423,12 @@ export function SettingsPage() {
                     (u?.firebaseUid && user?.firebaseUid && u.firebaseUid === user.firebaseUid) ||
                     (u?.email && user?.email && u.email.toLowerCase() === user.email.toLowerCase())
                 );
-                const nameDisplay = m.fullName || m.invitedName || (u?.name && !u.name.includes('@') ? u.name : null) || u?.name || (m.invitedEmail ? m.invitedEmail.split('@')[0] : 'Pending Teammate');
+                const nameDisplay =
+                  (u?.name && !u.name.includes('@') && u.name !== m.invitedEmail?.split('@')[0] ? u.name : null) ||
+                  m.invitedName ||
+                  m.fullName ||
+                  u?.name ||
+                  (m.invitedEmail ? m.invitedEmail.split('@')[0] : 'Pending Teammate');
                 const emailDisplay = u?.email || m.invitedEmail || '—';
                 const initial = nameDisplay ? nameDisplay.charAt(0).toUpperCase() : 'U';
                 const isInvited = m.status === 'INVITED';

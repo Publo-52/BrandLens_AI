@@ -167,9 +167,103 @@ function PageLoadingFallback() {
   );
 }
 
+// Lightweight inline card & list skeleton for instant tab transitions inside Layout (never flashes full-page spinner)
+function WorkspaceTabSkeleton() {
+  return (
+    <div className="space-y-6 animate-pulse" aria-busy="true" aria-label="Loading tab view">
+      {/* Page Header Skeleton */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2 border-b border-slate-100">
+        <div className="space-y-2">
+          <div className="h-7 w-48 bg-slate-200/80 rounded-lg" />
+          <div className="h-4 w-72 bg-slate-100 rounded-md" />
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="h-9 w-28 bg-slate-100 rounded-lg" />
+          <div className="h-9 w-32 bg-slate-200/80 rounded-lg" />
+        </div>
+      </div>
+
+      {/* 4 KPI / Status Cards Skeleton */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {[0, 1, 2, 3].map((i) => (
+          <div key={i} className="p-5 bg-white border border-slate-100 rounded-2xl shadow-xs space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="h-3.5 w-24 bg-slate-100 rounded" />
+              <div className="w-8 h-8 rounded-lg bg-slate-100" />
+            </div>
+            <div className="h-7 w-16 bg-slate-200/80 rounded" />
+            <div className="h-3 w-32 bg-slate-100 rounded" />
+          </div>
+        ))}
+      </div>
+
+      {/* Main Body Skeleton */}
+      <div className="p-6 bg-white border border-slate-100 rounded-2xl shadow-xs space-y-4">
+        <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+          <div className="h-5 w-40 bg-slate-200/80 rounded" />
+          <div className="h-8 w-24 bg-slate-100 rounded-lg" />
+        </div>
+        <div className="space-y-3 pt-2">
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="flex items-center gap-4 py-3 border-b border-slate-50 last:border-0">
+              <div className="w-9 h-9 rounded-xl bg-slate-100 shrink-0" />
+              <div className="flex-1 space-y-1.5">
+                <div className="h-4 w-1/3 bg-slate-200/70 rounded" />
+                <div className="h-3 w-1/2 bg-slate-100 rounded" />
+              </div>
+              <div className="h-6 w-20 bg-slate-100 rounded-full" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function MainApp() {
-  const { user, token, loading, loginWithDemoRole } = useAuth();
+  const { user, token, loading, loginWithDemoRole, activeOrg } = useAuth();
   const [routeState, setRouteState] = useState(resolveRouteFromUrl);
+  // Track visited workspace tabs for keep-alive preservation with instant switching
+  const [visitedTabs, setVisitedTabs] = useState(() => new Set([routeState.tab]));
+
+  // Reset visited tabs cache if active organization changes
+  useEffect(() => {
+    setVisitedTabs(new Set([routeState.tab]));
+  }, [activeOrg?._id]);
+
+  // Keep track of any new tab visited in the current session
+  useEffect(() => {
+    if (routeState.view === 'app' && VALID_TABS.has(routeState.tab)) {
+      setVisitedTabs((prev) => {
+        if (prev.has(routeState.tab)) return prev;
+        const next = new Set(prev);
+        next.add(routeState.tab);
+        return next;
+      });
+    }
+  }, [routeState.view, routeState.tab]);
+
+  // Eagerly preload all workspace tab chunks in idle time for zero-delay switches
+  useEffect(() => {
+    if (user && token) {
+      const preloadTabChunks = () => {
+        import('./pages/DashboardPage');
+        import('./pages/ReviewPage');
+        import('./pages/KnowledgeBasePage');
+        import('./pages/ApprovalsPage');
+        import('./pages/InsightsPage');
+        import('./pages/AuditPage');
+        import('./pages/SettingsPage');
+      };
+      if (typeof window !== 'undefined') {
+        if ('requestIdleCallback' in window) {
+          window.requestIdleCallback(preloadTabChunks);
+        } else {
+          setTimeout(preloadTabChunks, 150);
+        }
+      }
+    }
+  }, [user, token]);
 
   const navigateTo = (destination, extra = {}) => {
     let newView = 'landing';
@@ -367,8 +461,8 @@ function MainApp() {
     );
   }
 
-  const renderContent = () => {
-    switch (routeState.tab) {
+  const renderTab = (tabKey) => {
+    switch (tabKey) {
       case 'dashboard':
         return <DashboardPage onNavigate={setCurrentTab} />;
       case 'review':
@@ -384,15 +478,30 @@ function MainApp() {
       case 'settings':
         return <SettingsPage />;
       default:
-        return <DashboardPage onNavigate={setCurrentTab} />;
+        return null;
     }
   };
 
   return (
     <Layout currentTab={routeState.tab} onSelectTab={setCurrentTab}>
       <ErrorBoundary onGoHome={() => setCurrentTab('dashboard')}>
-        <Suspense fallback={<PageLoadingFallback />}>
-          {renderContent()}
+        <Suspense fallback={<WorkspaceTabSkeleton />}>
+          {Array.from(VALID_TABS).map((tabKey) => {
+            if (!visitedTabs.has(tabKey)) return null;
+            const isCurrent = routeState.tab === tabKey;
+            return (
+              <div
+                key={tabKey}
+                id={`tab-panel-${tabKey}`}
+                role="tabpanel"
+                aria-hidden={!isCurrent}
+                className={isCurrent ? 'block' : 'hidden'}
+                style={{ display: isCurrent ? 'block' : 'none' }}
+              >
+                {renderTab(tabKey)}
+              </div>
+            );
+          })}
         </Suspense>
       </ErrorBoundary>
     </Layout>

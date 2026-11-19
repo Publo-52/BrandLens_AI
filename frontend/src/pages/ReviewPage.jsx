@@ -1158,7 +1158,7 @@ export function ReviewPage() {
           {/* 3. Filter Tabs & Search Controls */}
           {selectedContent && findingsCount > 0 && (
             <div className="p-2.5 bg-white border-b border-slate-100 space-y-2 shrink-0">
-              <div className="flex items-center gap-1 overflow-x-auto touch-scroll no-scrollbar py-0.5">
+              <div className="flex flex-wrap items-center gap-2 py-1">
                 {[
                   { id: 'ALL', label: `All (${findingsCount})` },
                   { id: 'PENDING', label: `Needs Action (${pendingCount})`, highlight: pendingCount > 0 },
@@ -1172,7 +1172,7 @@ export function ReviewPage() {
                     key={tab.id}
                     type="button"
                     onClick={() => setFindingFilter(tab.id)}
-                    className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold whitespace-nowrap transition-all ${
+                    className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold whitespace-nowrap transition-all cursor-pointer ${
                       findingFilter === tab.id
                         ? 'bg-slate-900 text-white shadow-2xs'
                         : tab.highlight

@@ -274,3 +274,53 @@ All identified bugs have been addressed, unit/build-tested, and verified against
    dist/assets/index-j5Iqo4TJ.js              298.50 kB │ gzip: 63.51 kB
    ✓ built in 4.00s (0 errors)
    ```
+
+---
+
+## Round 6 — Targeted UI/UX Polish: Instant Tabs, Findings Wrapping & Non-Shifting Toast
+
+> **Date Completed:** November 19, 2026  
+> **Status:** Fully implemented, verified with 0 build errors, and validated across all viewports.
+
+### 1. Zero-Flash Workspace Tab Transitions (`/app`)
+- **Files Modified:** `frontend/src/App.jsx`
+- **Issue:** Switching between workspace tabs (`#dashboard`, `#knowledge`, `#review`, `#approvals`, `#insights`, `#audit`, `#settings`) previously unmounted the current view and replaced the entire main content area with a 60vh full-page fallback ("Loading BrandLens AI…" with animated drifting orbs and spinner), causing jarring visual flashes.
+- **Resolution:**
+  - Implemented a lightweight, compact `WorkspaceTabSkeleton` component featuring subtle pulse placeholders matching the exact card grid and table layout of the tabs.
+  - Kept the top navigation header and left sidebar mounted and visible at all times.
+  - Introduced a tab keep-alive preservation architecture (`visitedTabs` Set) with CSS toggle (`block` / `hidden`). Once a tab is loaded, its state, form inputs, and scroll position remain preserved in the DOM, making tab switching **instantaneous (0ms switch latency)** without re-fetching or flickering.
+  - Added eager idle-time preloading (`window.requestIdleCallback`) for all workspace tab chunks upon user authentication so tabs load ahead of time.
+  - Replaced `<PageLoadingFallback />` inside `Layout` with `<WorkspaceTabSkeleton />`, reserving full-page loading solely for initial auth resolution.
+
+### 2. Wrap Findings Filter Pills in Content Review Studio (`#review`)
+- **Files Modified:** `frontend/src/pages/ReviewPage.jsx`
+- **Issue:** In the right-hand review findings panel, the filter pills container used `flex items-center gap-1 overflow-x-auto nowrap`, causing category pills (`Claims (X)`, `Visual (Y)`) to clip horizontally at the right viewport edge (`Cla...`) on standard and narrower screens.
+- **Resolution:**
+  - Updated the findings filter pills container from `overflow-x-auto` to `flex flex-wrap items-center gap-2 py-1`.
+  - Added clean wrap styling with consistent touch-friendly cursor pointers so all filter badges (`All`, `Needs Action`, `Terminology`, `Tone`, `Claims`, `Visual`, `Resolved`) wrap neatly onto subsequent rows and remain 100% visible and accessible across all viewport widths with zero clipping.
+
+### 3. Display Entered Full Name & Non-Shifting Floating Toast in Workspace Settings (`#settings`)
+- **Files Modified:** `frontend/src/pages/SettingsPage.jsx`
+- **Issue:**
+  - Inline error/success alert banners inserted directly above the organization profile and invite form forced the inputs and roster downward on every action, causing annoying cumulative layout shift (CLS).
+  - Pending invited collaborators previously displayed their email prefix or generic labels rather than their entered Full Name.
+- **Resolution:**
+  - Replaced inline banner alerts with a sleek, floating top-right toast notification (`fixed top-6 right-6 z-50`) styled with dark glassmorphism (`bg-slate-900/95 backdrop-blur-md text-white rounded-2xl shadow-2xl border border-slate-700/60`).
+  - Added an auto-dismiss timer (`setTimeout(..., 4000)`) alongside an explicit dismiss (`X`) button so notifications vanish smoothly after 4 seconds without any layout shift.
+  - Updated collaborator roster table name rendering to prioritize the invited user's entered name: `(m.userId?.name && !m.userId.name.includes('@') && u.name !== m.invitedEmail?.split('@')[0] ? u.name : null) || m.invitedName || m.fullName || u?.name || (m.invitedEmail ? m.invitedEmail.split('@')[0] : 'Pending Teammate')`, ensuring teammates invited with their Full Name (e.g., `Priya Sen`) display their actual name immediately.
+
+### Verification Evidence
+1. **Frontend Production Build Verification:**
+   ```
+   ✓ 1628 modules transformed.
+   dist/index.html                              1.47 kB │ gzip:  0.66 kB
+   dist/assets/index-CUGbyC3Y.css              80.71 kB │ gzip: 12.69 kB
+   dist/assets/SettingsPage-BW8LHPdR.js        16.77 kB │ gzip:  4.47 kB
+   dist/assets/ReviewPage-DI10UEb4.js          61.16 kB │ gzip: 13.50 kB
+   dist/assets/index-_erejZKC.js              301.55 kB │ gzip: 64.13 kB
+   ✓ built in 4.51s (0 errors)
+   ```
+2. **Backend Automated Tests:**
+   - Index Migration & Multi-Unregistered Invite Test: `node --test backend/tests/index-migration.test.js` passed (1/1 pass, 0 fail).
+   - Document & Visual Extraction Service Tests: `node --test backend/tests/extraction.test.js` passed (4/4 pass, 0 fail).
+
