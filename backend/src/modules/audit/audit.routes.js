@@ -2,6 +2,7 @@ import express from 'express';
 import { AuditLog } from './audit.model.js';
 import { Content } from '../contents/content.model.js';
 import { Review, REVIEW_STATUS } from '../reviews/review.model.js';
+import { Guideline } from '../guidelines/guideline.model.js';
 import { authenticate, requireOrgAccess } from '../../middleware/auth.js';
 
 const router = express.Router({ mergeParams: true });
@@ -62,9 +63,11 @@ router.get('/insights', authenticate, requireOrgAccess(), async (req, res, next)
   try {
     const orgId = req.params.organisationId;
 
-    const [contents, reviews] = await Promise.all([
+    const [contents, reviews, guidelinesCount, auditOverrideCount] = await Promise.all([
       Content.find({ organisationId: orgId }).select('status').lean(),
       Review.find({ organisationId: orgId }).select('findings').lean(),
+      Guideline.countDocuments({ organisationId: orgId }),
+      AuditLog.countDocuments({ organisationId: orgId, action: 'FINDING_DECISION', 'details.reviewStatus': 'OVERRIDDEN' }),
     ]);
 
     // Aggregate findings metrics & analyze guideline ambiguities
@@ -138,26 +141,13 @@ router.get('/insights', authenticate, requireOrgAccess(), async (req, res, next)
         };
       });
 
-    // Proactive baseline recommendations if no overrides exist yet in DB
-    if (ambiguousGuidelines.length === 0) {
-      ambiguousGuidelines = [
-        {
-          ruleTitle: 'Prohibition of Unsubstantiated Absolute Guarantees',
-          category: 'LEGAL',
-          overrideCount: 0,
-          ambiguityScore: 'POTENTIAL',
-          reasons: ['Reviewers routinely seek exceptions for verified 99.9% SLA citations.'],
-          recommendation: 'Admins should clarify that SLA metrics with published SLA documentation are permitted exceptions to the absolute guarantee prohibition.',
-        },
-        {
-          ruleTitle: 'Clear, Helpful & Confident Tone — Sales Hyperbole Boundary',
-          category: 'TONE_MISMATCH',
-          overrideCount: 0,
-          ambiguityScore: 'POTENTIAL',
-          reasons: ['Boundary between confident brand voice and sales hype is subjective.'],
-          recommendation: 'Add positive and negative exemplar pairs in Brand Guidelines to disambiguate confident product messaging from prohibited hype.',
-        },
-      ];
+    // Align overriddenCount with both review findings and audit log events
+    overriddenCount = Math.max(overriddenCount, auditOverrideCount);
+
+    // Only return ambiguous guidelines when real overrides exist in DB and workspace has guidelines
+    // Never show hardcoded/sample guidelines for workspaces with 0 guidelines or 0 overrides
+    if (guidelinesCount === 0 || ambiguousGuidelines.length === 0) {
+      ambiguousGuidelines = [];
     }
 
     const statusCounts = {

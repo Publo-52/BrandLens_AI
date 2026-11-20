@@ -93,7 +93,7 @@ export async function runGroundedChecks(text, organisationId, channel, audience)
   const sentences = text
     .split(/(?<=[.!?])\s+|\n+/)
     .map((s) => s.trim())
-    .filter((s) => s.length > 10);
+    .filter((s) => s.length >= 3);
 
   // Hype phrase patterns for TONE_MISMATCH — keyed by the full phrase to replace
   // Each entry has: `pattern` (full phrase regex), `replacement` (clean rewrite phrase)
@@ -234,7 +234,8 @@ export async function runGroundedChecks(text, organisationId, channel, audience)
       .filter((m) => m.length > 0);
 
     const quantitativeMetrics = draftMetrics.filter((m) =>
-      /[%x$€£]|hours?|days?|weeks?|months?|years?|minutes?|seconds?|\d+\.\d+/.test(m)
+      /[%x$€£]|hours?|days?|weeks?|months?|years?|minutes?|seconds?|\d+\.\d+/.test(m) ||
+      (hasPromotionalClaim && /\d+/.test(m))
     );
     const hasQuantitativeMetric = quantitativeMetrics.length > 0;
     const hasClaimKeyword = claimKeywords.some((kw) => sentence.toLowerCase().includes(kw));

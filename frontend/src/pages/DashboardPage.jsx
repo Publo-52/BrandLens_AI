@@ -354,7 +354,12 @@ export function DashboardPage({ onNavigate }) {
             </div>
             <h4 className="text-sm font-bold text-slate-900 mb-1">Submit Draft or Upload File</h4>
             <p className="text-xs text-slate-500 leading-relaxed mb-3">
-              Paste marketing copy or upload `.pdf`, `.docx`, `.png`, or `.jpg` documents for automated pre-publication analysis and WCAG contrast checks.
+              Paste marketing copy or upload{' '}
+              <code className="px-1.5 py-0.5 rounded bg-slate-100 font-mono text-[11px] text-slate-700 font-semibold">.pdf</code>,{' '}
+              <code className="px-1.5 py-0.5 rounded bg-slate-100 font-mono text-[11px] text-slate-700 font-semibold">.docx</code>,{' '}
+              <code className="px-1.5 py-0.5 rounded bg-slate-100 font-mono text-[11px] text-slate-700 font-semibold">.png</code>, or{' '}
+              <code className="px-1.5 py-0.5 rounded bg-slate-100 font-mono text-[11px] text-slate-700 font-semibold">.jpg</code>{' '}
+              documents for automated pre-publication analysis and WCAG contrast checks.
             </p>
             <button
               onClick={() => nav('review')}

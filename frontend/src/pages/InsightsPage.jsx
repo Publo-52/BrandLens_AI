@@ -473,62 +473,74 @@ export function InsightsPage() {
             </span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-            {(metrics?.ambiguousGuidelines || []).map((item, idx) => (
-              <div
-                key={idx}
-                className="bg-white/10 border border-white/15 rounded-2xl p-4 space-y-2.5 backdrop-blur-xs hover:bg-white/[0.14] transition-colors"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="space-y-0.5">
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="text-[10px] font-bold uppercase font-mono px-2 py-0.5 rounded bg-brand-500/20 text-brand-300 border border-brand-400/30">
-                        {item.category}
-                      </span>
-                      <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${
-                        item.ambiguityScore === 'HIGH'
-                          ? 'bg-rose-500/20 text-rose-300 border border-rose-400/30'
-                          : item.ambiguityScore === 'MEDIUM'
-                          ? 'bg-amber-500/20 text-amber-300 border border-amber-400/30'
-                          : 'bg-sky-500/20 text-sky-300 border border-sky-400/30'
-                      }`}>
-                        {item.ambiguityScore} AMBIGUITY
-                      </span>
-                    </div>
-                    <h5 className="text-xs font-bold text-white leading-snug pt-1">
-                      {item.ruleTitle}
-                    </h5>
-                  </div>
-                  <span className="text-xs font-mono font-bold text-amber-300 bg-amber-500/15 border border-amber-400/30 px-2.5 py-1 rounded-xl shrink-0">
-                    {item.overrideCount} {item.overrideCount === 1 ? 'Override' : 'Overrides'}
-                  </span>
-                </div>
-
-                {/* Reviewer Justifications */}
-                {item.reasons && item.reasons.length > 0 && (
-                  <div className="p-2.5 bg-black/30 rounded-xl border border-white/10 text-[11px] space-y-1">
-                    <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
-                      Recorded Reviewer Override Rationales:
-                    </span>
-                    <ul className="list-disc list-inside text-slate-300 space-y-0.5">
-                      {item.reasons.map((r, rIdx) => (
-                        <li key={rIdx} className="truncate" title={r}>"{r}"</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {/* Admin Rewrite Recommendation */}
-                <div className="p-2.5 bg-emerald-500/15 border border-emerald-400/30 rounded-xl text-[11px] text-emerald-200 space-y-1">
-                  <div className="font-bold text-emerald-300 flex items-center gap-1">
-                    <Sparkles className="w-3.5 h-3.5" />
-                    <span>Recommended Guideline Rewrite for Admins:</span>
-                  </div>
-                  <p className="leading-relaxed text-emerald-100">{item.recommendation}</p>
-                </div>
+          {(!metrics?.ambiguousGuidelines || metrics.ambiguousGuidelines.length === 0) ? (
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-8 text-center space-y-2 backdrop-blur-xs">
+              <div className="w-10 h-10 rounded-xl bg-white/10 text-emerald-400 flex items-center justify-center mx-auto border border-white/10">
+                <CheckCircle2 className="w-5 h-5" />
               </div>
-            ))}
-          </div>
+              <h5 className="text-xs font-bold text-white">No Ambiguous Guidelines Detected</h5>
+              <p className="text-xs text-slate-300 max-w-md mx-auto leading-relaxed">
+                Zero conflicting rules or reviewer overrides recorded in this workspace. When reviewers log override rationales during content review, policies needing clarification appear here automatically.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+              {metrics.ambiguousGuidelines.map((item, idx) => (
+                <div
+                  key={idx}
+                  className="bg-white/10 border border-white/15 rounded-2xl p-4 space-y-2.5 backdrop-blur-xs hover:bg-white/[0.14] transition-colors"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="space-y-0.5">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-[10px] font-bold uppercase font-mono px-2 py-0.5 rounded bg-brand-500/20 text-brand-300 border border-brand-400/30">
+                          {item.category}
+                        </span>
+                        <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${
+                          item.ambiguityScore === 'HIGH'
+                            ? 'bg-rose-500/20 text-rose-300 border border-rose-400/30'
+                            : item.ambiguityScore === 'MEDIUM'
+                            ? 'bg-amber-500/20 text-amber-300 border border-amber-400/30'
+                            : 'bg-sky-500/20 text-sky-300 border border-sky-400/30'
+                        }`}>
+                          {item.ambiguityScore} AMBIGUITY
+                        </span>
+                      </div>
+                      <h5 className="text-xs font-bold text-white leading-snug pt-1">
+                        {item.ruleTitle}
+                      </h5>
+                    </div>
+                    <span className="text-xs font-mono font-bold text-amber-300 bg-amber-500/15 border border-amber-400/30 px-2.5 py-1 rounded-xl shrink-0">
+                      {item.overrideCount} {item.overrideCount === 1 ? 'Override' : 'Overrides'}
+                    </span>
+                  </div>
+
+                  {/* Reviewer Justifications */}
+                  {item.reasons && item.reasons.length > 0 && (
+                    <div className="p-2.5 bg-black/30 rounded-xl border border-white/10 text-[11px] space-y-1">
+                      <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+                        Recorded Reviewer Override Rationales:
+                      </span>
+                      <ul className="list-disc list-inside text-slate-300 space-y-0.5">
+                        {item.reasons.map((r, rIdx) => (
+                          <li key={rIdx} className="truncate" title={r}>"{r}"</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Admin Rewrite Recommendation */}
+                  <div className="p-2.5 bg-emerald-500/15 border border-emerald-400/30 rounded-xl text-[11px] text-emerald-200 space-y-1">
+                    <div className="font-bold text-emerald-300 flex items-center gap-1">
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>Recommended Guideline Rewrite for Admins:</span>
+                    </div>
+                    <p className="leading-relaxed text-emerald-100">{item.recommendation}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Interactive Ambiguity Co-Pilot Drawer */}
@@ -541,13 +553,16 @@ export function InsightsPage() {
                   AI Ambiguity Auto-Resolver
                 </h4>
                 <p className="text-[11px] text-slate-300">
-                  Analyze reviewer override justifications and synthesize policy clarifications in 1 click.
+                  {metrics?.ambiguousGuidelines && metrics.ambiguousGuidelines.length > 0
+                    ? 'Analyze reviewer override justifications and synthesize policy clarifications in 1 click.'
+                    : 'All brand guidelines currently operate with high consistency. No policy conflicts detected.'}
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setCoPilotActive(true)}
-                className="px-4 py-2 bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 hover:from-amber-500 hover:to-amber-700 text-slate-950 font-bold text-xs rounded-xl shadow-sm transition-all flex items-center justify-center gap-1.5 shrink-0"
+                disabled={!metrics?.ambiguousGuidelines || metrics.ambiguousGuidelines.length === 0}
+                className="px-4 py-2 bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 hover:from-amber-500 hover:to-amber-700 disabled:opacity-40 disabled:cursor-not-allowed text-slate-950 font-bold text-xs rounded-xl shadow-sm transition-all flex items-center justify-center gap-1.5 shrink-0 cursor-pointer"
               >
                 <Sparkles className="w-3.5 h-3.5" />
                 <span>Launch Ambiguity Co-Pilot</span>
@@ -563,7 +578,7 @@ export function InsightsPage() {
                 <button
                   type="button"
                   onClick={() => setCoPilotActive(false)}
-                  className="text-xs text-slate-400 hover:text-white font-medium transition-colors"
+                  className="text-xs text-slate-400 hover:text-white font-medium transition-colors cursor-pointer"
                 >
                   Close
                 </button>
@@ -573,14 +588,16 @@ export function InsightsPage() {
                 <div className="p-4 bg-black/40 rounded-xl border border-white/10 space-y-1.5">
                   <div className="font-bold text-slate-200 uppercase tracking-wider text-[11px]">Identified Root Cause:</div>
                   <p className="text-slate-300 text-xs leading-relaxed">
-                    Reviewers repeatedly override "Absolute Guarantee" warnings when drafts cite verified SLAs (e.g. "99.99% uptime") because existing rules do not distinguish marketing hyperbole from verified technical SLAs.
+                    {metrics?.ambiguousGuidelines?.[0]
+                      ? `Reviewers recorded ${metrics.ambiguousGuidelines[0].overrideCount} override(s) against "${metrics.ambiguousGuidelines[0].ruleTitle}". ${metrics.ambiguousGuidelines[0].reasons?.[0] ? `Recorded rationale: "${metrics.ambiguousGuidelines[0].reasons[0]}".` : 'Overridden due to policy scope ambiguity.'}`
+                      : 'No recurring override patterns or rule conflicts detected in this workspace yet.'}
                   </p>
                 </div>
 
                 <div className="p-4 bg-emerald-500/10 rounded-xl border border-emerald-500/30 space-y-1.5">
                   <div className="font-bold text-emerald-300 uppercase tracking-wider text-[11px]">Recommended Rule Amendment:</div>
                   <p className="text-emerald-200 text-xs leading-relaxed font-mono">
-                    "Prohibit unsubstantiated guarantee claims ('100% risk free'), EXCEPT when accompanied by approved SOC2 / SLA references."
+                    {metrics?.ambiguousGuidelines?.[0]?.recommendation || 'All brand guidelines currently operate with high consensus.'}
                   </p>
                 </div>
               </div>

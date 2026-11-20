@@ -73,6 +73,29 @@ export function AuditPage({ isActive = true }) {
   const [copiedCert, setCopiedCert] = useState(false);
   const [copiedApprovedDraft, setCopiedApprovedDraft] = useState(false);
 
+  // Esc key closes modal cleanly
+  useEffect(() => {
+    if (!showCertModal) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setShowCertModal(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showCertModal]);
+
+  const handleOpenCertModal = () => {
+    if (!selectedCertContent && contents.length > 0) {
+      const best =
+        contents.find((c) => c.status === 'APPROVED') ||
+        contents.find((c) => c.status === 'PUBLISHED') ||
+        contents[0];
+      if (best) setSelectedCertContent(best);
+    }
+    setShowCertModal(true);
+  };
+
   const handleCopyApprovedDraft = async () => {
     try {
       const textToCopy =
@@ -403,8 +426,8 @@ export function AuditPage({ isActive = true }) {
 
         <div className="flex items-center gap-2.5">
           <button
-            onClick={() => setShowCertModal(true)}
-            className="flex items-center gap-2 px-3.5 py-2 bg-gradient-to-r from-brand-600 to-brand-700 hover:from-brand-700 hover:to-brand-800 text-white rounded-xl text-xs font-semibold shadow-sm hover:shadow transition-all"
+            onClick={handleOpenCertModal}
+            className="flex items-center gap-2 px-3.5 py-2 bg-gradient-to-r from-brand-600 to-brand-700 hover:from-brand-700 hover:to-brand-800 text-white rounded-xl text-xs font-semibold shadow-sm hover:shadow transition-all cursor-pointer"
           >
             <Award className="w-4 h-4 text-brand-200" />
             <span>Generate Certificate</span>
@@ -739,54 +762,79 @@ export function AuditPage({ isActive = true }) {
 
             {/* Modal Body */}
             <div className="p-6 overflow-y-auto space-y-5">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                  Select Content Item to Inspect & Certify:
-                </label>
-                <select
-                  value={selectedCertContent?._id || ''}
-                  onChange={(e) => {
-                    const found = contents.find((c) => c._id === e.target.value);
-                    if (found) setSelectedCertContent(found);
-                  }}
-                  className="w-full text-xs border border-slate-200 rounded-xl p-2.5 focus:ring-2 focus:ring-brand-500 focus:outline-none bg-slate-50 font-medium text-slate-800"
-                >
-                  {contents.map((c) => (
-                    <option key={c._id} value={c._id}>
-                      [{c.status}] {c.title} (v{c.currentVersionNumber || 1})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {selectedCertContent ? (
-                <div id="printable-certificate" className="border-2 border-brand-900/20 rounded-2xl p-6 bg-gradient-to-b from-white via-slate-50/50 to-slate-100/70 space-y-5 shadow-sm relative overflow-hidden">
-                  {/* Decorative Corner Watermark Stamp */}
-                  <div className="absolute -right-8 -bottom-8 w-40 h-40 rounded-full border-4 border-emerald-500/10 flex items-center justify-center pointer-events-none">
-                    <ShieldCheck className="w-24 h-24 text-emerald-500/10" />
+              {contents.length === 0 ? (
+                <div className="p-8 text-center bg-slate-50 border border-dashed border-slate-300 rounded-2xl space-y-3">
+                  <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto border border-amber-200 shadow-2xs">
+                    <Award className="w-6 h-6" />
+                  </div>
+                  <div className="space-y-1">
+                    <h4 className="text-sm font-bold text-slate-800">No Content Submissions in Workspace</h4>
+                    <p className="text-xs text-slate-500 max-w-sm mx-auto leading-relaxed">
+                      Pre-publication compliance certificates are generated for content drafts evaluated in the Review Studio. Submit a draft first to inspect and export tamper-evident certificates.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowCertModal(false);
+                      if (typeof window !== 'undefined') window.location.hash = '#review';
+                    }}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-semibold shadow-sm transition-all cursor-pointer"
+                  >
+                    <span>Open Review Studio</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                      Select Content Item to Inspect & Certify:
+                    </label>
+                    <select
+                      value={selectedCertContent?._id || ''}
+                      onChange={(e) => {
+                        const found = contents.find((c) => c._id === e.target.value);
+                        if (found) setSelectedCertContent(found);
+                      }}
+                      className="w-full text-xs border border-slate-200 rounded-xl p-2.5 focus:ring-2 focus:ring-brand-500 focus:outline-none bg-slate-50 font-medium text-slate-800"
+                    >
+                      {contents.map((c) => (
+                        <option key={c._id} value={c._id}>
+                          [{c.status}] {c.title} (v{c.currentVersionNumber || 1})
+                        </option>
+                      ))}
+                    </select>
                   </div>
 
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-200 gap-4">
-                    <div className="space-y-1.5">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] uppercase font-extrabold tracking-widest text-brand-700 bg-brand-50 px-2.5 py-0.5 rounded-md border border-brand-200/80">
-                          Official Pre-Publication Clearance
-                        </span>
-                        <span className="text-[10px] font-mono text-slate-500 font-semibold">
-                          {currentCertificate?.certificateId || `BL-CERT-${selectedCertContent._id.slice(-6).toUpperCase()}`}
-                        </span>
+                  {selectedCertContent ? (
+                    <div id="printable-certificate" className="border-2 border-brand-900/20 rounded-2xl p-6 bg-gradient-to-b from-white via-slate-50/50 to-slate-100/70 space-y-5 shadow-sm relative overflow-hidden">
+                      {/* Decorative Corner Watermark Stamp */}
+                      <div className="absolute -right-8 -bottom-8 w-40 h-40 rounded-full border-4 border-emerald-500/10 flex items-center justify-center pointer-events-none">
+                        <ShieldCheck className="w-24 h-24 text-emerald-500/10" />
                       </div>
-                      <h4 className="text-xl font-extrabold text-slate-900 tracking-tight">{selectedCertContent.title}</h4>
-                      <div className="text-xs text-slate-500 flex flex-wrap items-center gap-x-2 gap-y-1">
-                        <span>Workspace: <strong className="text-slate-800">{activeOrg?.name}</strong></span>
-                        <span>&bull;</span>
-                        <span>Version: <strong className="text-slate-800 font-mono">v{currentCertificate?.content?.versionNumber || 1}</strong></span>
-                        <span>&bull;</span>
-                        <span>Version ID: <strong className="text-slate-700 font-mono text-[11px]">{String(currentCertificate?.content?.versionId || '').slice(-8)}</strong></span>
-                        <span>&bull;</span>
-                        <span>Channel: <strong className="text-slate-800">{selectedCertContent.channel}</strong></span>
-                      </div>
-                    </div>
+
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-200 gap-4">
+                        <div className="space-y-1.5">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] uppercase font-extrabold tracking-widest text-brand-700 bg-brand-50 px-2.5 py-0.5 rounded-md border border-brand-200/80">
+                              Official Pre-Publication Clearance
+                            </span>
+                            <span className="text-[10px] font-mono text-slate-500 font-semibold">
+                              {currentCertificate?.certificateId || `BL-CERT-${String(selectedCertContent?._id || '').slice(-6).toUpperCase()}`}
+                            </span>
+                          </div>
+                          <h4 className="text-xl font-extrabold text-slate-900 tracking-tight">{selectedCertContent.title}</h4>
+                          <div className="text-xs text-slate-500 flex flex-wrap items-center gap-x-2 gap-y-1">
+                            <span>Workspace: <strong className="text-slate-800">{activeOrg?.name}</strong></span>
+                            <span>&bull;</span>
+                            <span>Version: <strong className="text-slate-800 font-mono">v{currentCertificate?.content?.versionNumber || 1}</strong></span>
+                            <span>&bull;</span>
+                            <span>Version ID: <strong className="text-slate-700 font-mono text-[11px]">{String(currentCertificate?.content?.versionId || '').slice(-8)}</strong></span>
+                            <span>&bull;</span>
+                            <span>Channel: <strong className="text-slate-800">{selectedCertContent.channel}</strong></span>
+                          </div>
+                        </div>
 
                     {/* QR Code Stamp */}
                     <div className="flex items-center gap-3 shrink-0 bg-white p-3 rounded-xl border border-slate-200 shadow-xs">
@@ -886,6 +934,8 @@ export function AuditPage({ isActive = true }) {
                 <div className="p-8 text-center text-slate-400 text-xs">
                   No content selected.
                 </div>
+              )}
+                </>
               )}
             </div>
 

@@ -373,19 +373,27 @@ export function ApprovalsPage({ isActive = true }) {
                     className="w-full pl-8 pr-2.5 py-1.5 text-xs border border-slate-200 rounded-xl bg-slate-50/70 focus:outline-none focus:ring-1 focus:ring-brand-500"
                   />
                 </div>
-                <div className="flex items-center gap-1 overflow-x-auto touch-scroll no-scrollbar py-0.5">
+                <div className="flex items-center gap-1.5 overflow-x-auto touch-scroll no-scrollbar py-1">
                   {['ALL', 'IN_REVIEW', 'APPROVED', 'CHANGES_REQUESTED', 'DRAFT'].map((st) => (
                     <button
                       key={st}
                       type="button"
                       onClick={() => setStatusFilter(st)}
-                      className={`px-2 py-0.5 rounded-lg text-[10px] font-semibold transition-colors shrink-0 ${
+                      className={`px-2.5 py-1 rounded-lg text-[10px] font-semibold transition-colors shrink-0 whitespace-nowrap cursor-pointer ${
                         statusFilter === st
-                          ? 'bg-slate-900 text-white'
+                          ? 'bg-slate-900 text-white shadow-xs'
                           : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
                       }`}
                     >
-                      {st === 'ALL' ? 'All' : st.replace('_', ' ')}
+                      {st === 'ALL'
+                        ? 'All'
+                        : st === 'CHANGES_REQUESTED'
+                        ? 'Changes Requested'
+                        : st === 'IN_REVIEW'
+                        ? 'In Review'
+                        : st === 'APPROVED'
+                        ? 'Approved'
+                        : 'Draft'}
                     </button>
                   ))}
                 </div>
