@@ -28,7 +28,7 @@ router.post('/seed-demo', authenticate, requireOrgAccess([ROLES.ADMIN, ROLES.MAN
       },
       {
         organisationId: orgId,
-        title: 'Prohibition of Unsubstantiated Absolute Guarantees',
+        title: 'Prohibition of Unsubstantiated Guarantees',
         category: GUIDELINE_CATEGORIES.LEGAL,
         ruleText: 'Never promise 100% risk-free outcomes, absolute invulnerability, or unconditional guarantees without linking to approved legal terms.',
         severity: GUIDELINE_SEVERITIES.CRITICAL,

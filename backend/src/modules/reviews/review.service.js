@@ -242,6 +242,18 @@ export async function runGroundedChecks(text, organisationId, channel, audience)
     const isClaimCandidate = promoMetricMatches.length > 0 || hasPromotionalClaim || hasQuantitativeMetric || hasClaimKeyword;
 
     if (isClaimCandidate) {
+      // TC-01: Extract every numeric / percentage / multiplier metric in the sentence (e.g. 400%, 99.99%, 3x)
+      const explicitMetrics = [...sentence.matchAll(/\b\d+(?:\.\d+)?\s*(?:%|x\b)/gi)].map((m) => m[0].trim());
+
+      const unverifiedExplicitMetrics = explicitMetrics.filter((metric) => {
+        const normalized = metric.toLowerCase().replace(/\s+/g, ' ').trim();
+        const compact = metric.toLowerCase().replace(/\s+/g, '');
+        return !facts.some((f) => {
+          const factLower = f.statement.toLowerCase();
+          return factLower.includes(normalized) || factLower.includes(compact);
+        });
+      });
+
       // Check if quantitative metrics in the draft sentence are substantiated by ANY approved fact
       const unverifiedMetrics = quantitativeMetrics.filter((metric) => {
         const normalized = metric.replace(/\s+/g, ' ').trim();
@@ -261,7 +273,11 @@ export async function runGroundedChecks(text, organisationId, channel, audience)
         return !facts.some((f) => f.statement.toLowerCase().includes(phraseLower));
       });
 
-      const hasUnverifiedMetricOrPromo = unverifiedMetrics.length > 0 || unverifiedPromoPhrases.length > 0 || isRoiUnverified;
+      // TC-01: Never short-circuit a sentence if ANY extracted metric is unverified
+      const hasUnverifiedMetricOrPromo = unverifiedExplicitMetrics.length > 0
+        || unverifiedMetrics.length > 0
+        || unverifiedPromoPhrases.length > 0
+        || isRoiUnverified;
 
       // Find matching approved fact — requires TRUE SEMANTIC and QUANTITATIVE entailment:
       // If there are unverified metrics or promotional claims, NO fact can substantiate the sentence!
@@ -316,12 +332,13 @@ export async function runGroundedChecks(text, organisationId, channel, audience)
       } else {
         // ALWAYS return CLAIM_UNSUPPORTED with "No Approved Citation Found"
         const flaggedPhrase = unverifiedPromoPhrases[0]
+          || unverifiedExplicitMetrics[0]
           || promoMetricMatches[0]
           || (unverifiedMetrics.length > 0 ? (sentence.includes(unverifiedMetrics[0]) ? unverifiedMetrics[0] : sentence) : sentence);
         const matchIndex = text.indexOf(flaggedPhrase) >= 0 ? text.indexOf(flaggedPhrase) : (text.indexOf(sentence) >= 0 ? text.indexOf(sentence) : 0);
 
-        const explanation = (unverifiedMetrics.length > 0 || unverifiedPromoPhrases.length > 0 || promoMetricMatches.length > 0)
-          ? `No Approved Citation Found: No approved brand fact substantiates the promotional metric or performance claim ("${flaggedPhrase}") in this sentence. Requires reviewer verification or citation approval before publication.`
+        const explanation = (unverifiedExplicitMetrics.length > 0 || unverifiedMetrics.length > 0 || unverifiedPromoPhrases.length > 0 || promoMetricMatches.length > 0)
+          ? `No Approved Citation Found: No approved brand fact substantiates the metric or promotional claim ("${flaggedPhrase}") in this sentence. Requires reviewer verification or citation approval before publication.`
           : 'No Approved Citation Found: No approved brand fact was found to substantiate this factual claim. Requires reviewer verification or citation approval before publication.';
 
         findings.push({

@@ -8,6 +8,9 @@
  */
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
+import { ApprovedFact } from '../src/modules/facts/fact.model.js';
+import { Guideline } from '../src/modules/guidelines/guideline.model.js';
+import { runGroundedChecks } from '../src/modules/reviews/review.service.js';
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Reproduce the exact helpers from review.service.js so we test the same code
@@ -71,6 +74,18 @@ function checkClaimSupported(sentence, facts) {
   const isClaimCandidate = promoMetricMatches.length > 0 || hasPromotionalClaim || hasQuantitativeMetric || hasClaimKeyword;
   if (!isClaimCandidate) return 'IGNORED';
 
+  // TC-01: Extract every numeric / percentage / multiplier metric in the sentence (e.g. 400%, 99.99%, 3x)
+  const explicitMetrics = [...sentence.matchAll(/\b\d+(?:\.\d+)?\s*(?:%|x\b)/gi)].map((m) => m[0].trim());
+
+  const unverifiedExplicitMetrics = explicitMetrics.filter((metric) => {
+    const normalized = metric.toLowerCase().replace(/\s+/g, ' ').trim();
+    const compact = metric.toLowerCase().replace(/\s+/g, '');
+    return !facts.some((f) => {
+      const factLower = f.statement.toLowerCase();
+      return factLower.includes(normalized) || factLower.includes(compact);
+    });
+  });
+
   const unverifiedMetrics = quantitativeMetrics.filter((metric) => {
     const normalized = metric.replace(/\s+/g, ' ').trim();
     const compact = metric.replace(/\s+/g, '');
@@ -88,7 +103,11 @@ function checkClaimSupported(sentence, facts) {
     return !facts.some((f) => f.statement.toLowerCase().includes(phraseLower));
   });
 
-  const hasUnverifiedMetricOrPromo = unverifiedMetrics.length > 0 || unverifiedPromoPhrases.length > 0 || isRoiUnverified;
+  // TC-01: Never short-circuit a sentence if ANY extracted metric is unverified
+  const hasUnverifiedMetricOrPromo = unverifiedExplicitMetrics.length > 0
+    || unverifiedMetrics.length > 0
+    || unverifiedPromoPhrases.length > 0
+    || isRoiUnverified;
 
   if (hasUnverifiedMetricOrPromo) {
     return 'CLAIM_UNSUPPORTED';
@@ -329,5 +348,79 @@ describe('Bug 2 — Tone Rewrite: full-phrase replacement, no partial splits', (
       `Rewrite must not have double spaces: got "${rewritten}"`
     );
     console.log(`  Rewritten: "${rewritten}"`);
+  });
+});
+
+describe('TC-01 & TC-03 — End-to-End Grounded Verification with live runGroundedChecks', () => {
+  it('TC-01: Launch faster with Apex Studio, our ISO 27001 platform that boosts ROI by 400%. with only ISO 27001 fact MUST return CLAIM_UNSUPPORTED', async () => {
+    const origFactFind = ApprovedFact.find;
+    const origGuidelineFind = Guideline.find;
+
+    ApprovedFact.find = () => ({
+      lean: async () => [
+        {
+          _id: 'fact-iso',
+          statement: 'Apex Studio holds ISO 27001 certification.',
+          status: 'ACTIVE',
+        },
+      ],
+    });
+
+    Guideline.find = () => ({
+      lean: async () => [],
+    });
+
+    try {
+      const sentence = 'Launch faster with Apex Studio, our ISO 27001 platform that boosts ROI by 400%.';
+      const findings = await runGroundedChecks(sentence, 'test-org-123', 'WEB', 'General');
+      assert.ok(findings.length >= 1, 'Expected at least 1 finding');
+      const unsupported = findings.find((f) => f.type === 'CLAIM_UNSUPPORTED');
+      assert.ok(unsupported, 'Expected CLAIM_UNSUPPORTED finding');
+      assert.ok(
+        unsupported.originalText.includes('400%') || unsupported.originalText.includes('boosts ROI'),
+        `Expected metric to be flagged, got: "${unsupported.originalText}"`
+      );
+      assert.ok(
+        unsupported.explanation.includes('No Approved Citation Found'),
+        'Expected citation explanation'
+      );
+    } finally {
+      ApprovedFact.find = origFactFind;
+      Guideline.find = origGuidelineFind;
+    }
+  });
+
+  it('TC-01: Switch to ApexApp today for 99.99% guaranteed uptime. MUST return CLAIM_UNSUPPORTED', async () => {
+    const origFactFind = ApprovedFact.find;
+    const origGuidelineFind = Guideline.find;
+
+    ApprovedFact.find = () => ({
+      lean: async () => [
+        {
+          _id: 'fact-iso',
+          statement: 'Apex Studio holds ISO 27001 certification.',
+          status: 'ACTIVE',
+        },
+      ],
+    });
+
+    Guideline.find = () => ({
+      lean: async () => [],
+    });
+
+    try {
+      const sentence = 'Switch to ApexApp today for 99.99% guaranteed uptime.';
+      const findings = await runGroundedChecks(sentence, 'test-org-123', 'WEB', 'General');
+      assert.ok(findings.length >= 1, 'Expected at least 1 finding');
+      const unsupported = findings.find((f) => f.type === 'CLAIM_UNSUPPORTED');
+      assert.ok(unsupported, 'Expected CLAIM_UNSUPPORTED finding');
+      assert.ok(
+        unsupported.originalText.includes('99.99%'),
+        `Expected 99.99% to be flagged, got: "${unsupported.originalText}"`
+      );
+    } finally {
+      ApprovedFact.find = origFactFind;
+      Guideline.find = origGuidelineFind;
+    }
   });
 });
