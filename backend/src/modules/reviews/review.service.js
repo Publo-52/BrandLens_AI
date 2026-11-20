@@ -89,11 +89,82 @@ export async function runGroundedChecks(text, organisationId, channel, audience)
     .map((s) => s.trim())
     .filter((s) => s.length > 10);
 
-  // Check for unsupported / exaggerated claims
+  // Hype phrase patterns for TONE_MISMATCH — keyed by the full phrase to replace
+  // Each entry has: `pattern` (full phrase regex), `replacement` (clean rewrite phrase)
   const exaggeratedTriggers = [
-    { trigger: /100%|guarantee|never fail|instant|magic|invulnerable|zero risk/i, desc: 'Unsubstantiated absolute guarantee' },
-    { trigger: /cheapest in the world|#1 in the universe|fastest ever/i, desc: 'Unverified superlative marketing claim' },
+    {
+      // Full-phrase: "100% risk-free" or "100% risk free" → replace whole phrase together
+      pattern: /100%\s+risk[-\s]?free/gi,
+      replacement: 'reliable enterprise-grade standards',
+    },
+    {
+      // Full-phrase: "100% guarantee(d)" → replace whole phrase
+      pattern: /100%\s+guarantee[d]?/gi,
+      replacement: 'backed by our service-level agreement',
+    },
+    {
+      // Standalone "100%" — negative lookahead ensures "100% risk-free" / "100% guaranteed" already replaced above
+      pattern: /\b100%(?!\s+risk|\s+guarantee)/gi,
+      replacement: 'industry-leading',
+    },
+    {
+      pattern: /\bguarantee\b/gi,
+      replacement: 'committed to',
+    },
+    {
+      pattern: /\bnever fail(s)?\b/gi,
+      replacement: 'maintains high availability',
+    },
+    {
+      pattern: /\binstant\b/gi,
+      replacement: 'rapid',
+    },
+    {
+      pattern: /\bmagic\b/gi,
+      replacement: 'advanced',
+    },
+    {
+      pattern: /\binvulnerable\b/gi,
+      replacement: 'resilient',
+    },
+    {
+      pattern: /\bzero[- ]risk\b/gi,
+      replacement: 'low-risk',
+    },
+    {
+      pattern: /cheapest in the world/gi,
+      replacement: 'highly cost-effective',
+    },
+    {
+      pattern: /#1 in the universe/gi,
+      replacement: 'industry-leading',
+    },
+    {
+      pattern: /fastest ever/gi,
+      replacement: 'exceptionally fast',
+    },
   ];
+
+  // Combined detection regex for quick sentence screening (any trigger fires tone check)
+  const anyHypeTrigger = /100%\s+risk[-\s]?free|100%\s+guarantee[d]?|\b100%|\bguarantee\b|\bnever fail(s)?\b|\binstant\b|\bmagic\b|\binvulnerable\b|\bzero[- ]risk\b|cheapest in the world|#1 in the universe|fastest ever/i;
+
+  /**
+   * Apply all hype-phrase replacements sequentially (most specific first)
+   * to produce a grammatically clean rewrite without partial splits.
+   */
+  function buildToneRewrite(original) {
+    let rewritten = original;
+    for (const { pattern, replacement } of exaggeratedTriggers) {
+      // Reset stateful global flags
+      pattern.lastIndex = 0;
+      rewritten = rewritten.replace(pattern, replacement);
+    }
+    // Collapse any double spaces left behind
+    return rewritten.replace(/\s{2,}/g, ' ').trim();
+  }
+
+  // Metric extraction: numbers, percentages, timeframes — used for claim entailment
+  const metricPattern = /\b\d+(?:\.\d+)?(?:%|\s*hours?|\s*days?|\s*weeks?|\s*months?|\s*years?|\s*x\b|\s*times\b)?/gi;
 
   for (const sentence of sentences) {
     // Check against tone guidelines (flag at most once per sentence)
@@ -101,32 +172,31 @@ export async function runGroundedChecks(text, organisationId, channel, audience)
     for (const g of guidelines) {
       if (sentenceFlaggedTone) break;
       if (g.category === GUIDELINE_CATEGORIES.TONE || g.category === GUIDELINE_CATEGORIES.LEGAL) {
-        for (const exp of exaggeratedTriggers) {
-          if (exp.trigger.test(sentence)) {
-            const matchIndex = text.indexOf(sentence);
-            findings.push({
-              type: FINDING_TYPES.TONE_MISMATCH,
-              severity: g.severity || FINDING_SEVERITY.HIGH,
-              confidence: 0.92,
-              location: {
-                start: matchIndex >= 0 ? matchIndex : 0,
-                end: matchIndex >= 0 ? matchIndex + sentence.length : sentence.length,
+        // Use the combined detection regex; reset before each test
+        anyHypeTrigger.lastIndex = 0;
+        if (anyHypeTrigger.test(sentence)) {
+          const matchIndex = text.indexOf(sentence);
+          findings.push({
+            type: FINDING_TYPES.TONE_MISMATCH,
+            severity: g.severity || FINDING_SEVERITY.HIGH,
+            confidence: 0.92,
+            location: {
+              start: matchIndex >= 0 ? matchIndex : 0,
+              end: matchIndex >= 0 ? matchIndex + sentence.length : sentence.length,
+            },
+            originalText: sentence,
+            explanation: `Sentence contains exaggerated or unsubstantiated wording conflicting with brand tone: "${g.title}".`,
+            suggestedCorrection: buildToneRewrite(sentence),
+            checkMethod: CHECK_METHOD.AI,
+            sourceReferences: [
+              {
+                sourceType: 'GUIDELINE',
+                sourceId: String(g._id),
+                quote: g.ruleText,
               },
-              originalText: sentence,
-              explanation: `Sentence contains exaggerated or unsubstantiated wording conflicting with brand tone: "${g.title}".`,
-              suggestedCorrection: sentence.replace(exp.trigger, 'reliable enterprise-grade standards'),
-              checkMethod: CHECK_METHOD.AI,
-              sourceReferences: [
-                {
-                  sourceType: 'GUIDELINE',
-                  sourceId: String(g._id),
-                  quote: g.ruleText,
-                },
-              ],
-            });
-            sentenceFlaggedTone = true;
-            break;
-          }
+            ],
+          });
+          sentenceFlaggedTone = true;
         }
       }
     }
@@ -136,11 +206,37 @@ export async function runGroundedChecks(text, organisationId, channel, audience)
     const hasClaimKeyword = claimKeywords.some((kw) => sentence.toLowerCase().includes(kw));
 
     if (hasClaimKeyword) {
-      // Find matching approved fact
+      // Extract specific numeric/metric tokens from the draft sentence
+      metricPattern.lastIndex = 0;
+      const draftMetrics = [...sentence.matchAll(metricPattern)].map((m) => m[0].toLowerCase().trim());
+
+      // Find matching approved fact — requires SEMANTIC entailment, not just shared entity name:
+      // 1. Count meaningful content words (len > 4 to skip common short words like "with", "that")
+      //    shared between the sentence and the fact statement.
+      // 2. If the draft sentence contains specific numeric metrics (e.g., "94%", "24 hours"),
+      //    those exact tokens must also appear in the fact statement — otherwise it cannot be SUPPORTED.
       const matchingFact = facts.find((f) => {
-        const factWords = f.statement.toLowerCase().split(/\s+/);
-        const matchCount = factWords.filter((w) => w.length > 3 && sentence.toLowerCase().includes(w)).length;
-        return matchCount >= 2;
+        const factLower = f.statement.toLowerCase();
+        const factWords = factLower.split(/\s+/);
+
+        // Count meaningful content-word overlaps (threshold raised to >= 3)
+        const contentOverlap = factWords.filter(
+          (w) => w.length > 4 && sentence.toLowerCase().includes(w)
+        ).length;
+
+        if (contentOverlap < 3) return false;
+
+        // If the draft sentence has specific metrics, every metric must exist in the fact
+        if (draftMetrics.length > 0) {
+          const metricsAllVerified = draftMetrics.every((metric) => {
+            // Normalize metric for comparison (strip trailing spaces)
+            const normalized = metric.replace(/\s+/g, ' ').trim();
+            return factLower.includes(normalized);
+          });
+          if (!metricsAllVerified) return false;
+        }
+
+        return true;
       });
 
       const matchIndex = text.indexOf(sentence);
