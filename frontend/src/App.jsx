@@ -461,7 +461,7 @@ function MainApp() {
     );
   }
 
-  const renderTab = (tabKey) => {
+  const renderTab = (tabKey, isCurrent = false) => {
     switch (tabKey) {
       case 'dashboard':
         return <DashboardPage onNavigate={setCurrentTab} />;
@@ -474,7 +474,7 @@ function MainApp() {
       case 'insights':
         return <InsightsPage />;
       case 'audit':
-        return <AuditPage />;
+        return <AuditPage isActive={isCurrent} />;
       case 'settings':
         return <SettingsPage />;
       default:
@@ -498,7 +498,7 @@ function MainApp() {
                 className={isCurrent ? 'block' : 'hidden'}
                 style={{ display: isCurrent ? 'block' : 'none' }}
               >
-                {renderTab(tabKey)}
+                {renderTab(tabKey, isCurrent)}
               </div>
             );
           })}

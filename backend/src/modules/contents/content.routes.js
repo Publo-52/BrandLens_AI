@@ -372,6 +372,7 @@ router.post('/:contentId/versions', authenticate, requireOrgAccess(), validateOb
 
     res.status(201).json({
       success: true,
+      content,
       version: newVersion,
       review,
     });

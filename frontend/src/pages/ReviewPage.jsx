@@ -341,16 +341,39 @@ export function ReviewPage() {
     setSubmittingRevision(true);
     setError(null);
     try {
-      await api.submitNewVersion(
+      const res = await api.submitNewVersion(
         activeOrg._id,
         selectedContentId,
         { text: workingText, changeSummary: revisionSummary || 'Applied brand governance corrections' },
         token
       );
-      setSuccessMsg('New version created and re-reviewed successfully!');
+
+      const nextVersionNum =
+        res?.version?.versionNumber ||
+        res?.content?.currentVersionNumber ||
+        ((selectedContent?.currentVersionNumber || 1) + 1);
+
+      // Immediately update active submission pill version number (v1 -> v2) across states
+      setSelectedContent((prev) => (prev ? { ...prev, currentVersionNumber: nextVersionNum } : prev));
+      setContents((prev) =>
+        prev.map((c) => (c._id === selectedContentId ? { ...c, currentVersionNumber: nextVersionNum } : c))
+      );
+      if (res?.version) {
+        setVersions((prev) => [...prev.filter((v) => v._id !== res.version._id), res.version]);
+      }
+      if (res?.review) {
+        setLatestReview(res.review);
+      }
+
+      setSuccessMsg(`Version v${nextVersionNum} created and re-reviewed successfully!`);
       setRevisionSummary('');
-      await loadContentDetails(selectedContentId);
-      await loadContents();
+
+      // Background refresh to guarantee full synchronization with server
+      try {
+        await Promise.all([loadContentDetails(selectedContentId), loadContents()]);
+      } catch (refreshErr) {
+        console.warn('Background refresh after revision submission:', refreshErr);
+      }
     } catch (err) {
       setError(err.message || 'Failed to submit revision');
     } finally {

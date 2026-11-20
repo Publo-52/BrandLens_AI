@@ -372,4 +372,52 @@ All identified bugs have been addressed, unit/build-tested, and verified against
     ```
 - **Production Frontend Build:** `npm run build --prefix frontend` built in 6.25s with 0 errors.
 
+---
+
+## Round 9 — Real Workspace Testing Bug Fixes
+
+### 1. Claim Checker Missing Unverified Metrics (`"boosts ROI by 400%"`)
+- **Files Modified:** `backend/src/modules/reviews/review.service.js`, `backend/tests/review-service-bugs.test.js`
+- **Root Cause:**
+  - Sentences containing promotional metrics (e.g. `boosts ROI by 400%`) or multipliers (`3x`) without legacy domain keywords (`backup`, `uptime`, etc.) bypassed claim checking completely.
+  - Furthermore, if a sentence partially overlapped an approved fact (such as `ISO 27001`), promotional performance claims like `"boosts ROI"` or unverified percentages were not individually required to be present in the approved fact, allowing false `CLAIM_SUPPORTED` passes.
+- **Resolution:**
+  - Added `promotionalClaimPattern` (`/\b(?:boosts?|increases?|improves?|cuts?|reduces?|slashes?|doubles?|triples?|delivers?|maximizes?|accelerates?)\s+(?:roi|conversion|revenue|performance|growth|efficiency|costs?|latency|downtime|turnaround|speed)\b|\b(?:roi|return on investment)\b/gi`) and expanded `metricPattern` to match percentages (`400%`), multipliers (`3x`), and currency (`$`).
+  - Broadened claim trigger predicate: any sentence containing promotional claims, quantitative metrics, or compliance/domain keywords is evaluated against the Brand Knowledge Base.
+  - Required true factual entailment:
+    1. Content word overlap >= 3 meaningful words (> 4 chars).
+    2. All extracted quantitative metrics (`400%`, `3x`, `94%`, etc.) must literally exist in the approved fact.
+    3. Any promotional claim (e.g., `"boosts ROI"`, `"roi"`) must explicitly be substantiated by the fact statement.
+    4. If any metric or claim is unverified, `matchingFact` is null, generating a distinct `CLAIM_UNSUPPORTED` finding without hallucinated citations.
+
+### 2. Auto-Refresh Audit Trail When Switching to `#audit`
+- **Files Modified:** `frontend/src/App.jsx`, `frontend/src/pages/AuditPage.jsx`
+- **Root Cause:**
+  - With keep-alive tab preservation, `<AuditPage />` stayed mounted across tab transitions, meaning `useEffect(() => { loadAuditData(); }, [])` only ran once on initial mount. Switching from `#review` to `#audit` left the ledger stale unless manually clicking "Refresh".
+- **Resolution:**
+  - In `App.jsx`, passed `isActive={routeState.tab === 'audit'}` to `<AuditPage />`.
+  - In `AuditPage.jsx`, added an `isActive` watcher and window `hashchange` listener that triggers `loadAuditData(isBackground = logs.length > 0)`.
+  - When cached logs exist, `backgroundRefreshing` keeps existing rows displayed without a full-page loading flash while silently fetching latest intake, review, and approval events.
+
+### 3. Reset `v2` Pill & `Re-reviewing...` Button State (`#review`)
+- **Files Modified:** `frontend/src/pages/ReviewPage.jsx`, `backend/src/modules/contents/content.routes.js`
+- **Root Cause:**
+  - The revision button and active submission pill waited on full asynchronous `loadContents()` and `loadContentDetails()` network calls, leaving the version pill stuck on `v1` while in transit. If an error or delay occurred, the button could stay in `Re-reviewing...`.
+- **Resolution:**
+  - In `handleSubmitRevision`, immediately resolved the new version number from the revision response (`res.version.versionNumber`) and optimistically updated `selectedContent.currentVersionNumber`, `contents`, and `versions`.
+  - Handled secondary synchronization in a resilient background refresh.
+  - Ensured `setSubmittingRevision(false)` executes in a `finally` block so the button always resets to `Submit Revision (v${nextVersion + 1})`.
+  - In `content.routes.js`, returned the updated `content` alongside `version` and `review`.
+
+### 4. Verification Evidence
+- **Automated Tests:** `backend/tests/review-service-bugs.test.js`
+  - 12/12 unit tests passed, verifying:
+    - `"BrandLens AI boosts ROI by 400%."` -> `CLAIM_UNSUPPORTED`
+    - `"NovaTech is ISO 27001 certified and boosts ROI by 400%."` -> `CLAIM_UNSUPPORTED`
+    - `"NovaTech Cloud delivers 3x faster performance."` -> `CLAIM_UNSUPPORTED`
+    - `"NovaTech is certified under SOC 2 Type II and operates in compliance with GDPR standards and ISO 27001."` -> `CLAIM_SUPPORTED`
+    - Tone rewrite unit tests for complete phrase replacements.
+- **Extraction Test Suite:** `backend/tests/extraction.test.js` (4/4 passed).
+- **Frontend Production Build:** `npm run build --prefix frontend` built in 7.24s with 0 errors.
+
 

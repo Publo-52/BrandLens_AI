@@ -53,11 +53,12 @@ function formatRelativeTime(dateStr) {
   return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-export function AuditPage() {
+export function AuditPage({ isActive = true }) {
   const { user, token, activeOrg } = useAuth();
   const [logs, setLogs] = useState([]);
   const [contents, setContents] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [backgroundRefreshing, setBackgroundRefreshing] = useState(false);
   const [error, setError] = useState(null);
 
   // Filters
@@ -94,9 +95,13 @@ export function AuditPage() {
     return () => { cancelled = true; };
   }, [selectedCertContent?._id, activeOrg?._id, token]);
 
-  const loadAuditData = useCallback(async () => {
+  const loadAuditData = useCallback(async (isBackground = false) => {
     if (!activeOrg?._id || !token) return;
-    setLoading(true);
+    if (isBackground) {
+      setBackgroundRefreshing(true);
+    } else {
+      setLoading(true);
+    }
     setError(null);
     try {
       const [logsData, contentsData] = await Promise.all([
@@ -113,15 +118,42 @@ export function AuditPage() {
         setSelectedCertContent(approvedFirst);
       }
     } catch (err) {
-      setError(err.message || 'Failed to load audit trail');
+      if (!isBackground) {
+        setError(err.message || 'Failed to load audit trail');
+      }
     } finally {
-      setLoading(false);
+      if (isBackground) {
+        setBackgroundRefreshing(false);
+      } else {
+        setLoading(false);
+      }
     }
   }, [activeOrg, token]);
 
+  // Initial load
   useEffect(() => {
-    loadAuditData();
+    loadAuditData(false);
   }, [loadAuditData]);
+
+  // Auto-refresh audit trail in background whenever user navigates to #audit
+  useEffect(() => {
+    if (isActive) {
+      const isBg = logs.length > 0;
+      loadAuditData(isBg);
+    }
+  }, [isActive, loadAuditData]);
+
+  // Also listen for URL hash changes to #audit
+  useEffect(() => {
+    const handleHash = () => {
+      if (typeof window !== 'undefined' && window.location.hash === '#audit') {
+        const isBg = logs.length > 0;
+        loadAuditData(isBg);
+      }
+    };
+    window.addEventListener('hashchange', handleHash);
+    return () => window.removeEventListener('hashchange', handleHash);
+  }, [loadAuditData, logs.length]);
 
   // Esc key listener to close modal without page refresh
   useEffect(() => {
@@ -362,12 +394,12 @@ export function AuditPage() {
             <span>Generate Certificate</span>
           </button>
           <button
-            onClick={loadAuditData}
-            disabled={loading}
+            onClick={() => loadAuditData(logs.length > 0)}
+            disabled={loading || backgroundRefreshing}
             className="flex items-center gap-1.5 px-3.5 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-medium shadow-sm transition-colors"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-brand-600' : ''}`} />
-            <span>{loading ? 'Refreshing...' : 'Refresh'}</span>
+            <RefreshCw className={`w-3.5 h-3.5 ${loading || backgroundRefreshing ? 'animate-spin text-brand-600' : ''}`} />
+            <span>{loading || backgroundRefreshing ? 'Refreshing...' : 'Refresh'}</span>
           </button>
         </div>
       </div>

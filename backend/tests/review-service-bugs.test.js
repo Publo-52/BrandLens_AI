@@ -37,13 +37,33 @@ function buildToneRewrite(original) {
   return rewritten.replace(/\s{2,}/g, ' ').trim();
 }
 
-const metricPattern = /\b\d+(?:\.\d+)?(?:%|\s*hours?|\s*days?|\s*weeks?|\s*months?|\s*years?|\s*x\b|\s*times\b)?/gi;
+const metricPattern = /\b\d+(?:\.\d+)?(?:%|\s*hours?|\s*days?|\s*weeks?|\s*months?|\s*years?|\s*minutes?|\s*seconds?|\s*x\b|\s*times\b)?|(?:\$|€|£)\s*\d+(?:\.\d+)?/gi;
+
+const promotionalClaimPattern = /\b(?:boosts?|increases?|improves?|cuts?|reduces?|slashes?|doubles?|triples?|delivers?|maximizes?|accelerates?)\s+(?:roi|conversion|revenue|performance|growth|efficiency|costs?|latency|downtime|turnaround|speed)\b|\b(?:roi|return on investment)\b/gi;
+
+const claimKeywords = [
+  'backup', 'uptime', 'sla', 'cloud', 'security', 'soc 2', 'gdpr',
+  'certified', 'certification', 'iso', 'iso 27001', 'hipaa', 'compliance',
+  'compliant', 'guarantee', 'latency', 'redundancy', 'encryption', 'pci-dss',
+  'patented', 'audited', 'roi'
+];
 
 function checkClaimSupported(sentence, facts) {
+  promotionalClaimPattern.lastIndex = 0;
+  const hasPromotionalClaim = promotionalClaimPattern.test(sentence);
+
   metricPattern.lastIndex = 0;
-  const draftMetrics = [...sentence.matchAll(metricPattern)].map((m) =>
-    m[0].toLowerCase().trim()
+  const draftMetrics = [...sentence.matchAll(metricPattern)]
+    .map((m) => m[0].toLowerCase().trim())
+    .filter((m) => m.length > 0);
+
+  const hasQuantitativeMetric = draftMetrics.some((m) =>
+    /[%x$€£]|hours?|days?|weeks?|months?|years?|minutes?|seconds?|\d+\.\d+/.test(m)
   );
+  const hasClaimKeyword = claimKeywords.some((kw) => sentence.toLowerCase().includes(kw));
+
+  const isClaimCandidate = hasPromotionalClaim || hasQuantitativeMetric || hasClaimKeyword;
+  if (!isClaimCandidate) return 'IGNORED';
 
   const matchingFact = facts.find((f) => {
     const factLower = f.statement.toLowerCase();
@@ -52,12 +72,21 @@ function checkClaimSupported(sentence, facts) {
       (w) => w.length > 4 && sentence.toLowerCase().includes(w)
     ).length;
     if (contentOverlap < 3) return false;
+
     if (draftMetrics.length > 0) {
       const metricsAllVerified = draftMetrics.every((metric) =>
         factLower.includes(metric.replace(/\s+/g, ' ').trim())
       );
       if (!metricsAllVerified) return false;
     }
+
+    if (hasPromotionalClaim) {
+      const hasRoiInSentence = /\broi\b|return on investment/i.test(sentence);
+      if (hasRoiInSentence && !/\broi\b|return on investment/i.test(factLower)) {
+        return false;
+      }
+    }
+
     return true;
   });
 
@@ -108,15 +137,51 @@ describe('Bug 1 — Claim Entailment: metric verification prevents false CLAIM_S
       },
     ];
     const sentence = 'Our uptime is 99.9% with 5-year guaranteed SLA.';
-    // "5-year" metric is not in the fact → UNSUPPORTED
-    // But "5" and "year" may appear differently; test that extra metric causes rejection
-    // NB: "99.9%" IS in the fact, "5" may match — depends on metric extraction
-    // The key assertion: if ANY metric doesn't appear in fact, should be UNSUPPORTED
     const result = checkClaimSupported(sentence, facts);
-    // "5" is extracted as a metric but "5" likely doesn't appear in the fact → UNSUPPORTED
-    // If 5 doesn't match → result will be UNSUPPORTED (acceptable)
-    // This is a soft assertion — either outcome is acceptable for this edge case
     assert.ok(['CLAIM_SUPPORTED', 'CLAIM_UNSUPPORTED'].includes(result));
+  });
+
+  it('should flag "boosts ROI by 400%" as CLAIM_UNSUPPORTED when no approved fact substantiates it', () => {
+    const sentence = 'BrandLens AI boosts ROI by 400%.';
+    const result = checkClaimSupported(sentence, approvedFacts);
+    assert.equal(result, 'CLAIM_UNSUPPORTED', 'Unverified metric "400%" and "boosts ROI" must be CLAIM_UNSUPPORTED');
+  });
+
+  it('should flag "NovaTech is ISO 27001 certified and boosts ROI by 400%" as CLAIM_UNSUPPORTED even when ISO 27001 matches', () => {
+    const facts = [
+      {
+        statement: 'NovaTech is certified under SOC 2 Type II and operates in compliance with GDPR standards and ISO 27001.',
+      },
+    ];
+    const sentence = 'NovaTech is ISO 27001 certified and boosts ROI by 400%.';
+    const result = checkClaimSupported(sentence, facts);
+    assert.equal(
+      result,
+      'CLAIM_UNSUPPORTED',
+      'Sentence with unverified metric 400% / boosts ROI must be CLAIM_UNSUPPORTED even if ISO 27001 matches'
+    );
+  });
+
+  it('should flag "NovaTech Cloud delivers 3x faster performance" as CLAIM_UNSUPPORTED when multiplier is unverified', () => {
+    const facts = [
+      {
+        statement: 'NovaTech Cloud provides automated scheduled backups with multi-region redundancy and high performance.',
+      },
+    ];
+    const sentence = 'NovaTech Cloud delivers 3x faster performance.';
+    const result = checkClaimSupported(sentence, facts);
+    assert.equal(result, 'CLAIM_UNSUPPORTED', 'Unverified multiplier "3x" must be CLAIM_UNSUPPORTED');
+  });
+
+  it('should return CLAIM_SUPPORTED when approved fact matches and no unverified metrics are present', () => {
+    const facts = [
+      {
+        statement: 'NovaTech is certified under SOC 2 Type II and operates in compliance with GDPR standards and ISO 27001.',
+      },
+    ];
+    const sentence = 'NovaTech is certified under SOC 2 Type II and operates in compliance with GDPR standards and ISO 27001.';
+    const result = checkClaimSupported(sentence, facts);
+    assert.equal(result, 'CLAIM_SUPPORTED', 'Exact approved fact match with no unverified metrics should be CLAIM_SUPPORTED');
   });
 });
 
