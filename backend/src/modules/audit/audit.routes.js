@@ -67,7 +67,14 @@ router.get('/insights', authenticate, requireOrgAccess(), async (req, res, next)
       Content.find({ organisationId: orgId }).select('status').lean(),
       Review.find({ organisationId: orgId }).select('findings').lean(),
       Guideline.countDocuments({ organisationId: orgId }),
-      AuditLog.countDocuments({ organisationId: orgId, action: 'FINDING_DECISION', 'details.reviewStatus': 'OVERRIDDEN' }),
+      AuditLog.countDocuments({
+        organisationId: orgId,
+        $or: [
+          { action: 'FINDING_DECISION' },
+          { action: 'OVERRIDE_RECORDED' },
+          { 'details.reviewStatus': 'OVERRIDDEN' },
+        ],
+      }),
     ]);
 
     // Aggregate findings metrics & analyze guideline ambiguities
@@ -146,7 +153,7 @@ router.get('/insights', authenticate, requireOrgAccess(), async (req, res, next)
 
     // Only return ambiguous guidelines when real overrides exist in DB and workspace has guidelines
     // Never show hardcoded/sample guidelines for workspaces with 0 guidelines or 0 overrides
-    if (guidelinesCount === 0 || ambiguousGuidelines.length === 0) {
+    if (guidelinesCount === 0 || ambiguousGuidelines.length === 0 || overriddenCount === 0) {
       ambiguousGuidelines = [];
     }
 
@@ -166,7 +173,7 @@ router.get('/insights', authenticate, requireOrgAccess(), async (req, res, next)
       }
     }
 
-    const overrideRate = totalFindings > 0 ? ((overriddenCount / totalFindings) * 100).toFixed(1) : 0;
+    const overrideRate = totalFindings > 0 ? Math.min(100, Number(((overriddenCount / totalFindings) * 100).toFixed(1))) : 0;
     const acceptanceRate = totalFindings > 0 ? ((acceptedCount / totalFindings) * 100).toFixed(1) : 0;
 
     res.json({

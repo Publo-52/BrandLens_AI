@@ -478,7 +478,7 @@ export function InsightsPage() {
               <div className="w-10 h-10 rounded-xl bg-white/10 text-emerald-400 flex items-center justify-center mx-auto border border-white/10">
                 <CheckCircle2 className="w-5 h-5" />
               </div>
-              <h5 className="text-xs font-bold text-white">No Ambiguous Guidelines Detected</h5>
+              <h5 className="text-xs font-bold text-white">No ambiguous or frequently overruled guidelines detected yet.</h5>
               <p className="text-xs text-slate-300 max-w-md mx-auto leading-relaxed">
                 Zero conflicting rules or reviewer overrides recorded in this workspace. When reviewers log override rationales during content review, policies needing clarification appear here automatically.
               </p>
