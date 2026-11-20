@@ -33,6 +33,20 @@ router.post('/', authenticate, requireOrgAccess(), uploadRateLimiter, upload.arr
       });
     }
 
+    if (title.trim().length > 200) {
+      return res.status(400).json({
+        success: false,
+        error: { message: 'Content title exceeds maximum length of 200 characters.', statusCode: 400 },
+      });
+    }
+
+    if (text && typeof text === 'string' && text.length > 500000) {
+      return res.status(400).json({
+        success: false,
+        error: { message: 'Content text exceeds maximum length of 500,000 characters.', statusCode: 400 },
+      });
+    }
+
     let submittedText = text ? text.trim() : '';
     const fileReferences = [];
 
@@ -289,7 +303,7 @@ router.get('/:contentId', authenticate, requireOrgAccess(), validateObjectIdPara
 });
 
 // POST /api/organisations/:organisationId/contents/:contentId/versions - Submit a revised version
-router.post('/:contentId/versions', authenticate, requireOrgAccess(), validateObjectIdParam('contentId'), async (req, res, next) => {
+router.post('/:contentId/versions', authenticate, requireOrgAccess(), uploadRateLimiter, validateObjectIdParam('contentId'), async (req, res, next) => {
   try {
     const { text, changeSummary } = req.body;
     const { contentId, organisationId } = req.params;
@@ -298,6 +312,20 @@ router.post('/:contentId/versions', authenticate, requireOrgAccess(), validateOb
       return res.status(400).json({
         success: false,
         error: { message: 'Revised text is required.', statusCode: 400 },
+      });
+    }
+
+    if (text.trim().length > 500000) {
+      return res.status(400).json({
+        success: false,
+        error: { message: 'Revised text exceeds maximum length of 500,000 characters.', statusCode: 400 },
+      });
+    }
+
+    if (changeSummary && typeof changeSummary === 'string' && changeSummary.length > 500) {
+      return res.status(400).json({
+        success: false,
+        error: { message: 'Change summary exceeds maximum length of 500 characters.', statusCode: 400 },
       });
     }
 

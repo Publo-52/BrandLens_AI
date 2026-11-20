@@ -144,9 +144,20 @@ export function InsightsPage() {
             <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
             <span>{error}</span>
           </div>
-          <button onClick={() => setError(null)} className="font-semibold text-rose-600 hover:underline">
-            Dismiss
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => {
+                setError(null);
+                loadInsights();
+              }}
+              className="font-semibold text-brand-600 hover:underline"
+            >
+              Retry
+            </button>
+            <button onClick={() => setError(null)} className="font-semibold text-rose-600 hover:underline">
+              Dismiss
+            </button>
+          </div>
         </div>
       )}
 

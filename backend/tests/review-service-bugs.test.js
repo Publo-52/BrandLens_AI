@@ -14,7 +14,7 @@ import assert from 'node:assert/strict';
 // ──────────────────────────────────────────────────────────────────────────────
 
 const exaggeratedTriggers = [
-  { pattern: /100%\s+risk[-\s]?free/gi,       replacement: 'reliable enterprise-grade standards' },
+  { pattern: /100%\s+risk[-\s]?free/gi,       replacement: 'reliable, enterprise-grade' },
   { pattern: /100%\s+guarantee[d]?/gi,         replacement: 'backed by our service-level agreement' },
   { pattern: /\b100%(?!\s+risk|\s+guarantee)/gi,  replacement: 'industry-leading' },
   { pattern: /\bguarantee\b/gi,                 replacement: 'committed to' },
@@ -192,6 +192,22 @@ describe('Bug 1 — Claim Entailment: metric verification prevents false CLAIM_S
     );
   });
 
+  it('should flag unverified metrics on a fresh workspace with 0 guidelines and only 1 fact (e.g. Apex Brand Studio)', () => {
+    // Zero guidelines in workspace, single fact with no metric
+    const facts = [
+      {
+        statement: 'Apex Brand Studio is an enterprise creative and compliance suite.',
+      },
+    ];
+    const sentence = 'Apex Brand Studio cuts cloud bills by 94% in 24 hours.';
+    const result = checkClaimSupported(sentence, facts);
+    assert.equal(
+      result,
+      'CLAIM_UNSUPPORTED',
+      'Unverified 94% / 24 hours in workspace with 0 guidelines must be CLAIM_UNSUPPORTED'
+    );
+  });
+
   it('should flag "NovaTech Cloud delivers 3x faster performance" as CLAIM_UNSUPPORTED when multiplier is unverified', () => {
     const facts = [
       {
@@ -224,8 +240,8 @@ describe('Bug 2 — Tone Rewrite: full-phrase replacement, no partial splits', (
       `Rewrite must not contain leftover "risk-free": got "${rewritten}"`
     );
     assert.ok(
-      rewritten.includes('reliable enterprise-grade standards'),
-      `Rewrite should include "reliable enterprise-grade standards": got "${rewritten}"`
+      rewritten.includes('reliable, enterprise-grade'),
+      `Rewrite should include "reliable, enterprise-grade": got "${rewritten}"`
     );
   });
 

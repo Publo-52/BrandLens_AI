@@ -268,14 +268,28 @@ export function ApprovalsPage({ isActive = true }) {
       </div>
 
       {error && (
-        <div className="p-3.5 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs flex items-center justify-between">
-          <div className="flex items-center gap-2">
+        <div className="p-3.5 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
             <AlertCircle className="w-4 h-4 shrink-0 text-rose-500" />
-            <span>{error}</span>
+            <span className="truncate sm:whitespace-normal">{error}</span>
           </div>
-          <button onClick={() => setError(null)} className="text-rose-500 hover:text-rose-800 font-semibold text-xs">
-            Dismiss
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={() => {
+                setError(null);
+                loadData();
+                if (selectedId) loadDetails(selectedId);
+              }}
+              className="px-2 py-1 bg-rose-600 hover:bg-rose-700 text-white font-semibold text-[11px] rounded-lg transition-colors flex items-center gap-1 shadow-2xs"
+            >
+              <RefreshCw className="w-3 h-3" />
+              <span>Retry</span>
+            </button>
+            <button onClick={() => setError(null)} className="text-rose-500 hover:text-rose-800 font-semibold text-xs">
+              Dismiss
+            </button>
+          </div>
         </div>
       )}
 
@@ -324,6 +338,12 @@ export function ApprovalsPage({ isActive = true }) {
                       No submissions currently awaiting review sign-off.
                     </p>
                   </div>
+                  <a
+                    href="#review"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-semibold shadow-xs transition-all"
+                  >
+                    <span>Open Review Studio</span>
+                  </a>
                 </div>
               ) : (
                 contents.map((item) => {

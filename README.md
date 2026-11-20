@@ -2,7 +2,55 @@
 
 > **Intelligent brand governance, before you publish.**
 
+[![Live Production](https://img.shields.io/badge/Live%20App-brand--lens--ai--ten.vercel.app-2563eb?style=for-the-badge&logo=vercel)](https://brand-lens-ai-ten.vercel.app/)
+[![Backend Health](https://img.shields.io/badge/API%20Health-OK%20(200)-10b981?style=for-the-badge&logo=render)](https://brandlens-backend-ghtd.onrender.com/api/health)
+[![License: MIT](https://img.shields.io/badge/License-MIT-amber.svg?style=for-the-badge)](LICENSE)
+
+🌐 **Live Application URL:** [https://brand-lens-ai-ten.vercel.app/](https://brand-lens-ai-ten.vercel.app/)  
+📡 **Live Backend API Health:** [https://brandlens-backend-ghtd.onrender.com/api/health](https://brandlens-backend-ghtd.onrender.com/api/health)
+
 BrandLens AI is a multi-tenant, explainable pre-publication content review and approval platform. It checks marketing drafts, documents, and visual assets against an organisation's approved brand guidelines, terminology rules, verified facts, and accessibility standards—providing source-cited findings, immutable version history, separation-of-duties approval gates, and exportable compliance certificates while keeping authorised humans in control.
+
+---
+
+## ⚡ 5-Minute Quickstart for Judges & Evaluators
+
+Want to evaluate BrandLens AI immediately on your local machine? Run the stack in 3 simple steps:
+
+### 1. Clone & Install Dependencies
+```bash
+git clone https://github.com/Publo-52/BrandLens_AI.git
+cd BrandLens_AI
+
+# Install all workspace dependencies
+npm install
+cd backend && npm install && cd ..
+cd frontend && npm install && cd ..
+```
+
+### 2. Configure Environment Files
+```bash
+# Copy example configurations (pre-configured for local development)
+# Windows (PowerShell):
+Copy-Item backend\.env.example backend\.env
+Copy-Item frontend\.env.example frontend\.env
+Copy-Item ai-service\.env.example ai-service\.env
+
+# macOS / Linux:
+# cp backend/.env.example backend/.env && cp frontend/.env.example frontend/.env && cp ai-service/.env.example ai-service/.env
+```
+*(Ensure `backend/.env` has a working `MONGODB_URI` connection string, e.g. a free MongoDB Atlas URI or local `mongodb://localhost:27017/brandlens`)*.
+
+### 3. Start the Application
+```bash
+# In BrandLens_AI root directory:
+npm run dev
+```
+- **Frontend SPA:** [http://localhost:5173](http://localhost:5173)
+- **Backend API:** [http://localhost:5000](http://localhost:5000) (Health check: `/api/health`)
+- **FastAPI AI Service:** [http://localhost:8000](http://localhost:8000) (Health check: `/health`)
+
+> 💡 **Instant Evaluation Tip:** Log in using the 1-click Quick Role Switcher (`CREATOR`, `REVIEWER`, `MANAGER`, `ADMIN`) or navigate directly to the Knowledge Base and click **Seed Demo Pack** to populate the complete **NovaTech Global** enterprise guidelines and approved facts.
 
 ---
 
@@ -26,7 +74,8 @@ BrandLens AI is a multi-tenant, explainable pre-publication content review and a
 16. [Deployment Instructions](#16-deployment-instructions)
 17. [Troubleshooting Guide](#17-troubleshooting-guide)
 18. [Future Development Roadmap](#18-future-development-roadmap)
-19. [Team ALGO_X](#19-team-algo_x)
+19. [AI & External Services Disclosure](#19-ai--external-services-disclosure)
+20. [Team ALGO_X & Contributions](#20-team-algo_x--contributions)
 
 ---
 
@@ -536,13 +585,36 @@ The following capabilities are planned next and are **not yet completed**:
 
 ---
 
-## 19. Team ALGO_X
+## 19. AI & External Services Disclosure
+
+BrandLens AI adheres to responsible AI governance, transparent citation standards, and explicit human-in-the-loop controls. In accordance with competition guidelines, all AI models, external cloud services, and third-party APIs used across the platform are fully disclosed below:
+
+### AI & Machine Learning Architecture
+| Capability | Provider / Library | Model / Technology | Integration Details & Fallback Mechanism |
+| :--- | :--- | :--- | :--- |
+| **Generative Review & Citations** | Google Cloud / Gemini API | `gemini-1.5-pro` (FastAPI Microservice) | Used for nuanced voice matching, intent-preserving rewrite generation, and claim classification against approved brand facts. When Gemini API keys are unconfigured or rate-limited, the system falls back seamlessly to the deterministic grounded engine in Node.js. |
+| **Claim Verification & Numeric Checks** | In-Engine Grounded Matcher | Deterministic RegEx + Token Set Entailment | Scans every draft sentence for quantitative numbers (`\d+%`, `\d+x`, currency, timeframes) and promotional assertions (`boosts ROI`, `cuts cloud bills`). Requires an exact active fact citation before granting `CLAIM_SUPPORTED`; otherwise reports `CLAIM_UNSUPPORTED` (`No Approved Citation Found`). |
+| **Visual Brand & Contrast Checks** | Python Imaging Library (Pillow) | WCAG 2.1 AA/AAA Contrast Formula & Euclidean Color Space | Extracts dominant RGB/HEX colors from uploaded brand images without third-party LLM hallucination; computes relative luminance $L = 0.2126R + 0.7152G + 0.0722B$ to mathematically guarantee contrast ratios against background palettes. |
+| **Document Text Extraction** | Python Microservice | `pdfplumber`, `pypdf`, `python-docx`, `pytesseract` OCR | Extracts structured text and tables from `.pdf` and `.docx` files. If the optional host Tesseract binary is absent, visual checks continue without disruption. |
+
+### External Cloud Infrastructure & APIs
+| Service | Purpose | Data Handled | Security / Isolation Controls |
+| :--- | :--- | :--- | :--- |
+| **MongoDB Atlas** | Primary Database | Tenant profiles, guidelines, facts, content versions, audit logs | Multi-tenant indexing by `organisationId`, strict schema validation, server-side NoSQL injection sanitization. |
+| **Firebase Auth & Admin SDK** | Identity Management | User authentication (Email/Password, Google OAuth), ID token verification | Server-side cryptographic token verification (`verifyFirebaseToken.js`) with Express JWT fallback. |
+| **Cloudinary** | Media Asset Storage | Uploaded brand logos, visual campaign banners, document assets | Strict MIME type validation, 10MB size limit, binary magic-byte inspection (`fileValidation.js`). |
+| **Vercel** | Frontend & Serverless Hosting | React 18 SPA static assets & client routing | Automatic HTTPS, edge caching, zero secret credentials exposed to client bundles. |
+| **Render** | Backend API Hosting | Express API service & background workers | Managed environment variables, automated health-check monitoring (`/api/health`), strict rate limiting. |
+
+---
+
+## 20. Team ALGO_X & Contributions
 
 Developed by **Team ALGO_X** — Global Institute of Science and Technology:
 
-| Member | Role |
-| :--- | :--- |
-| **Ranjan Mondal** | Full-Stack Development |
-| **Sukhen Das** | Full-Stack Development |
-| **Joy Khatua** | Database Architecture |
-| **Chandan Patra** | Analysis, Testing & Research |
+| Member | Primary Role | Core Contributions & Ownership |
+| :--- | :--- | :--- |
+| **Ranjan Mondal** | **Lead Full-Stack Developer** | • Architectural design of the 3-tier microservice architecture.<br>• Grounded Review Engine with universal numeric/promotional claim verification & tone rewrites.<br>• Frontend React 18 Review Studio, immutable version diff viewer, and ErrorBoundary resilience.<br>• Backend API security hardening: Helmet headers, tiered rate limiters, and CORS governance. |
+| **Sukhen Das** | **Full-Stack Developer** | • Separation-of-Duties approval queue workflow and server-side RBAC validation (`403` guard).<br>• Real-time collaborative comment threads on content revisions.<br>• Live Governance Insights dashboard telemetry and Ambiguous Guidelines detection queue.<br>• UI/UX polish across responsive Tailwind layouts, floating toasts, and empty state CTAs. |
+| **Joy Khatua** | **Database Architect** | • Multi-tenant MongoDB Atlas schema design across 10+ Mongoose models with strict tenant isolation.<br>• Cryptographic tamper-evident append-only Audit Log ledger implementation.<br>• Pre-Publication Compliance Certificate generation (Printable/Save PDF, Markdown `.md`, and JSON `.json`).<br>• Knowledge Base CRUD operations and 1-click NovaTech Global enterprise demo pack seeder. |
+| **Chandan Patra** | **QA, Testing & Research** | • End-to-end integration and smoke test suites (`e2e_comprehensive.test.js`, `review-service-bugs.test.js`).<br>• Security audit test suite covering NoSQL injection, prototype pollution, IDOR, and rate limiting.<br>• WCAG 2.1 AA/AAA accessibility verification and contrast checker formula calibration.<br>• Technical documentation, architecture diagrams, and evaluator quickstart verification. |

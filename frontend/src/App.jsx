@@ -464,19 +464,47 @@ function MainApp() {
   const renderTab = (tabKey, isCurrent = false) => {
     switch (tabKey) {
       case 'dashboard':
-        return <DashboardPage onNavigate={setCurrentTab} />;
+        return (
+          <ErrorBoundary onGoHome={() => setCurrentTab('dashboard')}>
+            <DashboardPage onNavigate={setCurrentTab} />
+          </ErrorBoundary>
+        );
       case 'review':
-        return <ReviewPage />;
+        return (
+          <ErrorBoundary onGoHome={() => setCurrentTab('dashboard')}>
+            <ReviewPage />
+          </ErrorBoundary>
+        );
       case 'knowledge':
-        return <KnowledgeBasePage />;
+        return (
+          <ErrorBoundary onGoHome={() => setCurrentTab('dashboard')}>
+            <KnowledgeBasePage />
+          </ErrorBoundary>
+        );
       case 'approvals':
-        return <ApprovalsPage isActive={isCurrent} />;
+        return (
+          <ErrorBoundary onGoHome={() => setCurrentTab('dashboard')}>
+            <ApprovalsPage isActive={isCurrent} />
+          </ErrorBoundary>
+        );
       case 'insights':
-        return <InsightsPage />;
+        return (
+          <ErrorBoundary onGoHome={() => setCurrentTab('dashboard')}>
+            <InsightsPage />
+          </ErrorBoundary>
+        );
       case 'audit':
-        return <AuditPage isActive={isCurrent} />;
+        return (
+          <ErrorBoundary onGoHome={() => setCurrentTab('dashboard')}>
+            <AuditPage isActive={isCurrent} />
+          </ErrorBoundary>
+        );
       case 'settings':
-        return <SettingsPage />;
+        return (
+          <ErrorBoundary onGoHome={() => setCurrentTab('dashboard')}>
+            <SettingsPage />
+          </ErrorBoundary>
+        );
       default:
         return null;
     }

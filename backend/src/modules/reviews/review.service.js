@@ -101,7 +101,7 @@ export async function runGroundedChecks(text, organisationId, channel, audience)
     {
       // Full-phrase: "100% risk-free" or "100% risk free" → replace whole phrase together
       pattern: /100%\s+risk[-\s]?free/gi,
-      replacement: 'reliable enterprise-grade standards',
+      replacement: 'reliable, enterprise-grade',
     },
     {
       // Full-phrase: "100% guarantee(d)" → replace whole phrase

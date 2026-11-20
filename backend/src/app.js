@@ -33,6 +33,9 @@ function isOriginAllowed(origin) {
   const normalized = origin.replace(/\/+$/, '');
   if (config.allowedOrigins.includes(normalized)) return true;
   if (!config.isProduction && LOCAL_DEV_ORIGIN_RE.test(normalized)) return true;
+  if (config.frontendOrigin && config.frontendOrigin !== '*' && normalized === config.frontendOrigin.replace(/\/+$/, '')) {
+    return true;
+  }
   return false;
 }
 
@@ -41,13 +44,9 @@ const corsOptions = {
     if (!origin || isOriginAllowed(origin)) {
       return callback(null, true);
     }
-    if (config.frontendOrigin === '*') {
-      // Wildcard mode: allow request without reflecting untrusted origin with credentials
-      return callback(null, false);
-    }
     return callback(null, false);
   },
-  credentials: config.frontendOrigin !== '*',
+  credentials: true,
   methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: [
     'Origin',
@@ -67,14 +66,6 @@ app.use((req, res, next) => {
   const origin = req.headers.origin;
   if (origin && isOriginAllowed(origin)) {
     res.setHeader('Vary', 'Origin');
-  } else if (origin && config.frontendOrigin === '*') {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, POST, PUT, PATCH, DELETE, OPTIONS');
-    res.setHeader(
-      'Access-Control-Allow-Headers',
-      'Origin, X-Requested-With, Content-Type, Accept, Authorization, x-organisation-id, X-Organisation-Id, x-workspace-id, X-Workspace-Id'
-    );
-    if (req.method === 'OPTIONS') return res.status(204).end();
   }
   next();
 });
@@ -116,12 +107,14 @@ app.get(['/', '/api'], (req, res) => {
 
 // ── Health Checks ─────────────────────────────────────────────────────────────
 app.get('/api/health', (req, res) => {
+  const isConnected = mongoose.connection.readyState === 1;
   const dbHealth = getDatabaseHealth();
   res.status(200).json({
-    status: 'healthy',
+    status: 'ok',
+    db: isConnected ? 'connected' : 'disconnected',
+    timestamp: new Date().toISOString(),
     service: 'backend',
     version: '1.0.0',
-    timestamp: new Date().toISOString(),
     uptimeSeconds: Math.floor(process.uptime()),
     environment: config.env,
     database: dbHealth,
