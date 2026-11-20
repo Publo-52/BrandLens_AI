@@ -18,8 +18,13 @@ export default defineConfig({
           'vendor-react': ['react', 'react-dom'],
           'vendor-icons': ['lucide-react'],
         },
+        chunkFileNames: 'assets/[name]-[hash].js',
+        entryFileNames: 'assets/[name]-[hash].js',
+        assetFileNames: 'assets/[name]-[hash].[ext]',
       },
     },
+    cssCodeSplit: true,
+    reportCompressedSize: false,
     chunkSizeWarningLimit: 600,
   },
   // Pre-warm frequently imported modules for faster HMR

@@ -92,9 +92,9 @@ export function ReviewPage() {
   const [expandedFindings, setExpandedFindings] = useState({});
   const [batchApplying, setBatchApplying] = useState(false);
 
-  const loadContents = useCallback(async () => {
+  const loadContents = useCallback(async (isBackground = false) => {
     if (!activeOrg?._id || !token) return;
-    setLoading(true);
+    if (!isBackground) setLoading(true);
     setError(null);
     try {
       const data = await api.getContents(activeOrg._id, token);
@@ -112,14 +112,15 @@ export function ReviewPage() {
         setWorkingText('');
       }
     } catch (err) {
-      setError(err.message);
+      if (!isBackground) setError(err.message);
     } finally {
-      setLoading(false);
+      if (!isBackground) setLoading(false);
     }
   }, [activeOrg, token]);
 
   useEffect(() => {
-    loadContents();
+    const isBg = contents.length > 0;
+    loadContents(isBg);
   }, [loadContents]);
 
   // Load single content details & review findings
@@ -546,11 +547,11 @@ export function ReviewPage() {
     }));
   };
 
-  // Findings analytics & breakdown
-  const rawFindings = latestReview?.findings || [];
+  // Findings analytics & breakdown (memoized to prevent re-filtering while typing in editor)
+  const rawFindings = useMemo(() => latestReview?.findings || [], [latestReview?.findings]);
   const findingsCount = rawFindings.length;
 
-  const counts = {
+  const counts = useMemo(() => ({
     terminology: rawFindings.filter((f) => f.type === 'TERMINOLOGY').length,
     tone: rawFindings.filter((f) => f.type === 'TONE_MISMATCH').length,
     unsupportedClaims: rawFindings.filter((f) => f.type === 'CLAIM_UNSUPPORTED').length,
@@ -558,23 +559,24 @@ export function ReviewPage() {
     accessibility: rawFindings.filter((f) =>
       ['CONTRAST_FAIL', 'ALT_TEXT_MISSING', 'ACCESSIBILITY'].includes(f.type)
     ).length,
-  };
+  }), [rawFindings]);
 
-  const resolvedCount = rawFindings.filter(
+  const resolvedCount = useMemo(() => rawFindings.filter(
     (f) => f.reviewStatus && f.reviewStatus !== 'PENDING'
-  ).length;
+  ).length, [rawFindings]);
 
   const pendingCount = findingsCount - resolvedCount;
 
-  const readinessPercentage =
-    findingsCount === 0 ? 100 : Math.round((resolvedCount / findingsCount) * 100);
+  const readinessPercentage = useMemo(() => (
+    findingsCount === 0 ? 100 : Math.round((resolvedCount / findingsCount) * 100)
+  ), [findingsCount, resolvedCount]);
 
-  const availableFixCount = rawFindings.filter(
+  const availableFixCount = useMemo(() => rawFindings.filter(
     (f) => Boolean(f.suggestedCorrection) && (!f.reviewStatus || f.reviewStatus === 'PENDING')
-  ).length;
+  ).length, [rawFindings]);
 
   // Filtered findings based on tab and search
-  const filteredFindings = rawFindings.filter((f) => {
+  const filteredFindings = useMemo(() => rawFindings.filter((f) => {
     if (findingFilter === 'PENDING' && f.reviewStatus && f.reviewStatus !== 'PENDING') {
       return false;
     }
@@ -607,7 +609,7 @@ export function ReviewPage() {
     }
 
     return true;
-  });
+  }), [rawFindings, findingFilter, findingSearch]);
 
   const isApproved = selectedContent?.status === 'APPROVED';
 

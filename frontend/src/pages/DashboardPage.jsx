@@ -31,14 +31,14 @@ export function DashboardPage({ onNavigate }) {
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState(null);
 
-  const loadDashboardData = React.useCallback(async () => {
+  const loadDashboardData = React.useCallback(async (isBackground = false) => {
     if (!activeOrg?._id || !token) {
       setContents([]);
       setStats({ totalDrafts: 0, inReview: 0, approved: 0, guidelinesCount: 0 });
       setLoadError(null);
       return;
     }
-    setLoading(true);
+    if (!isBackground) setLoading(true);
     setLoadError(null);
     try {
       const [contentsRes, guidelinesRes, factsRes] = await Promise.allSettled([
@@ -68,14 +68,17 @@ export function DashboardPage({ onNavigate }) {
         guidelinesCount: totalGuidelines,
       });
     } catch (err) {
-      setLoadError(err.message || 'Failed to load dashboard metrics.');
+      if (!isBackground) {
+        setLoadError(err.message || 'Failed to load dashboard metrics.');
+      }
     } finally {
-      setLoading(false);
+      if (!isBackground) setLoading(false);
     }
   }, [activeOrg?._id, token]);
 
   useEffect(() => {
-    loadDashboardData();
+    const isBg = contents.length > 0 || stats.totalDrafts > 0;
+    loadDashboardData(isBg);
   }, [loadDashboardData]);
 
   const nav = (tab) => {

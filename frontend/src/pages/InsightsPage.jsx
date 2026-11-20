@@ -34,22 +34,23 @@ export function InsightsPage() {
   const [appliedClarification, setAppliedClarification] = useState(false);
   const [timeRange, setTimeRange] = useState('ALL');
 
-  const loadInsights = useCallback(async () => {
+  const loadInsights = useCallback(async (isBackground = false) => {
     if (!activeOrg?._id || !token) return;
-    setLoading(true);
+    if (!isBackground) setLoading(true);
     setError(null);
     try {
       const data = await api.getInsights(activeOrg._id, token);
       setMetrics(data.metrics || null);
     } catch (err) {
-      setError(err.message || 'Failed to load governance insights');
+      if (!isBackground) setError(err.message || 'Failed to load governance insights');
     } finally {
-      setLoading(false);
+      if (!isBackground) setLoading(false);
     }
   }, [activeOrg, token]);
 
   useEffect(() => {
-    loadInsights();
+    const isBg = Boolean(metrics);
+    loadInsights(isBg);
   }, [loadInsights]);
 
   if (!activeOrg) {

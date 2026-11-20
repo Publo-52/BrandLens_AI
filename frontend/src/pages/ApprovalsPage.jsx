@@ -79,9 +79,9 @@ export function ApprovalsPage() {
     )
   );
 
-  const loadData = useCallback(async () => {
+  const loadData = useCallback(async (isBackground = false) => {
     if (!activeOrg?._id || !token) return;
-    setLoading(true);
+    if (!isBackground) setLoading(true);
     try {
       const data = await api.getContents(activeOrg._id, token);
       const all = data.contents || [];
@@ -99,14 +99,15 @@ export function ApprovalsPage() {
         setComments([]);
       }
     } catch (err) {
-      setError(err.message);
+      if (!isBackground) setError(err.message);
     } finally {
-      setLoading(false);
+      if (!isBackground) setLoading(false);
     }
   }, [activeOrg, token]);
 
   useEffect(() => {
-    loadData();
+    const isBg = contents.length > 0;
+    loadData(isBg);
   }, [loadData]);
 
   // Esc key listener to close modal without page refresh

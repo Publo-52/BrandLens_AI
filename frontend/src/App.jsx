@@ -495,7 +495,7 @@ function MainApp() {
                 id={`tab-panel-${tabKey}`}
                 role="tabpanel"
                 aria-hidden={!isCurrent}
-                className={isCurrent ? 'block' : 'hidden'}
+                className={isCurrent ? 'block tab-content-enter' : 'hidden'}
                 style={{ display: isCurrent ? 'block' : 'none' }}
               >
                 {renderTab(tabKey, isCurrent)}

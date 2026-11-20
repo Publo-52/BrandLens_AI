@@ -76,9 +76,9 @@ export function KnowledgeBasePage() {
 
   const canManage = activeRole === 'ADMIN' || activeRole === 'MANAGER';
 
-  const loadData = useCallback(async () => {
+  const loadData = useCallback(async (isBackground = false) => {
     if (!activeOrg?._id || !token) return;
-    setLoading(true);
+    if (!isBackground) setLoading(true);
     setError(null);
     try {
       const [gRes, fRes, tRes, aRes] = await Promise.allSettled([
@@ -97,14 +97,15 @@ export function KnowledgeBasePage() {
         setError(rejected[0].reason?.message || 'Failed to connect to brand knowledge services');
       }
     } catch (err) {
-      setError(err.message);
+      if (!isBackground) setError(err.message);
     } finally {
-      setLoading(false);
+      if (!isBackground) setLoading(false);
     }
   }, [activeOrg, token]);
 
   useEffect(() => {
-    loadData();
+    const isBg = guidelines.length > 0 || facts.length > 0;
+    loadData(isBg);
   }, [loadData]);
 
   // Esc key listener to close modal without page refresh

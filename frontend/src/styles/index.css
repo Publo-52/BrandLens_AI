@@ -6,7 +6,12 @@
   color-scheme: light;
 }
 
-/* Performance: Clean font stack with subpixel antialiasing */
+/* Performance & Smoothness: Clean font stack with subpixel antialiasing & smooth scrolling */
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
 body {
   margin: 0;
   min-height: 100vh;
@@ -16,21 +21,34 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+  overflow-x: hidden;
 }
 
 * {
   box-sizing: border-box;
 }
 
-/* Micro-interactions */
+/* Micro-interactions: Tactile feedback on interactive elements */
 button, a {
   -webkit-tap-highlight-color: transparent;
 }
 
+button:active:not(:disabled) {
+  transform: scale(0.985);
+  transition: transform 60ms ease-out;
+}
+
+/* GPU Hardware Acceleration helper */
+.gpu-accelerated {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  will-change: transform, opacity;
+}
+
 /* Custom sleek webkit scrollbars */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 
 ::-webkit-scrollbar-track {
@@ -40,6 +58,7 @@ button, a {
 ::-webkit-scrollbar-thumb {
   background: #cbd5e1;
   border-radius: 9999px;
+  transition: background-color 150ms ease;
 }
 
 ::-webkit-scrollbar-thumb:hover {
@@ -53,7 +72,40 @@ button, a {
   scrollbar-color: #cbd5e1 transparent;
 }
 
-/* Modern card hover lift */
+/* Smooth Skeleton Shimmer */
+@keyframes shimmerPulse {
+  0% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 0.95;
+  }
+  100% {
+    opacity: 0.55;
+  }
+}
+
+.skeleton-shimmer {
+  animation: shimmerPulse 1.6s ease-in-out infinite;
+}
+
+/* Ultra-smooth tab transitions */
+.tab-content-enter {
+  animation: fadeInFast 180ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes fadeInFast {
+  from {
+    opacity: 0.85;
+    transform: translateY(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Modern card hover lift with fluid spring easing */
 .card-hover {
   transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
