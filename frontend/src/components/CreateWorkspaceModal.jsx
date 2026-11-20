@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Building2, X, Plus, Loader2, Sparkles, AlertCircle } from 'lucide-react';
 import { useAuth } from '../features/auth/AuthContext';
 import { workspaceApi } from '../lib/api';
+import { ModalPortal } from './common/ModalPortal';
 
 export function CreateWorkspaceModal({ isOpen, onClose, canClose = true }) {
   const { user, refreshSession, switchOrg } = useAuth();
@@ -54,19 +55,20 @@ export function CreateWorkspaceModal({ isOpen, onClose, canClose = true }) {
   };
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="create-workspace-title"
-      onClick={() => {
-        if (canClose && onClose && !loading) onClose();
-      }}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md animate-in fade-in duration-200 overflow-y-auto"
-    >
+    <ModalPortal isOpen={isOpen} onClose={canClose ? onClose : undefined}>
       <div
-        onClick={(e) => e.stopPropagation()}
-        className="bg-white/95 backdrop-blur-xl border border-slate-200/90 rounded-3xl w-full max-w-md max-h-[90vh] overflow-y-auto p-6 sm:p-7 shadow-2xl relative text-slate-900"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="create-workspace-title"
+        onClick={() => {
+          if (canClose && onClose && !loading) onClose();
+        }}
+        className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/45 backdrop-blur-sm overflow-y-auto"
       >
+        <div
+          onClick={(e) => e.stopPropagation()}
+          className="bg-white/95 backdrop-blur-xl border border-slate-200/90 rounded-3xl w-full max-w-md max-h-[90vh] overflow-y-auto p-6 sm:p-7 shadow-2xl relative text-slate-900 my-auto animate-in fade-in zoom-in-95 duration-200"
+        >
         {/* Close Button (if allowed) */}
         {canClose && onClose && (
           <button
@@ -163,6 +165,7 @@ export function CreateWorkspaceModal({ isOpen, onClose, canClose = true }) {
         </form>
       </div>
     </div>
+  </ModalPortal>
   );
 }
 

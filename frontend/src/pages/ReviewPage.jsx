@@ -41,6 +41,7 @@ import {
 import { useAuth } from '../features/auth/AuthContext';
 import { api } from '../services/api';
 import { DiffViewer } from '../components/common/DiffViewer';
+import { ModalPortal } from '../components/common/ModalPortal';
 
 const SAMPLE_DEMO_DRAFT = `Experience Nova Cloud today! We guarantee a 100% risk-free platform with automated scheduled backups across regions.`;
 
@@ -1797,16 +1798,17 @@ export function ReviewPage() {
 
       {/* New Submission Modal */}
       {showNewModal && (
-        <div 
-          onClick={() => setShowNewModal(false)}
-          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
-          role="dialog"
-          aria-modal="true"
-        >
+        <ModalPortal isOpen={showNewModal} onClose={() => setShowNewModal(false)}>
           <div 
-            onClick={(e) => e.stopPropagation()}
-            className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-lg max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-150"
+            onClick={() => setShowNewModal(false)}
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/45 backdrop-blur-sm overflow-y-auto"
+            role="dialog"
+            aria-modal="true"
           >
+            <div 
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-lg max-h-[90vh] overflow-y-auto my-auto animate-in fade-in zoom-in-95 duration-150"
+            >
             <div className="bg-slate-900 p-4 sm:p-5 text-white flex items-center justify-between sticky top-0 z-10 border-b border-slate-800">
               <div className="flex items-center gap-2">
                 <div className="p-1.5 bg-brand-500/20 text-brand-400 rounded-lg">
@@ -2059,208 +2061,215 @@ export function ReviewPage() {
             </form>
           </div>
         </div>
+      </ModalPortal>
       )}
 
       {/* Override Justification Modal (Blueprint Section 5: Mandatory Reason) */}
       {overrideModalFinding && (
-        <div 
-          onClick={() => setOverrideModalFinding(null)}
-          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4"
-          role="dialog"
-          aria-modal="true"
-        >
+        <ModalPortal isOpen={Boolean(overrideModalFinding)} onClose={() => setOverrideModalFinding(null)}>
           <div 
-            onClick={(e) => e.stopPropagation()}
-            className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-md p-6 space-y-4 animate-in fade-in zoom-in-95 duration-150"
+            onClick={() => setOverrideModalFinding(null)}
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/45 backdrop-blur-sm overflow-y-auto"
+            role="dialog"
+            aria-modal="true"
           >
-            <div className="flex items-center justify-between">
-              <h3 className="font-bold text-slate-900 text-sm">Record Justified Reviewer Override</h3>
-              <button
-                type="button"
-                onClick={() => setOverrideModalFinding(null)}
-                className="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100"
-                title="Close modal (Esc)"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <p className="text-xs text-slate-500">
-              Blueprint compliance requires an explicit reason when overruling an automated brand flag. This decision will be permanently logged in the audit trail.
-            </p>
-            <textarea
-              rows={3}
-              required
-              value={overrideReason}
-              onChange={(e) => setOverrideReason(e.target.value)}
-              placeholder="e.g. Authorized by brand director for seasonal promotion campaign..."
-              className="w-full p-2.5 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none"
-            />
-            <div className="flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setOverrideModalFinding(null)}
-                className="px-3 py-1.5 bg-slate-100 text-slate-700 rounded-lg text-xs font-medium hover:bg-slate-200"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleOverrideFinding}
-                className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-semibold"
-              >
-                Save Override
-              </button>
+            <div 
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-md max-h-[90vh] overflow-y-auto my-auto p-6 space-y-4 animate-in fade-in zoom-in-95 duration-150"
+            >
+              <div className="flex items-center justify-between">
+                <h3 className="font-bold text-slate-900 text-sm">Record Justified Reviewer Override</h3>
+                <button
+                  type="button"
+                  onClick={() => setOverrideModalFinding(null)}
+                  className="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100"
+                  title="Close modal (Esc)"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <p className="text-xs text-slate-500">
+                Blueprint compliance requires an explicit reason when overruling an automated brand flag. This decision will be permanently logged in the audit trail.
+              </p>
+              <textarea
+                rows={3}
+                required
+                value={overrideReason}
+                onChange={(e) => setOverrideReason(e.target.value)}
+                placeholder="e.g. Authorized by brand director for seasonal promotion campaign..."
+                className="w-full p-2.5 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none"
+              />
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setOverrideModalFinding(null)}
+                  className="px-3 py-1.5 bg-slate-100 text-slate-700 rounded-lg text-xs font-medium hover:bg-slate-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleOverrideFinding}
+                  className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-semibold"
+                >
+                  Save Override
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        </ModalPortal>
       )}
 
       {/* Reject Reason Modal */}
       {rejectModalFinding && (
-        <div 
-          onClick={() => setRejectModalFinding(null)}
-          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4"
-          role="dialog"
-          aria-modal="true"
-        >
+        <ModalPortal isOpen={Boolean(rejectModalFinding)} onClose={() => setRejectModalFinding(null)}>
           <div 
-            onClick={(e) => e.stopPropagation()}
-            className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-md p-6 space-y-4 animate-in fade-in zoom-in-95 duration-150"
+            onClick={() => setRejectModalFinding(null)}
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/45 backdrop-blur-sm overflow-y-auto"
+            role="dialog"
+            aria-modal="true"
           >
-            <div className="flex items-center justify-between">
-              <h3 className="font-bold text-slate-900 text-sm">Decline Suggestion</h3>
-              <button
-                type="button"
-                onClick={() => setRejectModalFinding(null)}
-                className="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100"
-                title="Close modal (Esc)"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <p className="text-xs text-slate-500">
-              Please provide a short note on why you are declining this suggested fix:
-            </p>
-            <input
-              type="text"
-              required
-              value={rejectReason}
-              onChange={(e) => setRejectReason(e.target.value)}
-              placeholder="e.g. Existing phrase has specific regulatory context..."
-              className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none"
-            />
-            <div className="flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setRejectModalFinding(null)}
-                className="px-3 py-1.5 bg-slate-100 text-slate-700 rounded-lg text-xs font-medium hover:bg-slate-200"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleRejectFinding}
-                className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-semibold"
-              >
-                Confirm Rejection
-              </button>
+            <div 
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-md max-h-[90vh] overflow-y-auto my-auto p-6 space-y-4 animate-in fade-in zoom-in-95 duration-150"
+            >
+              <div className="flex items-center justify-between">
+                <h3 className="font-bold text-slate-900 text-sm">Decline Suggestion</h3>
+                <button
+                  type="button"
+                  onClick={() => setRejectModalFinding(null)}
+                  className="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100"
+                  title="Close modal (Esc)"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <p className="text-xs text-slate-500">
+                Please provide a short note on why you are declining this suggested fix:
+              </p>
+              <input
+                type="text"
+                required
+                value={rejectReason}
+                onChange={(e) => setRejectReason(e.target.value)}
+                placeholder="e.g. Existing phrase has specific regulatory context..."
+                className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none"
+              />
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setRejectModalFinding(null)}
+                  className="px-3 py-1.5 bg-slate-100 text-slate-700 rounded-lg text-xs font-medium hover:bg-slate-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleRejectFinding}
+                  className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-semibold"
+                >
+                  Confirm Rejection
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        </ModalPortal>
       )}
 
       {/* Edit Suggestion Modal */}
       {editModalFinding && (
-        <div 
-          onClick={() => setEditModalFinding(null)}
-          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
-          role="dialog"
-          aria-modal="true"
-        >
+        <ModalPortal isOpen={Boolean(editModalFinding)} onClose={() => setEditModalFinding(null)}>
           <div 
-            onClick={(e) => e.stopPropagation()}
-            className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-lg p-5 sm:p-6 space-y-4 animate-in fade-in zoom-in-95 duration-150"
+            onClick={() => setEditModalFinding(null)}
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/45 backdrop-blur-sm overflow-y-auto"
+            role="dialog"
+            aria-modal="true"
           >
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-200">
-                  <Edit3 className="w-4 h-4" />
+            <div 
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-lg max-h-[90vh] overflow-y-auto my-auto p-5 sm:p-6 space-y-4 animate-in fade-in zoom-in-95 duration-150"
+            >
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-200">
+                    <Edit3 className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-slate-900 text-sm">Edit & Customize Fix</h3>
+                    <p className="text-[11px] text-slate-500">Modify the suggested wording before applying it to your draft</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="font-bold text-slate-900 text-sm">Edit & Customize Fix</h3>
-                  <p className="text-[11px] text-slate-500">Modify the suggested wording before applying it to your draft</p>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => setEditModalFinding(null)}
+                  className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+                  title="Close modal (Esc)"
+                >
+                  <X className="w-4 h-4" />
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={() => setEditModalFinding(null)}
-                className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
-                title="Close modal (Esc)"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
 
-            {/* Original Flagged Text */}
-            <div className="space-y-1">
-              <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">
-                Flagged Text to Replace:
-              </label>
-              <div className="font-mono text-xs text-rose-800 bg-rose-50/70 p-2.5 rounded-lg border border-rose-200">
-                "{editModalFinding.originalText}"
-              </div>
-            </div>
-
-            {/* AI Recommendation reference */}
-            {editModalFinding.suggestedCorrection && (
-              <div className="p-2.5 bg-emerald-50/60 border border-emerald-200 rounded-lg text-xs space-y-1">
-                <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider">
-                  AI Suggestion (Reference):
-                </span>
-                <p className="text-emerald-950 font-medium">"{editModalFinding.suggestedCorrection}"</p>
-              </div>
-            )}
-
-            {/* Custom Replacement Input */}
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-bold text-slate-700">
-                  Your Custom Replacement Text:
+              {/* Original Flagged Text */}
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">
+                  Flagged Text to Replace:
                 </label>
-                <span className="text-[10px] text-slate-400 font-mono">
-                  {editedSuggestionText.length} chars
-                </span>
+                <div className="font-mono text-xs text-rose-800 bg-rose-50/70 p-2.5 rounded-lg border border-rose-200">
+                  "{editModalFinding.originalText}"
+                </div>
               </div>
-              <textarea
-                rows={3}
-                value={editedSuggestionText}
-                onChange={(e) => setEditedSuggestionText(e.target.value)}
-                placeholder="Enter customized replacement wording..."
-                className="w-full p-3 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:outline-none leading-relaxed"
-                autoFocus
-              />
-            </div>
 
-            <div className="pt-2 flex items-center justify-end gap-2.5">
-              <button
-                type="button"
-                onClick={() => setEditModalFinding(null)}
-                className="px-4 py-2 border border-slate-200 hover:bg-slate-100 text-slate-700 rounded-xl text-xs font-semibold transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                disabled={!editedSuggestionText.trim()}
-                onClick={handleApplyEditedFix}
-                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl text-xs font-semibold shadow-sm transition-all flex items-center gap-1.5"
-              >
-                <Check className="w-3.5 h-3.5" />
-                <span>Apply Edited Fix to Draft</span>
-              </button>
+              {/* AI Recommendation reference */}
+              {editModalFinding.suggestedCorrection && (
+                <div className="p-2.5 bg-emerald-50/60 border border-emerald-200 rounded-lg text-xs space-y-1">
+                  <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider">
+                    AI Suggestion (Reference):
+                  </span>
+                  <p className="text-emerald-950 font-medium">"{editModalFinding.suggestedCorrection}"</p>
+                </div>
+              )}
+
+              {/* Custom Replacement Input */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-slate-700">
+                    Your Custom Replacement Text:
+                  </label>
+                  <span className="text-[10px] text-slate-400 font-mono">
+                    {editedSuggestionText.length} chars
+                  </span>
+                </div>
+                <textarea
+                  rows={3}
+                  value={editedSuggestionText}
+                  onChange={(e) => setEditedSuggestionText(e.target.value)}
+                  placeholder="Enter customized replacement wording..."
+                  className="w-full p-3 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:outline-none leading-relaxed"
+                  autoFocus
+                />
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setEditModalFinding(null)}
+                  className="px-4 py-2 border border-slate-200 hover:bg-slate-100 text-slate-700 rounded-xl text-xs font-semibold transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={!editedSuggestionText.trim()}
+                  onClick={handleApplyEditedFix}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl text-xs font-semibold shadow-sm transition-all flex items-center gap-1.5"
+                >
+                  <Check className="w-3.5 h-3.5" />
+                  <span>Apply Edited Fix to Draft</span>
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        </ModalPortal>
       )}
     </div>
   );

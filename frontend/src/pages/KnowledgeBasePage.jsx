@@ -20,6 +20,7 @@ import {
 import { useAuth } from '../features/auth/AuthContext';
 import { api } from '../services/api';
 import { ContrastChecker } from '../components/common/ContrastChecker';
+import { ModalPortal } from '../components/common/ModalPortal';
 
 const CATEGORIES = ['ALL', 'TONE', 'MESSAGING', 'VISUAL', 'ACCESSIBILITY', 'LEGAL', 'OTHER'];
 const SEVERITIES = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
@@ -765,16 +766,17 @@ export function KnowledgeBasePage() {
 
       {/* Add Modal */}
       {showAddModal && (
-        <div 
-          onClick={() => setShowAddModal(false)}
-          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
-          role="dialog"
-          aria-modal="true"
-        >
+        <ModalPortal isOpen={showAddModal} onClose={() => setShowAddModal(false)}>
           <div 
-            onClick={(e) => e.stopPropagation()}
-            className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-lg max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-150"
+            onClick={() => setShowAddModal(false)}
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/45 backdrop-blur-sm overflow-y-auto"
+            role="dialog"
+            aria-modal="true"
           >
+            <div 
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-lg max-h-[90vh] overflow-y-auto my-auto animate-in fade-in zoom-in-95 duration-150"
+            >
             <div className="bg-slate-900 p-4 sm:p-5 text-white flex items-center justify-between sticky top-0 z-10 border-b border-slate-800">
               <h3 className="font-bold text-sm sm:text-base">Add New {getAddLabel()}</h3>
               <button 
@@ -1018,6 +1020,7 @@ export function KnowledgeBasePage() {
             </div>
           </div>
         </div>
+      </ModalPortal>
       )}
     </div>
   );

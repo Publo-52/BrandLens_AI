@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../features/auth/AuthContext';
 import { api } from '../services/api';
+import { ModalPortal } from '../components/common/ModalPortal';
 import {
   buildCertificatePayload,
   downloadCertificateJson,
@@ -728,16 +729,17 @@ export function AuditPage({ isActive = true }) {
 
       {/* Pre-Publication Compliance Certificate Modal */}
       {showCertModal && (
-        <div 
-          onClick={() => setShowCertModal(false)}
-          className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
-          role="dialog"
-          aria-modal="true"
-        >
+        <ModalPortal isOpen={showCertModal} onClose={() => setShowCertModal(false)}>
           <div 
-            onClick={(e) => e.stopPropagation()}
-            className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-2xl overflow-hidden max-h-[90vh] flex flex-col animate-in fade-in zoom-in-95 duration-200"
+            onClick={() => setShowCertModal(false)}
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/45 backdrop-blur-sm overflow-y-auto"
+            role="dialog"
+            aria-modal="true"
           >
+            <div 
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-2xl overflow-hidden max-h-[90vh] flex flex-col my-auto animate-in fade-in zoom-in-95 duration-200"
+            >
             {/* Modal Header */}
             <div className="bg-gradient-to-r from-slate-900 via-brand-950 to-slate-900 p-5 text-white flex items-center justify-between border-b border-white/10">
               <div className="flex items-center gap-3">
@@ -997,6 +999,7 @@ export function AuditPage({ isActive = true }) {
             </div>
           </div>
         </div>
+      </ModalPortal>
       )}
     </div>
   );

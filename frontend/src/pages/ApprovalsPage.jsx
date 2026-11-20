@@ -30,6 +30,7 @@ import {
 import { useAuth } from '../features/auth/AuthContext';
 import { api } from '../services/api';
 import { DiffViewer } from '../components/common/DiffViewer';
+import { ModalPortal } from '../components/common/ModalPortal';
 import {
   buildCertificatePayload,
   downloadCertificateJson,
@@ -856,16 +857,17 @@ export function ApprovalsPage({ isActive = true }) {
       </div>
       {/* Safe One-Click Publishing Modal */}
       {showPublishModal && (
-        <div 
-          onClick={() => setShowPublishModal(false)}
-          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
-          role="dialog"
-          aria-modal="true"
-        >
+        <ModalPortal isOpen={showPublishModal} onClose={() => setShowPublishModal(false)}>
           <div 
-            onClick={(e) => e.stopPropagation()}
-            className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-md max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200"
+            onClick={() => setShowPublishModal(false)}
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/45 backdrop-blur-sm overflow-y-auto"
+            role="dialog"
+            aria-modal="true"
           >
+            <div 
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-md max-h-[90vh] overflow-y-auto my-auto animate-in fade-in zoom-in-95 duration-200"
+            >
             <div className="bg-gradient-to-r from-brand-900 via-brand-800 to-slate-900 p-5 text-white flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Rocket className="w-5 h-5 text-emerald-400" />
@@ -930,6 +932,7 @@ export function ApprovalsPage({ isActive = true }) {
             </div>
           </div>
         </div>
+      </ModalPortal>
       )}
 
       {/* Pre-Publication Compliance Certificate Modal */}
@@ -938,16 +941,17 @@ export function ApprovalsPage({ isActive = true }) {
         if (!cert) return null;
 
         return (
-          <div
-            onClick={() => setShowCertificateModal(false)}
-            className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
-            role="dialog"
-            aria-modal="true"
-          >
+          <ModalPortal isOpen={showCertificateModal} onClose={() => setShowCertificateModal(false)}>
             <div
-              onClick={(e) => e.stopPropagation()}
-              className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-2xl overflow-hidden max-h-[90vh] flex flex-col animate-in fade-in zoom-in-95 duration-200"
+              onClick={() => setShowCertificateModal(false)}
+              className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/45 backdrop-blur-sm overflow-y-auto"
+              role="dialog"
+              aria-modal="true"
             >
+              <div
+                onClick={(e) => e.stopPropagation()}
+                className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-2xl overflow-hidden max-h-[90vh] flex flex-col my-auto animate-in fade-in zoom-in-95 duration-200"
+              >
               {/* Modal Header */}
               <div className="bg-gradient-to-r from-slate-900 via-brand-950 to-slate-900 p-5 text-white flex items-center justify-between border-b border-white/10">
                 <div className="flex items-center gap-3">
@@ -1117,6 +1121,7 @@ export function ApprovalsPage({ isActive = true }) {
               </div>
             </div>
           </div>
+        </ModalPortal>
         );
       })()}
     </div>
