@@ -34,7 +34,7 @@ import {
   printCertificatePdf,
 } from '../utils/certificate';
 
-export function ApprovalsPage() {
+export function ApprovalsPage({ isActive = true }) {
   const { user, token, activeOrg, activeRole } = useAuth();
   const [contents, setContents] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
@@ -43,6 +43,7 @@ export function ApprovalsPage() {
   const [comments, setComments] = useState([]);
   const [commentInput, setCommentInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [backgroundRefreshing, setBackgroundRefreshing] = useState(false);
   const [error, setError] = useState(null);
   const [successMsg, setSuccessMsg] = useState(null);
 
@@ -81,7 +82,11 @@ export function ApprovalsPage() {
 
   const loadData = useCallback(async (isBackground = false) => {
     if (!activeOrg?._id || !token) return;
-    if (!isBackground) setLoading(true);
+    if (isBackground) {
+      setBackgroundRefreshing(true);
+    } else {
+      setLoading(true);
+    }
     try {
       const data = await api.getContents(activeOrg._id, token);
       const all = data.contents || [];
@@ -101,7 +106,11 @@ export function ApprovalsPage() {
     } catch (err) {
       if (!isBackground) setError(err.message);
     } finally {
-      if (!isBackground) setLoading(false);
+      if (isBackground) {
+        setBackgroundRefreshing(false);
+      } else {
+        setLoading(false);
+      }
     }
   }, [activeOrg, token]);
 
@@ -109,6 +118,26 @@ export function ApprovalsPage() {
     const isBg = contents.length > 0;
     loadData(isBg);
   }, [loadData]);
+
+  // Auto-refresh approval queue in background whenever user navigates to #approvals
+  useEffect(() => {
+    if (isActive) {
+      const isBg = contents.length > 0;
+      loadData(isBg);
+    }
+  }, [isActive, loadData, contents.length]);
+
+  // Also listen for URL hash changes to #approvals
+  useEffect(() => {
+    const handleHash = () => {
+      if (typeof window !== 'undefined' && window.location.hash === '#approvals') {
+        const isBg = contents.length > 0;
+        loadData(isBg);
+      }
+    };
+    window.addEventListener('hashchange', handleHash);
+    return () => window.removeEventListener('hashchange', handleHash);
+  }, [loadData, contents.length]);
 
   // Esc key listener to close modal without page refresh
   useEffect(() => {

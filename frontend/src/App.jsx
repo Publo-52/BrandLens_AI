@@ -470,7 +470,7 @@ function MainApp() {
       case 'knowledge':
         return <KnowledgeBasePage />;
       case 'approvals':
-        return <ApprovalsPage />;
+        return <ApprovalsPage isActive={isCurrent} />;
       case 'insights':
         return <InsightsPage />;
       case 'audit':

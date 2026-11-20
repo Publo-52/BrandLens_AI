@@ -37,40 +37,62 @@ function buildToneRewrite(original) {
   return rewritten.replace(/\s{2,}/g, ' ').trim();
 }
 
-const metricPattern = /\b\d+(?:\.\d+)?(?:%|\s*hours?|\s*days?|\s*weeks?|\s*months?|\s*years?|\s*minutes?|\s*seconds?|\s*x\b|\s*times\b)?|(?:\$|€|£)\s*\d+(?:\.\d+)?/gi;
+const metricPattern = /\b\d+(?:\.\d+)?(?:%|\s*x\b|\s*hours?|\s*days?|\s*weeks?|\s*months?|\s*years?|\s*minutes?|\s*seconds?|\s*times\b)?|(?:\$|€|£)\s*\d+(?:\.\d+)?/gi;
 
-const promotionalClaimPattern = /\b(?:boosts?|increases?|improves?|cuts?|reduces?|slashes?|doubles?|triples?|delivers?|maximizes?|accelerates?)\s+(?:roi|conversion|revenue|performance|growth|efficiency|costs?|latency|downtime|turnaround|speed)\b|\b(?:roi|return on investment)\b/gi;
+const promotionalMetricPhrasePattern = /\b(?:boosts?|increases?|reduces?|cuts?|saves?|delivers?|maximizes?|accelerates?|improves?|slashes?|doubles?|triples?)\s+(?:(?:[a-z]{2,15}\s+){0,3})?(?:by\s+)?(?:\d+(?:\.\d+)?(?:%|x\b)|(?:\$|€|£)\s*\d+)(?:\s+faster|\s+more)?/gi;
+
+const broadPromotionalPattern = /\b(?:boosts?|increases?|reduces?|cuts?|saves?|faster|guaranteed?|delivers?|maximizes?|accelerates?|improves?|slashes?|doubles?|triples?)\b|\b(?:roi|return on investment|revenue|savings?|conversion|growth|efficiency|costs?|speed|latency|downtime|turnaround)\b/gi;
 
 const claimKeywords = [
   'backup', 'uptime', 'sla', 'cloud', 'security', 'soc 2', 'gdpr',
   'certified', 'certification', 'iso', 'iso 27001', 'hipaa', 'compliance',
-  'compliant', 'guarantee', 'latency', 'redundancy', 'encryption', 'pci-dss',
-  'patented', 'audited', 'roi'
+  'compliant', 'guarantee', 'guaranteed', 'latency', 'redundancy', 'encryption',
+  'pci-dss', 'patented', 'audited', 'roi', 'faster', 'savings', 'boosts'
 ];
 
 function checkClaimSupported(sentence, facts) {
-  promotionalClaimPattern.lastIndex = 0;
-  const hasPromotionalClaim = promotionalClaimPattern.test(sentence);
+  promotionalMetricPhrasePattern.lastIndex = 0;
+  const promoMetricMatches = [...sentence.matchAll(promotionalMetricPhrasePattern)].map((m) => m[0].trim());
+
+  broadPromotionalPattern.lastIndex = 0;
+  const hasPromotionalClaim = broadPromotionalPattern.test(sentence);
 
   metricPattern.lastIndex = 0;
   const draftMetrics = [...sentence.matchAll(metricPattern)]
     .map((m) => m[0].toLowerCase().trim())
     .filter((m) => m.length > 0);
 
-  const hasQuantitativeMetric = draftMetrics.some((m) =>
+  const quantitativeMetrics = draftMetrics.filter((m) =>
     /[%x$€£]|hours?|days?|weeks?|months?|years?|minutes?|seconds?|\d+\.\d+/.test(m)
   );
+  const hasQuantitativeMetric = quantitativeMetrics.length > 0;
   const hasClaimKeyword = claimKeywords.some((kw) => sentence.toLowerCase().includes(kw));
 
-  const isClaimCandidate = hasPromotionalClaim || hasQuantitativeMetric || hasClaimKeyword;
+  const isClaimCandidate = promoMetricMatches.length > 0 || hasPromotionalClaim || hasQuantitativeMetric || hasClaimKeyword;
   if (!isClaimCandidate) return 'IGNORED';
+
+  const unverifiedMetrics = quantitativeMetrics.filter((metric) => {
+    const normalized = metric.replace(/\s+/g, ' ').trim();
+    return !facts.some((f) => f.statement.toLowerCase().includes(normalized));
+  });
+
+  const hasRoi = /\broi\b|return on investment/i.test(sentence);
+  const isRoiUnverified = hasRoi && !facts.some((f) => /\broi\b|return on investment/i.test(f.statement.toLowerCase()));
+
+  const hasUnverifiedMetricOrPromo = unverifiedMetrics.length > 0 || promoMetricMatches.length > 0 || isRoiUnverified;
+
+  if (hasUnverifiedMetricOrPromo) {
+    return 'CLAIM_UNSUPPORTED';
+  }
 
   const matchingFact = facts.find((f) => {
     const factLower = f.statement.toLowerCase();
-    const factWords = factLower.split(/\s+/);
+    const factWords = factLower.split(/\s+/).map((w) => w.replace(/[^\w-]/g, '')).filter(Boolean);
+
     const contentOverlap = factWords.filter(
-      (w) => w.length > 4 && sentence.toLowerCase().includes(w)
+      (w) => (w.length >= 4 || ['iso', 'soc', 'sla', 'roi'].includes(w)) && sentence.toLowerCase().includes(w)
     ).length;
+
     if (contentOverlap < 3) return false;
 
     if (draftMetrics.length > 0) {
@@ -78,13 +100,6 @@ function checkClaimSupported(sentence, facts) {
         factLower.includes(metric.replace(/\s+/g, ' ').trim())
       );
       if (!metricsAllVerified) return false;
-    }
-
-    if (hasPromotionalClaim) {
-      const hasRoiInSentence = /\broi\b|return on investment/i.test(sentence);
-      if (hasRoiInSentence && !/\broi\b|return on investment/i.test(factLower)) {
-        return false;
-      }
     }
 
     return true;
@@ -159,6 +174,21 @@ describe('Bug 1 — Claim Entailment: metric verification prevents false CLAIM_S
       result,
       'CLAIM_UNSUPPORTED',
       'Sentence with unverified metric 400% / boosts ROI must be CLAIM_UNSUPPORTED even if ISO 27001 matches'
+    );
+  });
+
+  it('should flag "Launch faster with Apex Studio, our ISO 27001 platform that boosts ROI by 400%." as CLAIM_UNSUPPORTED against fact "Apex Studio holds ISO 27001 certification."', () => {
+    const facts = [
+      {
+        statement: 'Apex Studio holds ISO 27001 certification.',
+      },
+    ];
+    const sentence = 'Launch faster with Apex Studio, our ISO 27001 platform that boosts ROI by 400%.';
+    const result = checkClaimSupported(sentence, facts);
+    assert.equal(
+      result,
+      'CLAIM_UNSUPPORTED',
+      'Unverified 400% / boosts ROI must always return CLAIM_UNSUPPORTED even when ISO 27001 is approved'
     );
   });
 

@@ -245,9 +245,18 @@ export function ReviewPage() {
       setUploadedFiles([]);
       setFileAltTexts({});
       if (res?.content?._id) {
+        if (res.content) {
+          setSelectedContent(res.content);
+        }
+        if (res.review) {
+          setLatestReview(res.review);
+        }
+        if (res.version) {
+          setVersions([res.version]);
+          setWorkingText(res.version.text || '');
+        }
         setSelectedContentId(res.content._id);
-        await loadContents();
-        await loadContentDetails(res.content._id);
+        await Promise.all([loadContents(true), loadContentDetails(res.content._id)]);
       } else {
         await loadContents();
       }
@@ -1266,6 +1275,18 @@ export function ReviewPage() {
                   <h4 className="text-xs font-bold text-slate-800">Awaiting Submission</h4>
                   <p className="text-[11px] text-slate-500 max-w-xs mx-auto leading-relaxed">
                     Select or create a submission on the left to inspect explainable findings, grounded citations, and deterministic fixes.
+                  </p>
+                </div>
+              </div>
+            ) : !latestReview ? (
+              <div className="bg-slate-50/70 rounded-2xl border border-slate-200/90 p-8 text-center space-y-3">
+                <div className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-200/80 flex items-center justify-center text-indigo-500 mx-auto animate-pulse">
+                  <FileCheck2 className="w-5 h-5 text-indigo-600 stroke-[1.9]" />
+                </div>
+                <div className="space-y-1">
+                  <h4 className="text-xs font-bold text-slate-800">Evaluating Brand Compliance...</h4>
+                  <p className="text-[11px] text-slate-500 max-w-xs mx-auto leading-relaxed">
+                    Running deterministic lexicons and grounded fact verification.
                   </p>
                 </div>
               </div>

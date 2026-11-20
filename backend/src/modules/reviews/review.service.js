@@ -76,8 +76,14 @@ export async function runDeterministicChecks(text, organisationId) {
  */
 export async function runGroundedChecks(text, organisationId, channel, audience) {
   const [facts, guidelines] = await Promise.all([
-    ApprovedFact.find({ organisationId, status: 'ACTIVE' }).lean(),
-    Guideline.find({ organisationId, status: 'ACTIVE' }).lean(),
+    ApprovedFact.find({
+      organisationId,
+      status: { $in: ['ACTIVE', 'active', null, undefined], $ne: 'EXPIRED' },
+    }).lean(),
+    Guideline.find({
+      organisationId,
+      status: { $in: ['ACTIVE', 'active', null, undefined], $ne: 'ARCHIVED' },
+    }).lean(),
   ]);
 
   const findings = [];
@@ -85,7 +91,7 @@ export async function runGroundedChecks(text, organisationId, channel, audience)
   // Grounded Heuristic Fact & Claim Verification
   // Detects factual statements / claims in the submitted draft
   const sentences = text
-    .split(/(?<=[.!?])\s+/)
+    .split(/(?<=[.!?])\s+|\n+/)
     .map((s) => s.trim())
     .filter((s) => s.length > 10);
 
@@ -163,18 +169,21 @@ export async function runGroundedChecks(text, organisationId, channel, audience)
     return rewritten.replace(/\s{2,}/g, ' ').trim();
   }
 
-  // Metric extraction: numbers, percentages, multipliers, currency, timeframes — used for claim entailment
-  const metricPattern = /\b\d+(?:\.\d+)?(?:%|\s*hours?|\s*days?|\s*weeks?|\s*months?|\s*years?|\s*minutes?|\s*seconds?|\s*x\b|\s*times\b)?|(?:\$|€|£)\s*\d+(?:\.\d+)?/gi;
+  // Quantitative metric extraction: numbers, percentages, multipliers, currency, timeframes
+  const metricPattern = /\b\d+(?:\.\d+)?(?:%|\s*x\b|\s*hours?|\s*days?|\s*weeks?|\s*months?|\s*years?|\s*minutes?|\s*seconds?|\s*times\b)?|(?:\$|€|£)\s*\d+(?:\.\d+)?/gi;
 
-  // Promotional performance claims (e.g., "boosts ROI", "3x faster", "cuts cloud costs", "roi")
-  const promotionalClaimPattern = /\b(?:boosts?|increases?|improves?|cuts?|reduces?|slashes?|doubles?|triples?|delivers?|maximizes?|accelerates?)\s+(?:roi|conversion|revenue|performance|growth|efficiency|costs?|latency|downtime|turnaround|speed)\b|\b(?:roi|return on investment)\b/gi;
+  // Specific promotional/performance claim phrases with metrics (e.g. "boosts ROI by 400%", "cuts cloud bills by 94%", "delivers 3x faster")
+  const promotionalMetricPhrasePattern = /\b(?:boosts?|increases?|reduces?|cuts?|saves?|delivers?|maximizes?|accelerates?|improves?|slashes?|doubles?|triples?)\s+(?:(?:[a-z]{2,15}\s+){0,3})?(?:by\s+)?(?:\d+(?:\.\d+)?(?:%|x\b)|(?:\$|€|£)\s*\d+)(?:\s+faster|\s+more)?/gi;
+
+  // Broad promotional / performance claims (e.g. boosts, increases, reduces, cuts, saves, faster, guaranteed, roi, etc.)
+  const broadPromotionalPattern = /\b(?:boosts?|increases?|reduces?|cuts?|saves?|faster|guaranteed?|delivers?|maximizes?|accelerates?|improves?|slashes?|doubles?|triples?)\b|\b(?:roi|return on investment|revenue|savings?|conversion|growth|efficiency|costs?|speed|latency|downtime|turnaround)\b/gi;
 
   // Domain keywords for factual claims against Approved Facts
   const claimKeywords = [
     'backup', 'uptime', 'sla', 'cloud', 'security', 'soc 2', 'gdpr',
     'certified', 'certification', 'iso', 'iso 27001', 'hipaa', 'compliance',
-    'compliant', 'guarantee', 'latency', 'redundancy', 'encryption', 'pci-dss',
-    'patented', 'audited', 'roi'
+    'compliant', 'guarantee', 'guaranteed', 'latency', 'redundancy', 'encryption',
+    'pci-dss', 'patented', 'audited', 'roi', 'faster', 'savings', 'boosts'
   ];
 
   for (const sentence of sentences) {
@@ -213,66 +222,68 @@ export async function runGroundedChecks(text, organisationId, channel, audience)
     }
 
     // Check factual and promotional claims against Approved Facts
-    promotionalClaimPattern.lastIndex = 0;
-    const hasPromotionalClaim = promotionalClaimPattern.test(sentence);
+    promotionalMetricPhrasePattern.lastIndex = 0;
+    const promoMetricMatches = [...sentence.matchAll(promotionalMetricPhrasePattern)].map((m) => m[0].trim());
+
+    broadPromotionalPattern.lastIndex = 0;
+    const hasPromotionalClaim = broadPromotionalPattern.test(sentence);
 
     metricPattern.lastIndex = 0;
     const draftMetrics = [...sentence.matchAll(metricPattern)]
       .map((m) => m[0].toLowerCase().trim())
       .filter((m) => m.length > 0);
 
-    const hasQuantitativeMetric = draftMetrics.some((m) =>
+    const quantitativeMetrics = draftMetrics.filter((m) =>
       /[%x$€£]|hours?|days?|weeks?|months?|years?|minutes?|seconds?|\d+\.\d+/.test(m)
     );
+    const hasQuantitativeMetric = quantitativeMetrics.length > 0;
     const hasClaimKeyword = claimKeywords.some((kw) => sentence.toLowerCase().includes(kw));
 
-    const isClaimCandidate = hasPromotionalClaim || hasQuantitativeMetric || hasClaimKeyword;
+    const isClaimCandidate = promoMetricMatches.length > 0 || hasPromotionalClaim || hasQuantitativeMetric || hasClaimKeyword;
 
     if (isClaimCandidate) {
-      // Find matching approved fact — requires TRUE SEMANTIC and QUANTITATIVE entailment:
-      // 1. Count meaningful content words (len > 4 to skip common short words like "with", "that")
-      //    shared between the sentence and the fact statement.
-      // 2. If the draft sentence contains specific quantitative metrics (e.g., "400%", "3x", "94%"),
-      //    those exact tokens must explicitly appear in the fact statement.
-      // 3. If the sentence makes a promotional/performance claim (e.g., "boosts ROI"),
-      //    that claim (e.g. "roi") must explicitly be present in the fact statement.
-      // Even if another part of the sentence matches an approved fact (like "ISO 27001"),
-      // unverified metrics/claims immediately invalidate the match, forcing CLAIM_UNSUPPORTED.
-      const matchingFact = facts.find((f) => {
-        const factLower = f.statement.toLowerCase();
-        const factWords = factLower.split(/\s+/);
-
-        // Count meaningful content-word overlaps (threshold >= 3 words > 4 chars)
-        const contentOverlap = factWords.filter(
-          (w) => w.length > 4 && sentence.toLowerCase().includes(w)
-        ).length;
-
-        if (contentOverlap < 3) return false;
-
-        // If the draft sentence has specific metrics, EVERY metric must explicitly exist in the fact
-        if (draftMetrics.length > 0) {
-          const metricsAllVerified = draftMetrics.every((metric) => {
-            const normalized = metric.replace(/\s+/g, ' ').trim();
-            return factLower.includes(normalized);
-          });
-          if (!metricsAllVerified) return false;
-        }
-
-        // If the sentence makes a promotional claim like "boosts ROI", the fact must explicitly substantiate it
-        if (hasPromotionalClaim) {
-          const hasRoiInSentence = /\broi\b|return on investment/i.test(sentence);
-          if (hasRoiInSentence && !/\broi\b|return on investment/i.test(factLower)) {
-            return false;
-          }
-        }
-
-        return true;
+      // Check if quantitative metrics in the draft sentence are substantiated by ANY approved fact
+      const unverifiedMetrics = quantitativeMetrics.filter((metric) => {
+        const normalized = metric.replace(/\s+/g, ' ').trim();
+        return !facts.some((f) => f.statement.toLowerCase().includes(normalized));
       });
 
-      const matchIndex = text.indexOf(sentence);
+      // Check if promotional claim is substantiated (e.g. ROI / revenue)
+      const hasRoi = /\broi\b|return on investment/i.test(sentence);
+      const isRoiUnverified = hasRoi && !facts.some((f) => /\broi\b|return on investment/i.test(f.statement.toLowerCase()));
+
+      const hasUnverifiedMetricOrPromo = unverifiedMetrics.length > 0 || promoMetricMatches.length > 0 || isRoiUnverified;
+
+      // Find matching approved fact — requires TRUE SEMANTIC and QUANTITATIVE entailment:
+      // If there are unverified metrics or promotional claims, NO fact can substantiate the sentence!
+      let matchingFact = null;
+      if (!hasUnverifiedMetricOrPromo) {
+        matchingFact = facts.find((f) => {
+          const factLower = f.statement.toLowerCase();
+          const factWords = factLower.split(/\s+/).map((w) => w.replace(/[^\w-]/g, '')).filter(Boolean);
+
+          // Overlap of meaningful content words (length >= 4 or key compliance terms)
+          const contentOverlap = factWords.filter(
+            (w) => (w.length >= 4 || ['iso', 'soc', 'sla', 'roi'].includes(w)) && sentence.toLowerCase().includes(w)
+          ).length;
+
+          if (contentOverlap < 3) return false;
+
+          // All metrics must exist in fact
+          if (draftMetrics.length > 0) {
+            const metricsAllVerified = draftMetrics.every((metric) => {
+              const normalized = metric.replace(/\s+/g, ' ').trim();
+              return factLower.includes(normalized);
+            });
+            if (!metricsAllVerified) return false;
+          }
+
+          return true;
+        });
+      }
 
       if (matchingFact) {
-        // Supported claim with verified source reference
+        const matchIndex = text.indexOf(sentence);
         findings.push({
           type: FINDING_TYPES.CLAIM_SUPPORTED,
           severity: FINDING_SEVERITY.INFO,
@@ -294,22 +305,23 @@ export async function runGroundedChecks(text, organisationId, channel, audience)
           ],
         });
       } else {
-        // Blueprint Section 2.1 & 11.2: If no approved source exists, show a distinct
-        // unsupported-claim result. Do not manufacture a citation!
-        const isMetricOrPromotionalIssue = draftMetrics.length > 0 || hasPromotionalClaim;
-        const explanation = isMetricOrPromotionalIssue
-          ? 'No approved brand fact substantiates the promotional metric or performance claim in this sentence. Requires reviewer verification or citation approval before publication.'
-          : 'No approved brand fact was found to substantiate this factual claim. Requires reviewer verification or citation approval before publication.';
+        // ALWAYS return CLAIM_UNSUPPORTED with "No Approved Citation Found"
+        const flaggedPhrase = promoMetricMatches[0] || (unverifiedMetrics.length > 0 ? (sentence.includes(unverifiedMetrics[0]) ? unverifiedMetrics[0] : sentence) : sentence);
+        const matchIndex = text.indexOf(flaggedPhrase) >= 0 ? text.indexOf(flaggedPhrase) : (text.indexOf(sentence) >= 0 ? text.indexOf(sentence) : 0);
+
+        const explanation = (unverifiedMetrics.length > 0 || promoMetricMatches.length > 0)
+          ? `No Approved Citation Found: No approved brand fact substantiates the promotional metric or performance claim ("${flaggedPhrase}") in this sentence. Requires reviewer verification or citation approval before publication.`
+          : 'No Approved Citation Found: No approved brand fact was found to substantiate this factual claim. Requires reviewer verification or citation approval before publication.';
 
         findings.push({
           type: FINDING_TYPES.CLAIM_UNSUPPORTED,
           severity: FINDING_SEVERITY.HIGH,
           confidence: 0.90,
           location: {
-            start: matchIndex >= 0 ? matchIndex : 0,
-            end: matchIndex >= 0 ? matchIndex + sentence.length : sentence.length,
+            start: matchIndex,
+            end: matchIndex + flaggedPhrase.length,
           },
-          originalText: sentence,
+          originalText: flaggedPhrase,
           explanation,
           suggestedCorrection: 'Qualify or remove this claim until approved source data is added to the Brand Knowledge Base.',
           checkMethod: CHECK_METHOD.AI,
