@@ -22,7 +22,10 @@ import {
   Printer,
   Download,
   FileText,
-  Sparkles
+  Sparkles,
+  Copy,
+  Search,
+  Filter
 } from 'lucide-react';
 import { useAuth } from '../features/auth/AuthContext';
 import { api } from '../services/api';
@@ -60,6 +63,37 @@ export function ApprovalsPage({ isActive = true }) {
   const [publishDestination, setPublishDestination] = useState('Website CMS');
   const [showPublishModal, setShowPublishModal] = useState(false);
   const [showCertificateModal, setShowCertificateModal] = useState(false);
+  const [copiedApproved, setCopiedApproved] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('ALL');
+
+  const handleCopyApprovedText = async () => {
+    try {
+      const textToCopy = selectedContent?.currentVersionId?.text || (versions.length > 0 ? versions[versions.length - 1]?.text : '') || '';
+      if (!textToCopy) return;
+      await navigator.clipboard.writeText(textToCopy);
+      setCopiedApproved(true);
+      setTimeout(() => setCopiedApproved(false), 2500);
+    } catch (err) {
+      console.error('Failed to copy text:', err);
+    }
+  };
+
+  const filteredContents = useMemo(() => {
+    return contents.filter((item) => {
+      if (statusFilter !== 'ALL' && item.status !== statusFilter) {
+        return false;
+      }
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const titleMatch = (item.title || '').toLowerCase().includes(q);
+        const channelMatch = (item.channel || '').toLowerCase().includes(q);
+        const audienceMatch = (item.audience || '').toLowerCase().includes(q);
+        return titleMatch || channelMatch || audienceMatch;
+      }
+      return true;
+    });
+  }, [contents, statusFilter, searchQuery]);
 
   // Sync version comparison selection
   useEffect(() => {
@@ -316,7 +350,7 @@ export function ApprovalsPage({ isActive = true }) {
                   Review Queue
                 </h3>
                 <span className="text-[11px] font-mono font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200/80 shrink-0">
-                  {contents.length} {contents.length === 1 ? 'item' : 'items'}
+                  {filteredContents.length} of {contents.length}
                 </span>
               </div>
               {pendingQueue.length > 0 && (
@@ -326,7 +360,39 @@ export function ApprovalsPage({ isActive = true }) {
               )}
             </div>
 
-            <div className="space-y-2 max-h-[280px] lg:max-h-[600px] overflow-y-auto touch-scroll pr-0.5">
+            {/* Queue Search & Status Filter */}
+            {contents.length > 0 && (
+              <div className="space-y-2 pb-1 border-b border-slate-100">
+                <div className="relative">
+                  <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder="Search queue by title, channel..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-8 pr-2.5 py-1.5 text-xs border border-slate-200 rounded-xl bg-slate-50/70 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                  />
+                </div>
+                <div className="flex items-center gap-1 overflow-x-auto touch-scroll no-scrollbar py-0.5">
+                  {['ALL', 'IN_REVIEW', 'APPROVED', 'CHANGES_REQUESTED', 'DRAFT'].map((st) => (
+                    <button
+                      key={st}
+                      type="button"
+                      onClick={() => setStatusFilter(st)}
+                      className={`px-2 py-0.5 rounded-lg text-[10px] font-semibold transition-colors shrink-0 ${
+                        statusFilter === st
+                          ? 'bg-slate-900 text-white'
+                          : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+                      }`}
+                    >
+                      {st === 'ALL' ? 'All' : st.replace('_', ' ')}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="space-y-2 max-h-[280px] lg:max-h-[560px] overflow-y-auto touch-scroll pr-0.5">
               {contents.length === 0 ? (
                 <div className="py-12 px-4 text-center space-y-3">
                   <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-center text-slate-400 mx-auto">
@@ -345,8 +411,19 @@ export function ApprovalsPage({ isActive = true }) {
                     <span>Open Review Studio</span>
                   </a>
                 </div>
+              ) : filteredContents.length === 0 ? (
+                <div className="py-8 px-2 text-center space-y-1.5">
+                  <p className="text-xs font-semibold text-slate-600">No submissions found</p>
+                  <button
+                    type="button"
+                    onClick={() => { setSearchQuery(''); setStatusFilter('ALL'); }}
+                    className="text-xs font-bold text-brand-600 hover:underline"
+                  >
+                    Reset filters
+                  </button>
+                </div>
               ) : (
-                contents.map((item) => {
+                filteredContents.map((item) => {
                   const isSelected = item._id === selectedId;
                   const isInReview = item.status === 'IN_REVIEW';
                   const isApproved = item.status === 'APPROVED';
@@ -423,20 +500,33 @@ export function ApprovalsPage({ isActive = true }) {
 
               {/* Reviewed Text Preview & Visual Diff */}
               <div>
-                <div className="flex items-center justify-between gap-2 mb-2">
+                <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
                   <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider">
                     Submitted Content Body (Version {selectedContent.currentVersionNumber})
                   </label>
-                  {versions.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => setShowDiff((prev) => !prev)}
-                      className="text-xs font-bold text-brand-600 hover:text-brand-700 flex items-center gap-1.5 transition-colors px-2.5 py-1 rounded-lg hover:bg-brand-50"
-                    >
-                      <GitCompare className="w-3.5 h-3.5" />
-                      <span>{showDiff ? 'Hide Version Diff' : 'Compare Version Diffs'}</span>
-                    </button>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {(selectedContent.status === 'APPROVED' || selectedContent.status === 'PUBLISHED') && (
+                      <button
+                        type="button"
+                        onClick={handleCopyApprovedText}
+                        className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200/80 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
+                        title="Copy final approved copy to clipboard for LinkedIn, email, or CMS"
+                      >
+                        {copiedApproved ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-emerald-600" />}
+                        <span>{copiedApproved ? 'Copied!' : 'Copy Approved Copy'}</span>
+                      </button>
+                    )}
+                    {versions.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => setShowDiff((prev) => !prev)}
+                        className="text-xs font-bold text-brand-600 hover:text-brand-700 flex items-center gap-1.5 transition-colors px-2.5 py-1 rounded-lg hover:bg-brand-50"
+                      >
+                        <GitCompare className="w-3.5 h-3.5" />
+                        <span>{showDiff ? 'Hide Version Diff' : 'Compare Version Diffs'}</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 {showDiff && versions.length > 1 ? (() => {
@@ -642,6 +732,15 @@ export function ApprovalsPage({ isActive = true }) {
                     <div className="flex flex-wrap items-center gap-2">
                       <button
                         type="button"
+                        onClick={handleCopyApprovedText}
+                        className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
+                        title="Copy locked, compliant copy directly to clipboard"
+                      >
+                        {copiedApproved ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                        <span>{copiedApproved ? 'Copied to Clipboard!' : 'Copy Approved Copy'}</span>
+                      </button>
+                      <button
+                        type="button"
                         onClick={() => setShowCertificateModal(true)}
                         className="px-3.5 py-2 bg-white hover:bg-emerald-50 text-emerald-800 border border-emerald-300 rounded-xl text-xs font-bold shadow-xs transition-all flex items-center gap-1.5"
                       >
@@ -670,6 +769,15 @@ export function ApprovalsPage({ isActive = true }) {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleCopyApprovedText}
+                      className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                      title="Copy approved published copy"
+                    >
+                      {copiedApproved ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                      <span>{copiedApproved ? 'Copied!' : 'Copy Approved Copy'}</span>
+                    </button>
                     <button
                       type="button"
                       onClick={() => setShowCertificateModal(true)}

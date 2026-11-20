@@ -14,7 +14,18 @@ import {
   Clock, 
   Sparkles, 
   Building2, 
-  Users 
+  Users,
+  Copy,
+  Check,
+  Search,
+  Filter,
+  HelpCircle,
+  Info,
+  ChevronDown,
+  ChevronUp,
+  Lock,
+  RefreshCw,
+  FileText
 } from 'lucide-react';
 import { useAuth } from '../features/auth/AuthContext';
 import { api } from '../services/api';
@@ -30,6 +41,12 @@ export function DashboardPage({ onNavigate }) {
   });
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState(null);
+  const [seedingDemo, setSeedingDemo] = useState(false);
+  const [seedSuccess, setSeedSuccess] = useState(null);
+  const [copiedId, setCopiedId] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('ALL');
+  const [showEngineGuide, setShowEngineGuide] = useState(false);
 
   const loadDashboardData = React.useCallback(async (isBackground = false) => {
     if (!activeOrg?._id || !token) {
@@ -80,6 +97,62 @@ export function DashboardPage({ onNavigate }) {
     const isBg = contents.length > 0 || stats.totalDrafts > 0;
     loadDashboardData(isBg);
   }, [loadDashboardData]);
+
+  const handleSeedDemoPack = async () => {
+    if (!activeOrg?._id || !token || seedingDemo) return;
+    setSeedingDemo(true);
+    setLoadError(null);
+    setSeedSuccess(null);
+    try {
+      const res = await api.seedDemoBrandPack(activeOrg._id, token);
+      const guidelinesCount = res.seeded?.guidelines || 0;
+      const factsCount = res.seeded?.facts || 0;
+      const termsCount = res.seeded?.terminology || 0;
+      setSeedSuccess(`Sample Brand Pack loaded! Added ${guidelinesCount} guidelines, ${factsCount} facts, and ${termsCount} terms.`);
+      await loadDashboardData(false);
+    } catch (err) {
+      setLoadError(err.message || 'Failed to seed sample brand pack.');
+    } finally {
+      setSeedingDemo(false);
+    }
+  };
+
+  const handleCopyApproved = async (item, e) => {
+    e.stopPropagation();
+    try {
+      const latestText = item.versions?.[item.versions.length - 1]?.text || item.text || '';
+      if (!latestText) {
+        // Fetch full content if versions weren't populated in summary
+        const detail = await api.getContent(activeOrg._id, item._id, token);
+        const resolvedText = detail.content?.versions?.[detail.content.versions.length - 1]?.text || detail.content?.text || '';
+        await navigator.clipboard.writeText(resolvedText);
+      } else {
+        await navigator.clipboard.writeText(latestText);
+      }
+      setCopiedId(item._id);
+      setTimeout(() => setCopiedId(null), 2500);
+    } catch (err) {
+      console.error('Failed to copy approved text:', err);
+    }
+  };
+
+  const filteredContents = useMemo(() => {
+    return contents.filter((item) => {
+      if (statusFilter !== 'ALL' && item.status !== statusFilter) {
+        return false;
+      }
+      if (searchQuery.trim()) {
+        const query = searchQuery.toLowerCase();
+        const titleMatch = (item.title || '').toLowerCase().includes(query);
+        const channelMatch = (item.channel || '').toLowerCase().includes(query);
+        const audienceMatch = (item.audience || item.targetAudience || '').toLowerCase().includes(query);
+        return titleMatch || channelMatch || audienceMatch;
+      }
+      return true;
+    });
+  }, [contents, statusFilter, searchQuery]);
+
+  const isFreshWorkspace = stats.totalDrafts === 0 && stats.guidelinesCount === 0;
 
   const nav = (tab) => {
     if (onNavigate) onNavigate(tab);
@@ -170,6 +243,208 @@ export function DashboardPage({ onNavigate }) {
               <span>Brand Guidelines</span>
             </button>
           </div>
+        </div>
+      </div>
+
+      {seedSuccess && (
+        <div className="p-3.5 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl text-xs flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-500" />
+            <span>{seedSuccess}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setSeedSuccess(null)}
+            className="text-emerald-700 hover:text-emerald-900 font-semibold text-xs"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
+      {/* 3-Step Getting Started Checklist & Onboarding */}
+      <div className="bg-white rounded-3xl border border-slate-200/90 p-6 sm:p-7 shadow-xs space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-brand-50 text-brand-700 border border-brand-200 uppercase tracking-wider">
+                Getting Started Checklist
+              </span>
+              <span className="text-xs text-slate-400 font-medium">
+                {(stats.guidelinesCount > 0 ? 1 : 0) + (stats.totalDrafts > 0 ? 1 : 0) + (stats.approved > 0 ? 1 : 0)} of 3 steps completed
+              </span>
+            </div>
+            <h3 className="text-lg font-bold text-slate-900 tracking-tight">
+              Launch Your Brand Governance in 3 Simple Steps
+            </h3>
+            <p className="text-xs text-slate-500 max-w-2xl leading-relaxed">
+              BrandLens AI ensures every marketing claim, logo, and phrase complies with your brand standards before publishing.
+            </p>
+          </div>
+
+          {/* Sample Brand Pack Button */}
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={handleSeedDemoPack}
+              disabled={seedingDemo}
+              className="flex items-center gap-2 px-3.5 py-2.5 bg-gradient-to-r from-indigo-50 to-brand-50 hover:from-indigo-100 hover:to-brand-100 text-indigo-700 border border-indigo-200/80 rounded-xl text-xs font-bold transition-all shadow-2xs hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 cursor-pointer"
+              title="Loads the sample NovaTech Global brand rules, approved facts, and WCAG palette so you can test reviews immediately."
+            >
+              <Sparkles className={`w-3.5 h-3.5 text-indigo-600 ${seedingDemo ? 'animate-spin' : ''}`} />
+              <span>{seedingDemo ? 'Seeding Sample Pack...' : 'Try with Sample Brand Pack'}</span>
+              <span className="text-[9px] font-mono font-bold bg-indigo-200/60 text-indigo-800 px-1.5 py-0.5 rounded uppercase">
+                Sample
+              </span>
+            </button>
+          </div>
+        </div>
+
+        {/* 3 Step Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Step 1 */}
+          <div className={`p-4 rounded-2xl border transition-all ${
+            stats.guidelinesCount > 0 
+              ? 'bg-emerald-50/40 border-emerald-200/80' 
+              : 'bg-slate-50/70 border-slate-200/80 hover:border-brand-300'
+          }`}>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Step 1</span>
+              {stats.guidelinesCount > 0 ? (
+                <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
+                  <Check className="w-3 h-3 stroke-[2.5]" />
+                  <span>Configured ({stats.guidelinesCount})</span>
+                </span>
+              ) : (
+                <span className="text-[11px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                  Required
+                </span>
+              )}
+            </div>
+            <h4 className="text-sm font-bold text-slate-900 mb-1">Add Brand Rules & Approved Facts</h4>
+            <p className="text-xs text-slate-500 leading-relaxed mb-3">
+              Define approved messaging, certified corporate facts (e.g. ISO certs, SLAs), or banned terminology so our engine has guidelines to enforce.
+            </p>
+            <button
+              onClick={() => nav('knowledge')}
+              className="w-full py-2 px-3 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-xl text-xs font-semibold shadow-2xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              <BookOpen className="w-3.5 h-3.5 text-brand-600" />
+              <span>Open Brand Knowledge Base</span>
+            </button>
+          </div>
+
+          {/* Step 2 */}
+          <div className={`p-4 rounded-2xl border transition-all ${
+            stats.totalDrafts > 0 
+              ? 'bg-emerald-50/40 border-emerald-200/80' 
+              : 'bg-slate-50/70 border-slate-200/80 hover:border-brand-300'
+          }`}>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Step 2</span>
+              {stats.totalDrafts > 0 ? (
+                <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
+                  <Check className="w-3 h-3 stroke-[2.5]" />
+                  <span>Submitted ({stats.totalDrafts})</span>
+                </span>
+              ) : (
+                <span className="text-[11px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
+                  Next
+                </span>
+              )}
+            </div>
+            <h4 className="text-sm font-bold text-slate-900 mb-1">Submit Draft or Upload File</h4>
+            <p className="text-xs text-slate-500 leading-relaxed mb-3">
+              Paste marketing copy or upload `.pdf`, `.docx`, `.png`, or `.jpg` documents for automated pre-publication analysis and WCAG contrast checks.
+            </p>
+            <button
+              onClick={() => nav('review')}
+              className="w-full py-2 px-3 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-xl text-xs font-semibold shadow-2xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              <FileCheck2 className="w-3.5 h-3.5 text-brand-600" />
+              <span>Open Review Studio</span>
+            </button>
+          </div>
+
+          {/* Step 3 */}
+          <div className={`p-4 rounded-2xl border transition-all ${
+            stats.approved > 0 
+              ? 'bg-emerald-50/40 border-emerald-200/80' 
+              : 'bg-slate-50/70 border-slate-200/80 hover:border-brand-300'
+          }`}>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Step 3</span>
+              {stats.approved > 0 ? (
+                <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
+                  <Check className="w-3 h-3 stroke-[2.5]" />
+                  <span>Approved ({stats.approved})</span>
+                </span>
+              ) : (
+                <span className="text-[11px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
+                  Sign-off
+                </span>
+              )}
+            </div>
+            <h4 className="text-sm font-bold text-slate-900 mb-1">Review Findings & Grant Approval</h4>
+            <p className="text-xs text-slate-500 leading-relaxed mb-3">
+              Inspect grounded findings, view side-by-side version diffs, and sign off with enforced separation of duties before one-click publishing.
+            </p>
+            <button
+              onClick={() => nav('approvals')}
+              className="w-full py-2 px-3 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-xl text-xs font-semibold shadow-2xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              <CheckSquare2 className="w-3.5 h-3.5 text-amber-600" />
+              <span>Open Approval Queue</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Engine Guide Accordion */}
+        <div className="pt-2 border-t border-slate-100">
+          <button
+            type="button"
+            onClick={() => setShowEngineGuide((prev) => !prev)}
+            className="flex items-center justify-between w-full text-left text-xs font-bold text-slate-700 hover:text-brand-600 transition-colors py-1 cursor-pointer"
+          >
+            <span className="flex items-center gap-2">
+              <HelpCircle className="w-4 h-4 text-brand-600" />
+              <span>How BrandLens AI Verifies Content (Deterministic vs. AI Grounded vs. Unsupported Claims)</span>
+            </span>
+            {showEngineGuide ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          </button>
+
+          {showEngineGuide && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 mt-3 pt-3 border-t border-slate-100 text-xs animate-in fade-in duration-200">
+              <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/70 space-y-1">
+                <div className="font-bold text-slate-900 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                  <span>100% Deterministic Rules</span>
+                </div>
+                <p className="text-[11px] text-slate-500 leading-relaxed">
+                  Exact lexicon matches and mathematical formulas (banned words, required trademark symbols, WCAG 2.1 color contrast ratios). Zero AI hallucination.
+                </p>
+              </div>
+
+              <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/70 space-y-1">
+                <div className="font-bold text-slate-900 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-sky-500" />
+                  <span>AI Grounded Verification</span>
+                </div>
+                <p className="text-[11px] text-slate-500 leading-relaxed">
+                  Semantic voice and tone analysis strictly constrained to your brand guidelines. Suggests intent-preserving rewrites without changing factual meaning.
+                </p>
+              </div>
+
+              <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/70 space-y-1">
+                <div className="font-bold text-slate-900 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-purple-500" />
+                  <span>CLAIM_UNSUPPORTED Flag</span>
+                </div>
+                <p className="text-[11px] text-slate-500 leading-relaxed">
+                  Triggered whenever a sentence makes a quantitative metric claim (e.g., percentages, multipliers, ROI/savings numbers) that lacks an approved citation in your facts library.
+                </p>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -448,24 +723,57 @@ export function DashboardPage({ onNavigate }) {
       </div>
 
       {/* Recent Submissions Feed */}
-      <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden">
-        <div className="p-4 px-6 border-b border-slate-200/80 bg-slate-50/50 flex items-center justify-between">
+      <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden space-y-0">
+        <div className="p-4 px-6 border-b border-slate-200/80 bg-slate-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
             <div className="w-7 h-7 rounded-lg bg-brand-50 text-brand-600 flex items-center justify-center border border-brand-100">
               <FileCheck2 className="w-4 h-4" />
             </div>
             <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
-              Recent Submissions in Workspace
+              Submissions in Workspace ({filteredContents.length})
             </h3>
           </div>
           <button 
             onClick={() => nav('review')}
-            className="text-xs text-brand-600 hover:text-brand-700 font-bold flex items-center gap-1 transition-colors hover:translate-x-0.5"
+            className="text-xs text-brand-600 hover:text-brand-700 font-bold flex items-center gap-1 transition-colors hover:translate-x-0.5 shrink-0"
           >
-            <span>View All</span>
+            <span>Open Review Studio</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>
+
+        {/* Search & Filter Toolbar */}
+        {contents.length > 0 && (
+          <div className="p-3.5 px-6 border-b border-slate-100 bg-white flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="relative flex-1 max-w-sm">
+              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Search submissions by title, channel, audience..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-8 pr-3 py-1.5 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 bg-slate-50/50"
+              />
+            </div>
+
+            {/* Status Filter Pills */}
+            <div className="flex items-center gap-1.5 overflow-x-auto touch-scroll no-scrollbar pb-1 sm:pb-0">
+              {['ALL', 'IN_REVIEW', 'APPROVED', 'CHANGES_REQUESTED', 'DRAFT'].map((st) => (
+                <button
+                  key={st}
+                  onClick={() => setStatusFilter(st)}
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-colors shrink-0 ${
+                    statusFilter === st
+                      ? 'bg-slate-900 text-white shadow-2xs'
+                      : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+                  }`}
+                >
+                  {st === 'ALL' ? 'All' : st.replace('_', ' ')}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {contents.length === 0 ? (
           <div className="p-12 text-center space-y-3">
@@ -484,45 +792,82 @@ export function DashboardPage({ onNavigate }) {
               <span>Submit First Draft</span>
             </button>
           </div>
+        ) : filteredContents.length === 0 ? (
+          <div className="p-8 text-center space-y-2">
+            <p className="text-xs font-semibold text-slate-600">No submissions match your search or filter</p>
+            <button
+              onClick={() => { setSearchQuery(''); setStatusFilter('ALL'); }}
+              className="text-xs font-bold text-brand-600 hover:underline"
+            >
+              Clear filters
+            </button>
+          </div>
         ) : (
           <div className="divide-y divide-slate-100">
-            {contents.slice(0, 5).map((item) => (
-              <div 
-                key={item._id}
-                role="button"
-                tabIndex={0}
-                onClick={() => nav(item.status === 'IN_REVIEW' ? 'approvals' : 'review')}
-                onKeyDown={handleCardKeyDown(item.status === 'IN_REVIEW' ? 'approvals' : 'review')}
-                className="p-3.5 sm:p-4 px-4 sm:px-6 hover:bg-slate-50/80 focus:outline-none focus:bg-brand-50/40 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 cursor-pointer group"
-              >
-                <div className="min-w-0 space-y-1.5">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-bold text-sm text-slate-900 group-hover:text-brand-600 transition-colors">
-                      {item.title}
-                    </span>
-                    {getStatusBadge(item.status)}
-                  </div>
-                  <div className="text-xs text-slate-500 flex flex-wrap items-center gap-1.5 sm:gap-2">
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 text-[11px] font-medium">
-                      {item.channel || 'Social Media'}
-                    </span>
-                    <span className="text-slate-300">&bull;</span>
-                    <span className="truncate max-w-[200px]">Audience: {item.audience || item.targetAudience || 'General Audience'}</span>
-                    <span className="text-slate-300">&bull;</span>
-                    <span className="font-mono text-slate-400">v{item.currentVersionNumber || 1}</span>
-                  </div>
-                </div>
+            {filteredContents.slice(0, 8).map((item) => {
+              const isApproved = item.status === 'APPROVED' || item.status === 'PUBLISHED';
+              const isCopied = copiedId === item._id;
 
-                <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100">
-                  <span className="text-xs text-slate-400 font-mono">
-                    {new Date(item.updatedAt).toLocaleDateString()}
-                  </span>
-                  <div className="w-7 h-7 rounded-lg bg-slate-50 group-hover:bg-brand-50 text-slate-400 group-hover:text-brand-600 flex items-center justify-center transition-colors">
-                    <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+              return (
+                <div 
+                  key={item._id}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => nav(item.status === 'IN_REVIEW' ? 'approvals' : 'review')}
+                  onKeyDown={handleCardKeyDown(item.status === 'IN_REVIEW' ? 'approvals' : 'review')}
+                  className="p-3.5 sm:p-4 px-4 sm:px-6 hover:bg-slate-50/80 focus:outline-none focus:bg-brand-50/40 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 cursor-pointer group"
+                >
+                  <div className="min-w-0 space-y-1.5">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-bold text-sm text-slate-900 group-hover:text-brand-600 transition-colors">
+                        {item.title}
+                      </span>
+                      {getStatusBadge(item.status)}
+                    </div>
+                    <div className="text-xs text-slate-500 flex flex-wrap items-center gap-1.5 sm:gap-2">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 text-[11px] font-medium">
+                        {item.channel || 'Social Media'}
+                      </span>
+                      <span className="text-slate-300">&bull;</span>
+                      <span className="truncate max-w-[200px]">Audience: {item.audience || item.targetAudience || 'General Audience'}</span>
+                      <span className="text-slate-300">&bull;</span>
+                      <span className="font-mono text-slate-400">v{item.currentVersionNumber || 1}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100">
+                    {/* Copy Approved Copy button */}
+                    {isApproved && (
+                      <button
+                        type="button"
+                        onClick={(e) => handleCopyApproved(item, e)}
+                        className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200/80 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-2xs"
+                        title="Copy final approved copy to clipboard for publishing"
+                      >
+                        {isCopied ? (
+                          <>
+                            <Check className="w-3.5 h-3.5 text-emerald-600" />
+                            <span>Copied!</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="w-3.5 h-3.5 text-emerald-600" />
+                            <span>Copy Approved</span>
+                          </>
+                        )}
+                      </button>
+                    )}
+
+                    <span className="text-xs text-slate-400 font-mono">
+                      {new Date(item.updatedAt).toLocaleDateString()}
+                    </span>
+                    <div className="w-7 h-7 rounded-lg bg-slate-50 group-hover:bg-brand-50 text-slate-400 group-hover:text-brand-600 flex items-center justify-center transition-colors">
+                      <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

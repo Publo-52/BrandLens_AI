@@ -35,7 +35,8 @@ import {
   Filter,
   Volume2,
   BookOpen,
-  Quote
+  Quote,
+  Copy
 } from 'lucide-react';
 import { useAuth } from '../features/auth/AuthContext';
 import { api } from '../services/api';
@@ -71,6 +72,20 @@ export function ReviewPage() {
   const [revisionSummary, setRevisionSummary] = useState('');
   const [submittingRevision, setSubmittingRevision] = useState(false);
   const [showDiff, setShowDiff] = useState(false);
+  const [copiedDraft, setCopiedDraft] = useState(false);
+  const [submissionFilterQuery, setSubmissionFilterQuery] = useState('');
+
+  const handleCopyApprovedDraft = async () => {
+    try {
+      const textToCopy = workingText || selectedContent?.versions?.[activeVersionIndex]?.text || '';
+      if (!textToCopy) return;
+      await navigator.clipboard.writeText(textToCopy);
+      setCopiedDraft(true);
+      setTimeout(() => setCopiedDraft(false), 2500);
+    } catch (err) {
+      console.error('Failed to copy text:', err);
+    }
+  };
 
   // Overrides / Comments / Rejections / Edits
   const [commentInput, setCommentInput] = useState('');
@@ -708,31 +723,56 @@ export function ReviewPage() {
             <span className="text-[10px] font-bold text-slate-400 shrink-0 px-2 sm:px-2.5 uppercase tracking-wider">
               Submissions:
             </span>
+
+            {contents.length > 3 && (
+              <div className="relative shrink-0 w-28 sm:w-36">
+                <Search className="w-3 h-3 absolute left-2 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Filter..."
+                  value={submissionFilterQuery}
+                  onChange={(e) => setSubmissionFilterQuery(e.target.value)}
+                  className="w-full pl-6 pr-2 py-1 text-[11px] border border-slate-200 rounded-lg bg-slate-50/70 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                />
+              </div>
+            )}
+
             {contents.length === 0 ? (
               <span className="text-xs text-slate-400 px-1">No submissions yet</span>
             ) : (
-              contents.map((c) => {
-                const isSelected = c._id === selectedContentId;
-                return (
-                  <button
-                    key={c._id}
-                    onClick={() => setSelectedContentId(c._id)}
-                    className={`px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-semibold shrink-0 transition-all flex items-center gap-2 ${
-                      isSelected
-                        ? 'bg-slate-900 text-white shadow-sm ring-1 ring-slate-800'
-                        : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200/80'
-                    }`}
-                  >
-                    <span className="truncate max-w-[110px] sm:max-w-[130px]">{c.title}</span>
-                    <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded-md ${
-                      isSelected ? 'bg-white/20 text-white' : 'bg-slate-200/70 text-slate-600'
-                    }`}>
-                      v{c.currentVersionNumber || 1}
-                    </span>
-                  </button>
-                );
-              })
+              contents
+                .filter((c) => !submissionFilterQuery.trim() || c.title.toLowerCase().includes(submissionFilterQuery.toLowerCase()))
+                .map((c) => {
+                  const isSelected = c._id === selectedContentId;
+                  return (
+                    <button
+                      key={c._id}
+                      onClick={() => setSelectedContentId(c._id)}
+                      className={`px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-semibold shrink-0 transition-all flex items-center gap-2 ${
+                        isSelected
+                          ? 'bg-slate-900 text-white shadow-sm ring-1 ring-slate-800'
+                          : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200/80'
+                      }`}
+                    >
+                      <span className="truncate max-w-[110px] sm:max-w-[130px]">{c.title}</span>
+                      <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded-md ${
+                        isSelected ? 'bg-white/20 text-white' : 'bg-slate-200/70 text-slate-600'
+                      }`}>
+                        v{c.currentVersionNumber || 1}
+                      </span>
+                    </button>
+                  );
+                })
             )}
+
+            <button
+              onClick={() => setShowNewModal(true)}
+              className="ml-auto px-2.5 py-1 bg-brand-50 hover:bg-brand-100 text-brand-700 border border-brand-200/80 rounded-xl text-[11px] font-bold shrink-0 flex items-center gap-1 transition-colors cursor-pointer"
+              title="Create a new draft submission"
+            >
+              <Plus className="w-3 h-3 stroke-[2.5]" />
+              <span>New Draft</span>
+            </button>
           </div>
 
           {!selectedContent && (
@@ -995,10 +1035,21 @@ export function ReviewPage() {
                       </p>
                     </div>
                   </div>
-                  <span className="text-[11px] font-bold text-emerald-700 bg-white/90 border border-emerald-300 px-3 py-1.5 rounded-xl shadow-2xs shrink-0 flex items-center gap-1.5 self-end sm:self-center">
-                    <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                    <span>Protected Version</span>
-                  </span>
+                  <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                    <button
+                      type="button"
+                      onClick={handleCopyApprovedDraft}
+                      className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+                      title="Copy locked, compliant copy to paste into LinkedIn, email, or CMS"
+                    >
+                      {copiedDraft ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                      <span>{copiedDraft ? 'Copied!' : 'Copy Approved Copy'}</span>
+                    </button>
+                    <span className="text-[11px] font-bold text-emerald-700 bg-white/90 border border-emerald-300 px-3 py-1.5 rounded-xl shadow-2xs flex items-center gap-1.5">
+                      <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                      <span>Protected Version</span>
+                    </span>
+                  </div>
                 </div>
               )}
 
@@ -1010,11 +1061,24 @@ export function ReviewPage() {
                       {isApproved && <Lock className="w-3.5 h-3.5 text-emerald-600" />}
                       <span>Draft Body Copy {isApproved ? '(Locked)' : '(Live Editor)'}</span>
                     </label>
-                    <span className="text-[11px] text-slate-400 sm:text-right leading-snug">
-                      {isApproved
-                        ? 'Approved versions are immutable across all publishing channels'
-                        : 'Use Accept, Edit, or Reject on findings to apply suggestions.'}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      {isApproved && (
+                        <button
+                          type="button"
+                          onClick={handleCopyApprovedDraft}
+                          className="px-2.5 py-0.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg text-[11px] font-bold flex items-center gap-1 shadow-2xs transition-colors cursor-pointer"
+                          title="Copy locked copy to clipboard"
+                        >
+                          {copiedDraft ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                          <span>{copiedDraft ? 'Copied' : 'Copy Approved Copy'}</span>
+                        </button>
+                      )}
+                      <span className="text-[11px] text-slate-400 sm:text-right leading-snug">
+                        {isApproved
+                          ? 'Approved versions are immutable across all publishing channels'
+                          : 'Use Accept, Edit, or Reject on findings to apply suggestions.'}
+                      </span>
+                    </div>
                   </div>
                   <textarea
                     rows={6}
@@ -1043,14 +1107,24 @@ export function ReviewPage() {
                     </button>
                   </div>
                 ) : (
-                  <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between text-xs text-slate-500">
-                    <span className="flex items-center gap-1.5">
-                      <Lock className="w-3.5 h-3.5 text-slate-400" />
-                      <span>Editing disabled for officially approved content.</span>
+                  <div className="p-3 bg-emerald-50/70 border border-emerald-200/80 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-emerald-800">
+                    <span className="flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <span>This content is officially approved and locked for publication.</span>
                     </span>
-                    <span className="font-mono text-[11px] font-semibold text-slate-600">
-                      Final Version: v{selectedContent.currentVersionNumber}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={handleCopyApprovedDraft}
+                        className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
+                      >
+                        {copiedDraft ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                        <span>{copiedDraft ? 'Copied to Clipboard!' : 'Copy Approved Copy'}</span>
+                      </button>
+                      <span className="font-mono text-[11px] font-semibold text-emerald-700 bg-white/80 px-2 py-0.5 rounded border border-emerald-200">
+                        Final v{selectedContent.currentVersionNumber}
+                      </span>
+                    </div>
                   </div>
                 )}
               </form>
@@ -1447,19 +1521,32 @@ export function ReviewPage() {
                     {/* Header Badges */}
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded border flex items-center gap-1 ${
-                          f.type === 'TERMINOLOGY'
-                            ? 'bg-rose-50 text-rose-700 border-rose-200'
-                            : f.type === 'TONE_MISMATCH'
-                            ? 'bg-amber-50 text-amber-700 border-amber-200'
-                            : f.type === 'CLAIM_UNSUPPORTED'
-                            ? 'bg-purple-50 text-purple-700 border-purple-200'
-                            : f.type === 'CLAIM_SUPPORTED'
-                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                            : f.type === 'CONTRAST_FAIL'
-                            ? 'bg-orange-50 text-orange-700 border-orange-200'
-                            : 'bg-sky-50 text-sky-700 border-sky-200'
-                        }`}>
+                        <span 
+                          title={
+                            f.type === 'CLAIM_UNSUPPORTED' 
+                              ? 'Unsupported Claim: Unverified quantitative or promotional metric detected without an active Approved Fact citation.'
+                              : f.type === 'CLAIM_SUPPORTED'
+                              ? 'Supported Claim: Factual entailment verified against an active Approved Fact in your brand library.'
+                              : f.type === 'TERMINOLOGY'
+                              ? 'Deterministic Terminology: Exact prohibited term matched in your terminology dictionary.'
+                              : f.type === 'TONE_MISMATCH'
+                              ? 'Tone Mismatch: Brand guideline voice inconsistency detected.'
+                              : 'Brand rule verification finding'
+                          }
+                          className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded border flex items-center gap-1 cursor-help ${
+                            f.type === 'TERMINOLOGY'
+                              ? 'bg-rose-50 text-rose-700 border-rose-200'
+                              : f.type === 'TONE_MISMATCH'
+                              ? 'bg-amber-50 text-amber-700 border-amber-200'
+                              : f.type === 'CLAIM_UNSUPPORTED'
+                              ? 'bg-purple-50 text-purple-700 border-purple-200'
+                              : f.type === 'CLAIM_SUPPORTED'
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                              : f.type === 'CONTRAST_FAIL'
+                              ? 'bg-orange-50 text-orange-700 border-orange-200'
+                              : 'bg-sky-50 text-sky-700 border-sky-200'
+                          }`}
+                        >
                           {f.type === 'TERMINOLOGY' && <BookOpen className="w-2.5 h-2.5" />}
                           {f.type === 'TONE_MISMATCH' && <Volume2 className="w-2.5 h-2.5" />}
                           {f.type === 'CLAIM_UNSUPPORTED' && <ShieldAlert className="w-2.5 h-2.5" />}
@@ -1468,7 +1555,14 @@ export function ReviewPage() {
                           <span>{f.type}</span>
                         </span>
 
-                        <span className="text-[10px] font-medium text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
+                        <span 
+                          title={
+                            f.checkMethod === 'DETERMINISTIC'
+                              ? '100% Deterministic: Exact rule match against terminology lexicon or WCAG contrast formula. Zero hallucination.'
+                              : 'AI Grounded: Semantic analysis strictly grounded against active brand guidelines and approved corporate facts.'
+                          }
+                          className="text-[10px] font-medium text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded cursor-help"
+                        >
                           {f.checkMethod === 'DETERMINISTIC' ? '100% Deterministic' : `AI ${Math.round(f.confidence * 100)}%`}
                         </span>
 

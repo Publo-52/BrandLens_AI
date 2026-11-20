@@ -4,6 +4,7 @@ import {
   Sparkles, 
   Plus, 
   Filter, 
+  Search,
   CheckCircle2, 
   AlertCircle, 
   ShieldAlert, 
@@ -39,6 +40,8 @@ export function KnowledgeBasePage() {
 
   // Filter state
   const [selectedCategory, setSelectedCategory] = useState('ALL');
+  const [severityFilter, setSeverityFilter] = useState('ALL');
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Modal / Add form states
   const [showAddModal, setShowAddModal] = useState(false);
@@ -259,10 +262,60 @@ export function KnowledgeBasePage() {
     }
   };
 
-  const filteredGuidelines = useMemo(
-    () => guidelines.filter((g) => selectedCategory === 'ALL' || g.category === selectedCategory),
-    [guidelines, selectedCategory]
-  );
+  const filteredGuidelines = useMemo(() => {
+    return guidelines.filter((g) => {
+      if (selectedCategory !== 'ALL' && g.category !== selectedCategory) return false;
+      if (severityFilter !== 'ALL' && g.severity !== severityFilter) return false;
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        return (
+          (g.title || '').toLowerCase().includes(q) ||
+          (g.ruleText || '').toLowerCase().includes(q) ||
+          (g.category || '').toLowerCase().includes(q)
+        );
+      }
+      return true;
+    });
+  }, [guidelines, selectedCategory, severityFilter, searchQuery]);
+
+  const filteredFacts = useMemo(() => {
+    return facts.filter((f) => {
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        return (
+          (f.statement || '').toLowerCase().includes(q) ||
+          (f.sourceReference || '').toLowerCase().includes(q) ||
+          (f.applicability?.product || '').toLowerCase().includes(q)
+        );
+      }
+      return true;
+    });
+  }, [facts, searchQuery]);
+
+  const filteredTerminology = useMemo(() => {
+    return terminology.filter((t) => {
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const prefMatch = (t.preferredTerm || '').toLowerCase().includes(q);
+        const bannedMatch = (t.bannedTerms || []).some((b) => b.toLowerCase().includes(q));
+        const explMatch = (t.explanation || '').toLowerCase().includes(q);
+        return prefMatch || bannedMatch || explMatch;
+      }
+      return true;
+    });
+  }, [terminology, searchQuery]);
+
+  const filteredAssets = useMemo(() => {
+    return assets.filter((a) => {
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const nameMatch = (a.name || '').toLowerCase().includes(q);
+        const typeMatch = (a.assetType || '').toLowerCase().includes(q);
+        return nameMatch || typeMatch;
+      }
+      return true;
+    });
+  }, [assets, searchQuery]);
 
   const getSeverityBadge = (severity) => {
     switch (severity) {
@@ -431,6 +484,40 @@ export function KnowledgeBasePage() {
         </button>
       </div>
 
+      {/* Global Knowledge Base Search & Filter Toolbar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3.5 rounded-2xl border border-slate-200/90 shadow-2xs">
+        <div className="relative flex-1 max-w-md">
+          <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input
+            type="text"
+            placeholder={`Search ${activeTab === 'guidelines' ? 'guidelines' : activeTab === 'facts' ? 'approved facts' : activeTab === 'terminology' ? 'terms & banned words' : 'visual assets'}...`}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-8 pr-3 py-1.5 text-xs border border-slate-200 rounded-xl bg-slate-50/60 focus:outline-none focus:ring-2 focus:ring-brand-500"
+          />
+        </div>
+
+        {activeTab === 'guidelines' && (
+          <div className="flex items-center gap-1.5 overflow-x-auto touch-scroll no-scrollbar">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider shrink-0 mr-1">Severity:</span>
+            {['ALL', 'CRITICAL', 'HIGH', 'MEDIUM', 'LOW'].map((sev) => (
+              <button
+                key={sev}
+                type="button"
+                onClick={() => setSeverityFilter(sev)}
+                className={`px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase transition-colors shrink-0 ${
+                  severityFilter === sev
+                    ? 'bg-slate-900 text-white'
+                    : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+                }`}
+              >
+                {sev}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
       {/* Tab 1: Guidelines */}
       {activeTab === 'guidelines' && (
         <div className="space-y-4">
@@ -509,8 +596,23 @@ export function KnowledgeBasePage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {facts.length > 0 ? (
-              facts.map((f) => (
+            {facts.length === 0 ? (
+              <div className="col-span-full text-center py-14 bg-white rounded-2xl border border-slate-200/90 shadow-xs p-6 space-y-2.5">
+                <div className="w-11 h-11 rounded-2xl bg-emerald-50 border border-emerald-200/60 flex items-center justify-center text-emerald-600 mx-auto">
+                  <FileText className="w-5 h-5 stroke-[1.9]" />
+                </div>
+                <p className="text-sm font-semibold text-slate-800">No approved facts defined yet</p>
+                <p className="text-xs text-slate-400">Click &ldquo;Seed Demo Pack&rdquo; above to populate.</p>
+              </div>
+            ) : filteredFacts.length === 0 ? (
+              <div className="col-span-full text-center py-10 bg-white rounded-2xl border border-slate-200 p-6 space-y-2">
+                <p className="text-xs font-semibold text-slate-600">No approved facts match "{searchQuery}"</p>
+                <button onClick={() => setSearchQuery('')} className="text-xs font-bold text-brand-600 hover:underline">
+                  Clear search
+                </button>
+              </div>
+            ) : (
+              filteredFacts.map((f) => (
                 <div key={f._id} className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm space-y-3">
                   <div className="flex items-start justify-between gap-2">
                     <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
@@ -533,14 +635,6 @@ export function KnowledgeBasePage() {
                   </div>
                 </div>
               ))
-            ) : (
-              <div className="col-span-full text-center py-14 bg-white rounded-2xl border border-slate-200/90 shadow-xs p-6 space-y-2.5">
-                <div className="w-11 h-11 rounded-2xl bg-emerald-50 border border-emerald-200/60 flex items-center justify-center text-emerald-600 mx-auto">
-                  <FileText className="w-5 h-5 stroke-[1.9]" />
-                </div>
-                <p className="text-sm font-semibold text-slate-800">No approved facts defined yet</p>
-                <p className="text-xs text-slate-400">Click &ldquo;Seed Demo Pack&rdquo; above to populate.</p>
-              </div>
             )}
           </div>
         </div>
@@ -567,8 +661,20 @@ export function KnowledgeBasePage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {terminology.length > 0 ? (
-                  terminology.map((t) => (
+                {terminology.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="py-8 text-center text-slate-400">
+                      No terminology rules defined yet. Click "Seed Demo Pack" above to populate.
+                    </td>
+                  </tr>
+                ) : filteredTerminology.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="py-8 text-center text-slate-400">
+                      No terminology rules match "{searchQuery}".
+                    </td>
+                  </tr>
+                ) : (
+                  filteredTerminology.map((t) => (
                     <tr key={t._id} className="hover:bg-slate-50/70 transition-colors">
                       <td className="py-3 px-4 font-semibold text-emerald-700 flex items-center gap-1.5">
                         <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
@@ -587,12 +693,6 @@ export function KnowledgeBasePage() {
                       <td className="py-3 px-4 text-slate-500 text-[11px]">{t.explanation || t.scope}</td>
                     </tr>
                   ))
-                ) : (
-                  <tr>
-                    <td colSpan={4} className="py-8 text-center text-slate-400">
-                      No terminology rules defined yet.
-                    </td>
-                  </tr>
                 )}
               </tbody>
             </table>
@@ -605,8 +705,23 @@ export function KnowledgeBasePage() {
         <div className="space-y-6">
           <ContrastChecker />
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {assets.length > 0 ? (
-              assets.map((a) => (
+            {assets.length === 0 ? (
+              <div className="col-span-full text-center py-14 bg-white rounded-2xl border border-slate-200/90 shadow-xs p-6 space-y-2.5">
+                <div className="w-11 h-11 rounded-2xl bg-purple-50 border border-purple-200/60 flex items-center justify-center text-purple-600 mx-auto">
+                  <Palette className="w-5 h-5 stroke-[1.9]" />
+                </div>
+                <p className="text-sm font-semibold text-slate-800">No brand visual assets registered yet</p>
+                <p className="text-xs text-slate-400">Click &ldquo;Seed Demo Pack&rdquo; above to populate.</p>
+              </div>
+            ) : filteredAssets.length === 0 ? (
+              <div className="col-span-full text-center py-10 bg-white rounded-2xl border border-slate-200 p-6 space-y-2">
+                <p className="text-xs font-semibold text-slate-600">No visual assets match "{searchQuery}"</p>
+                <button onClick={() => setSearchQuery('')} className="text-xs font-bold text-brand-600 hover:underline">
+                  Clear search
+                </button>
+              </div>
+            ) : (
+              filteredAssets.map((a) => (
                 <div key={a._id} className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-semibold uppercase tracking-wider text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200">
@@ -643,14 +758,6 @@ export function KnowledgeBasePage() {
                   )}
                 </div>
               ))
-            ) : (
-              <div className="col-span-full text-center py-14 bg-white rounded-2xl border border-slate-200/90 shadow-xs p-6 space-y-2.5">
-                <div className="w-11 h-11 rounded-2xl bg-purple-50 border border-purple-200/60 flex items-center justify-center text-purple-600 mx-auto">
-                  <Palette className="w-5 h-5 stroke-[1.9]" />
-                </div>
-                <p className="text-sm font-semibold text-slate-800">No brand visual assets registered yet</p>
-                <p className="text-xs text-slate-400">Click &ldquo;Seed Demo Pack&rdquo; above to populate.</p>
-              </div>
             )}
           </div>
         </div>

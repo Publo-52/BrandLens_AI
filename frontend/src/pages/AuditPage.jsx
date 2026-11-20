@@ -71,6 +71,22 @@ export function AuditPage({ isActive = true }) {
   const [selectedCertReview, setSelectedCertReview] = useState(null);
   const [loadingCertReview, setLoadingCertReview] = useState(false);
   const [copiedCert, setCopiedCert] = useState(false);
+  const [copiedApprovedDraft, setCopiedApprovedDraft] = useState(false);
+
+  const handleCopyApprovedDraft = async () => {
+    try {
+      const textToCopy =
+        selectedCertContent?.currentVersionId?.text ||
+        selectedCertContent?.text ||
+        '';
+      if (!textToCopy) return;
+      await navigator.clipboard.writeText(textToCopy);
+      setCopiedApprovedDraft(true);
+      setTimeout(() => setCopiedApprovedDraft(false), 2500);
+    } catch (err) {
+      console.error('Failed to copy approved text:', err);
+    }
+  };
 
   // Fetch full details + latest review for selected certificate content immediately
   useEffect(() => {
@@ -899,6 +915,15 @@ export function AuditPage({ isActive = true }) {
                 >
                   {copiedCert ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
                   <span>{copiedCert ? 'Copied' : 'Copy JSON'}</span>
+                </button>
+                <button
+                  onClick={handleCopyApprovedDraft}
+                  disabled={!selectedCertContent}
+                  className="flex items-center gap-1.5 px-3 py-2 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-800 rounded-xl text-xs font-bold shadow-xs transition-colors cursor-pointer"
+                  title="Copy the locked approved copy to paste directly into LinkedIn, email, or CMS"
+                >
+                  {copiedApprovedDraft ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-emerald-600" />}
+                  <span>{copiedApprovedDraft ? 'Copied Approved Copy!' : 'Copy Approved Copy'}</span>
                 </button>
               </div>
 
