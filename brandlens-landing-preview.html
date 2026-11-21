@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BrandLens AI — Unique &amp; Realistic Landing Page</title>
+  <style>
+    :root {
+      --bg: #f9fafb;
+      --orb-1: rgba(99, 102, 241, 0.18);
+      --orb-2: rgba(20, 184, 166, 0.16);
+      --cursor-glow: rgba(99, 102, 241, 0.14);
+      --grid-color: rgba(15, 23, 42, 0.08);
+      --surface: rgba(255, 255, 255, 0.85);
+      --surface-elevated: #ffffff;
+      --text: #09090b;
+      --muted: #52525b;
+      --border: rgba(9, 9, 11, 0.09);
+      --accent: #4f46e5;
+      --accent-2: #0d9488;
+      --accent-soft: rgba(79, 70, 229, 0.09);
+      --btn-bg: #09090b;
+      --btn-text: #ffffff;
+      --shadow: 0 24px 60px -15px rgba(9, 9, 11, 0.1);
+      --mx: 50vw;
+      --my: 30vh;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+      transition: background-color 0.4s ease, color 0.3s ease;
+    }
+
+    /* Ambient Cursor-Reactive Background */
+    .bg-layer {
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      pointer-events: none;
+      overflow: hidden;
+    }
+    .bg-grid {
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(to right, var(--grid-color) 1px, transparent 1px),
+        linear-gradient(to bottom, var(--grid-color) 1px, transparent 1px);
+      background-size: 48px 48px;
+      -webkit-mask-image: radial-gradient(340px circle at var(--mx) var(--my), rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.12) 60%, transparent 100%);
+      mask-image: radial-gradient(340px circle at var(--mx) var(--my), rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.12) 60%, transparent 100%);
+    }
+    .cursor-aura {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(560px circle at var(--mx) var(--my), var(--cursor-glow), transparent 70%);
+    }
+    .ambient-orb-1 {
+      position: absolute;
+      width: 620px; height: 620px; border-radius: 50%;
+      top: -220px; right: -120px;
+      background: var(--orb-1);
+      filter: blur(100px);
+    }
+    .ambient-orb-2 {
+      position: absolute;
+      width: 520px; height: 520px; border-radius: 50%;
+      bottom: -180px; left: -120px;
+      background: var(--orb-2);
+      filter: blur(100px);
+    }
+
+    /* Top Theme Switcher */
+    .theme-bar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(9, 9, 11, 0.92);
+      backdrop-filter: blur(12px);
+      color: #f4f4f5;
+      padding: 9px 20px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .t-btn {
+      padding: 5px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.18);
+      background: rgba(255,255,255,0.06);
+      color: #e4e4e7;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .t-btn.active { background: #ffffff; color: #09090b; font-weight: 600; }
+
+    /* Navbar */
+    .navbar {
+      max-width: 1160px;
+      margin: 0 auto;
+      padding: 20px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 16px;
+      letter-spacing: -0.02em;
+    }
+    .logo-mark {
+      width: 26px;
+      height: 26px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 13px;
+      font-weight: 800;
+    }
+    .nav-links { display: flex; gap: 28px; font-size: 13.5px; color: var(--muted); }
+    .nav-links a { color: inherit; text-decoration: none; font-weight: 500; }
+    .nav-links a:hover { color: var(--text); }
+    .nav-actions { display: flex; gap: 10px; align-items: center; }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 9px 18px;
+      border-radius: 10px;
+      font-size: 13.5px;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: transform 0.2s ease, background 0.2s ease;
+    }
+    .btn:hover { transform: translateY(-1px); }
+    .btn-ghost { color: var(--text); background: transparent; border-color: var(--border); }
+    .btn-primary { background: var(--btn-bg); color: var(--btn-text); }
+    .btn-lg { padding: 12px 24px; font-size: 14.5px; }
+
+    /* Asymmetric Editorial Hero */
+    .hero {
+      max-width: 1160px;
+      margin: 0 auto;
+      padding: 44px 28px 64px;
+      display: grid;
+      grid-template-columns: 1fr 1.12fr;
+      gap: 48px;
+      align-items: center;
+    }
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--accent);
+      background: var(--accent-soft);
+      padding: 5px 12px;
+      border-radius: 999px;
+      margin-bottom: 18px;
+    }
+    .hero h1 {
+      font-size: clamp(34px, 4.2vw, 50px);
+      font-weight: 800;
+      letter-spacing: -0.035em;
+      line-height: 1.08;
+      margin-bottom: 18px;
+    }
+    .grad-text {
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .hero-sub {
+      font-size: 16px;
+      color: var(--muted);
+      margin-bottom: 28px;
+      max-width: 470px;
+    }
+    .hero-ctas { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 32px; }
+
+    .proof-strip {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+    }
+    .proof-item strong { display: block; font-size: 13px; font-weight: 700; }
+    .proof-item span { font-size: 12px; color: var(--muted); }
+
+    /* Realistic Interactive Product Mockup */
+    .mockup-shell {
+      background: var(--surface);
+      backdrop-filter: blur(22px);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      transform: perspective(1000px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+      transition: transform 0.15s ease-out;
+    }
+    .mockup-topbar {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .sample-tabs { display: flex; gap: 6px; }
+    .s-tab {
+      padding: 4px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      font-size: 11.5px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .s-tab.active {
+      background: var(--accent-soft);
+      color: var(--accent);
+      border-color: var(--accent);
+    }
+    .mockup-body { padding: 20px; }
+    .draft-editor {
+      background: var(--surface-elevated);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      font-size: 13.5px;
+      line-height: 1.7;
+      margin-bottom: 14px;
+    }
+    .hl-bad {
+      background: rgba(244, 63, 94, 0.14);
+      border-bottom: 2px solid #f43f5e;
+      padding: 1px 4px;
+      border-radius: 4px;
+      font-weight: 600;
+    }
+    .hl-warn {
+      background: rgba(245, 158, 11, 0.15);
+      border-bottom: 2px solid #f59e0b;
+      padding: 1px 4px;
+      border-radius: 4px;
+      font-weight: 600;
+    }
+    .hl-fixed {
+      background: rgba(16, 185, 129, 0.14);
+      border-bottom: 2px solid #10b981;
+      padding: 1px 4px;
+      border-radius: 4px;
+      font-weight: 600;
+    }
+    .finding-panel {
+      background: var(--surface-elevated);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 16px;
+      font-size: 12.5px;
+    }
+    .finding-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+    .pill-cite {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent);
+    }
+    .fix-btn {
+      margin-top: 10px;
+      padding: 6px 12px;
+      border-radius: 8px;
+      border: none;
+      background: var(--btn-bg);
+      color: var(--btn-text);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    /* Connected Workflow Rail */
+    .section { max-width: 1100px; margin: 0 auto; padding: 72px 28px 0; }
+    .section-head { margin-bottom: 36px; }
+    .section-head h2 { font-size: 28px; font-weight: 800; letter-spacing: -0.025em; margin-bottom: 6px; }
+    .section-head p { font-size: 15px; color: var(--muted); }
+
+    .rail {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+    .rail-card {
+      background: var(--surface);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+    .rail-card:hover { transform: translateY(-3px); border-color: var(--accent); }
+    .rail-step {
+      font-size: 11.5px;
+      font-weight: 700;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 10px;
+    }
+    .rail-card h3 { font-size: 16.5px; font-weight: 700; margin-bottom: 6px; }
+    .rail-card p { font-size: 13.5px; color: var(--muted); }
+
+    /* Bottom CTA + FAQ */
+    .cta-box {
+      max-width: 1044px;
+      margin: 72px auto 0;
+      padding: 44px 32px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 24px;
+      box-shadow: var(--shadow);
+    }
+    .cta-box h2 { font-size: 24px; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 4px; }
+    .cta-box p { font-size: 14.5px; color: var(--muted); }
+
+    .faq-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+    }
+    .faq-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px;
+    }
+    .faq-card h4 { font-size: 14.5px; font-weight: 700; margin-bottom: 6px; }
+    .faq-card p { font-size: 13.5px; color: var(--muted); }
+
+    footer {
+      max-width: 1100px;
+      margin: 72px auto 0;
+      padding: 28px 28px 44px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 16px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    footer a { color: var(--muted); text-decoration: none; margin-left: 18px; }
+    footer a:hover { color: var(--text); }
+
+    @media (max-width: 900px) {
+      .hero, .rail, .faq-grid { grid-template-columns: 1fr; }
+      .nav-links { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="bg-layer">
+    <div class="ambient-orb-1"></div>
+    <div class="ambient-orb-2"></div>
+    <div class="bg-grid"></div>
+    <div class="cursor-aura"></div>
+  </div>
+
+  <div class="theme-bar">
+    <span>Realistic Minimalist Themes (try hovering &amp; clicking inside the live preview):</span>
+    <button class="t-btn active" onclick="setTheme('pearl', this)">1. Studio Pearl &amp; Indigo</button>
+    <button class="t-btn" onclick="setTheme('carbon', this)">2. Carbon Obsidian &amp; Mint</button>
+    <button class="t-btn" onclick="setTheme('stone', this)">3. Warm Stone &amp; Cobalt</button>
+  </div>
+
+  <nav class="navbar">
+    <div class="brand"><span class="logo-mark">B</span> BrandLens AI</div>
+    <div class="nav-links">
+      <a href="#workflow">Workflow</a>
+      <a href="#faq">FAQ</a>
+    </div>
+    <div class="nav-actions">
+      <a href="#cta" class="btn btn-ghost">Sign In</a>
+      <a href="#cta" class="btn btn-primary">Get Started</a>
+    </div>
+  </nav>
+
+  <section class="hero">
+    <div>
+      <span class="eyebrow">Pre-Publication Brand Governance</span>
+      <h1>Brand control that cites rules, <span class="grad-text">before you publish.</span></h1>
+      <p class="hero-sub">Check drafts against your approved guidelines, facts, and terminology in seconds. Every suggestion preserves your intent and keeps humans in charge.</p>
+      <div class="hero-ctas">
+        <a href="#cta" class="btn btn-primary btn-lg">Get Started</a>
+        <a href="#cta" class="btn btn-ghost btn-lg">Sign In</a>
+      </div>
+      <div class="proof-strip">
+        <div class="proof-item">
+          <strong>Zero Hallucinations</strong>
+          <span>Strict source-ID validation</span>
+        </div>
+        <div class="proof-item">
+          <strong>Human Sign-Off</strong>
+          <span>Accept, edit, or reject</span>
+        </div>
+        <div class="proof-item">
+          <strong>Audit Ledger</strong>
+          <span>Pre-Publication Certificate</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Realistic Interactive Live-Check Preview -->
+    <div class="mockup-shell" id="tiltMockup">
+      <div class="mockup-topbar">
+        <span>Review Studio &bull; Interactive Demo</span>
+        <div class="sample-tabs">
+          <button class="s-tab active" onclick="loadSample('social', this)">Social Post</button>
+          <button class="s-tab" onclick="loadSample('email', this)">Launch Email</button>
+        </div>
+      </div>
+      <div class="mockup-body">
+        <div class="draft-editor" id="draftText">
+          Upgrade to NovaTech Cloud today for a <span class="hl-bad">100% risk-free</span> migration with <span class="hl-warn">3x faster</span> deployment across teams.
+        </div>
+        <div class="finding-panel" id="findingBox">
+          <div class="finding-head">
+            <strong id="findingTitle">Terminology Violation: "100% risk-free"</strong>
+            <span class="pill-cite" id="findingCite">Legal Rule #4.2</span>
+          </div>
+          <p id="findingDesc" style="color: var(--muted);">Banned promotional guarantee. Suggested intent-preserving fix: <strong>"guided, scheduled"</strong>. Unverified claim <em>"3x faster"</em> is marked <strong>UNSUPPORTED</strong>.</p>
+          <button class="fix-btn" id="applyFixBtn" onclick="applyFix()">Accept Suggested Fix</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="workflow" class="section">
+    <div class="section-head">
+      <h2>How it fits your publishing flow</h2>
+      <p>Three focused stages from raw draft to approved release.</p>
+    </div>
+    <div class="rail">
+      <div class="rail-card">
+        <div class="rail-step">01 &bull; Knowledge Base</div>
+        <h3>Store Approved Truth</h3>
+        <p>Keep tone rules, approved corporate facts, and banned/preferred terms versioned in one workspace.</p>
+      </div>
+      <div class="rail-card">
+        <div class="rail-step">02 &bull; Hybrid Review</div>
+        <h3>Deterministic + Grounded AI</h3>
+        <p>Exact rule checks run first; AI checks tone and claims using only retrieved company sources.</p>
+      </div>
+      <div class="rail-card">
+        <div class="rail-step">03 &bull; Human Approval</div>
+        <h3>Diffs, Sign-Off &amp; Certificate</h3>
+        <p>Creators revise with diffs, reviewers override with reasons, and managers lock the approved release.</p>
+      </div>
+    </div>
+  </section>
+
+  <div id="cta" style="padding: 0 28px;">
+    <div class="cta-box">
+      <div>
+        <h2>Ready to govern your brand?</h2>
+        <p>Create your team workspace or test all roles with 1-click judge demo access.</p>
+      </div>
+      <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        <a href="#cta" class="btn btn-primary btn-lg">Get Started</a>
+        <a href="#cta" class="btn btn-ghost btn-lg">Sign In</a>
+      </div>
+    </div>
+  </div>
+
+  <section id="faq" class="section">
+    <div class="section-head">
+      <h2>Frequently Asked Questions</h2>
+    </div>
+    <div class="faq-grid">
+      <div class="faq-card">
+        <h4>What does BrandLens AI check?</h4>
+        <p>Tone, banned/preferred terminology, factual claims against approved sources, and accessibility rules.</p>
+      </div>
+      <div class="faq-card">
+        <h4>Does AI rewrite or publish automatically?</h4>
+        <p>No. AI only suggests fixes with citations; authorised humans accept edits and approve publication.</p>
+      </div>
+      <div class="faq-card">
+        <h4>What if a claim has no approved source?</h4>
+        <p>BrandLens AI flags it distinctly as UNSUPPORTED instead of guessing whether it is true or false.</p>
+      </div>
+      <div class="faq-card">
+        <h4>Can multiple teammates share one workspace?</h4>
+        <p>Yes. Admins invite teammates by email with Creator, Reviewer, Manager, or Admin permissions.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div><strong>BrandLens AI</strong> &bull; Team ALGO_X &bull; Global Institute of Science and Technology &bull; +91 62955 01027</div>
+    <div>
+      <a href="#workflow">Workflow</a>
+      <a href="#faq">FAQ</a>
+      <a href="#cta">Sign In</a>
+      <a href="#cta">Get Started</a>
+    </div>
+  </footer>
+
+  <script>
+    // Smooth Cursor Tracking + Subtle 3D Tilt on Product Mockup
+    let tx = window.innerWidth * 0.5, ty = window.innerHeight * 0.3;
+    let cx = tx, cy = ty;
+    const mockup = document.getElementById('tiltMockup');
+
+    window.addEventListener('pointermove', (e) => {
+      tx = e.clientX;
+      ty = e.clientY;
+    });
+
+    function loop() {
+      cx += (tx - cx) * 0.12;
+      cy += (ty - cy) * 0.12;
+      document.documentElement.style.setProperty('--mx', `${cx}px`);
+      document.documentElement.style.setProperty('--my', `${cy}px`);
+
+      if (mockup) {
+        const r = mockup.getBoundingClientRect();
+        const rx = ((cy - (r.top + r.height / 2)) / r.height) * -4;
+        const ry = ((cx - (r.left + r.width / 2)) / r.width) * 4;
+        mockup.style.setProperty('--rx', `${Math.max(-3.5, Math.min(3.5, rx)).toFixed(2)}deg`);
+        mockup.style.setProperty('--ry', `${Math.max(-3.5, Math.min(3.5, ry)).toFixed(2)}deg`);
+      }
+      requestAnimationFrame(loop);
+    }
+    requestAnimationFrame(loop);
+
+    // Interactive Mockup Logic
+    let currentSample = 'social';
+    const samples = {
+      social: {
+        raw: 'Upgrade to NovaTech Cloud today for a <span class="hl-bad">100% risk-free</span> migration with <span class="hl-warn">3x faster</span> deployment across teams.',
+        fixed: 'Upgrade to NovaTech Cloud today for a <span class="hl-fixed">guided, scheduled</span> migration with <span class="hl-warn">3x faster</span> deployment across teams.',
+        title: 'Terminology Violation: "100% risk-free"',
+        cite: 'Legal Rule #4.2',
+        desc: 'Banned promotional guarantee. Suggested fix: <strong>"guided, scheduled"</strong>. Claim <em>"3x faster"</em> remains <strong>UNSUPPORTED</strong>.'
+      },
+      email: {
+        raw: 'Our <span class="hl-bad">Nova Cloud</span> platform guarantees <span class="hl-warn">zero downtime</span> for every enterprise rollout.',
+        fixed: 'Our <span class="hl-fixed">NovaTech Cloud</span> platform guarantees <span class="hl-warn">zero downtime</span> for every enterprise rollout.',
+        title: 'Product Naming: "Nova Cloud"',
+        cite: 'Lexicon Rule #1.1',
+        desc: 'Use official product name <strong>"NovaTech Cloud"</strong>. Claim <em>"zero downtime"</em> has no approved fact source.'
+      }
+    };
+
+    function loadSample(key, btn) {
+      currentSample = key;
+      document.querySelectorAll('.s-tab').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('draftText').innerHTML = samples[key].raw;
+      document.getElementById('findingTitle').textContent = samples[key].title;
+      document.getElementById('findingCite').textContent = samples[key].cite;
+      document.getElementById('findingDesc').innerHTML = samples[key].desc;
+      const fixBtn = document.getElementById('applyFixBtn');
+      fixBtn.textContent = 'Accept Suggested Fix';
+      fixBtn.disabled = false;
+    }
+
+    function applyFix() {
+      document.getElementById('draftText').innerHTML = samples[currentSample].fixed;
+      const fixBtn = document.getElementById('applyFixBtn');
+      fixBtn.textContent = 'Applied to v2 Draft';
+      fixBtn.disabled = true;
+    }
+
+    const themes = {
+      pearl: {
+        '--bg': '#f9fafb',
+        '--orb-1': 'rgba(99, 102, 241, 0.18)',
+        '--orb-2': 'rgba(20, 184, 166, 0.16)',
+        '--cursor-glow': 'rgba(99, 102, 241, 0.14)',
+        '--grid-color': 'rgba(15, 23, 42, 0.08)',
+        '--surface': 'rgba(255, 255, 255, 0.85)',
+        '--surface-elevated': '#ffffff',
+        '--text': '#09090b',
+        '--muted': '#52525b',
+        '--border': 'rgba(9, 9, 11, 0.09)',
+        '--accent': '#4f46e5',
+        '--accent-2': '#0d9488',
+        '--accent-soft': 'rgba(79, 70, 229, 0.09)',
+        '--btn-bg': '#09090b',
+        '--btn-text': '#ffffff'
+      },
+      carbon: {
+        '--bg': '#09090b',
+        '--orb-1': 'rgba(16, 185, 129, 0.18)',
+        '--orb-2': 'rgba(56, 189, 248, 0.16)',
+        '--cursor-glow': 'rgba(16, 185, 129, 0.14)',
+        '--grid-color': 'rgba(255, 255, 255, 0.08)',
+        '--surface': 'rgba(24, 24, 27, 0.78)',
+        '--surface-elevated': '#18181b',
+        '--text': '#fafafa',
+        '--muted': '#a1a1aa',
+        '--border': 'rgba(255, 255, 255, 0.1)',
+        '--accent': '#10b981',
+        '--accent-2': '#38bdf8',
+        '--accent-soft': 'rgba(16, 185, 129, 0.14)',
+        '--btn-bg': '#fafafa',
+        '--btn-text': '#09090b'
+      },
+      stone: {
+        '--bg': '#f6f5f1',
+        '--orb-1': 'rgba(37, 99, 235, 0.15)',
+        '--orb-2': 'rgba(234, 88, 12, 0.12)',
+        '--cursor-glow': 'rgba(37, 99, 235, 0.12)',
+        '--grid-color': 'rgba(28, 25, 23, 0.07)',
+        '--surface': 'rgba(255, 255, 255, 0.82)',
+        '--surface-elevated': '#ffffff',
+        '--text': '#1c1917',
+        '--muted': '#57534e',
+        '--border': 'rgba(28, 25, 23, 0.09)',
+        '--accent': '#2563eb',
+        '--accent-2': '#ea580c',
+        '--accent-soft': 'rgba(37, 99, 235, 0.1)',
+        '--btn-bg': '#1c1917',
+        '--btn-text': '#ffffff'
+      }
+    };
+
+    function setTheme(key, btn) {
+      const t = themes[key];
+      Object.entries(t).forEach(([k, v]) => document.documentElement.style.setProperty(k, v));
+      document.querySelectorAll('.t-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    }
+  </script>
+</body>
+</html>
