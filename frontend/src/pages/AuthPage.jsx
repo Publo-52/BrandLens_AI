@@ -12,10 +12,6 @@ import {
   EyeOff,
   Loader2,
   Building2,
-  Shield,
-  Briefcase,
-  Search,
-  PenTool,
 } from 'lucide-react';
 import { useAuth } from '../features/auth/AuthContext';
 
@@ -42,7 +38,6 @@ const T = {
 export function AuthPage({ onAuthSuccess, initialMode = 'signin', onBackToHome }) {
   const {
     loginWithGoogle,
-    loginWithDemoRole,
     login,
     register,
   } = useAuth();
@@ -99,7 +94,6 @@ export function AuthPage({ onAuthSuccess, initialMode = 'signin', onBackToHome }
   const [workspaceName, setWorkspaceName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [demoLoadingRole, setDemoLoadingRole] = useState(null);
   const [error, setError] = useState(null);
   const [successMsg, setSuccessMsg] = useState(null);
 
@@ -152,19 +146,6 @@ export function AuthPage({ onAuthSuccess, initialMode = 'signin', onBackToHome }
         setError(err.message || 'Failed to sign in with Google.');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleDemoLogin = async (role) => {
-    setError(null);
-    setDemoLoadingRole(role);
-    try {
-      if (loginWithDemoRole) await loginWithDemoRole(role);
-      if (onAuthSuccess) onAuthSuccess();
-    } catch (err) {
-      setError(err.message || `Failed to sign in as ${role}.`);
-    } finally {
-      setDemoLoadingRole(null);
     }
   };
 
@@ -401,70 +382,6 @@ export function AuthPage({ onAuthSuccess, initialMode = 'signin', onBackToHome }
               )}
             </button>
           </form>
-        </div>
-
-        {/* Judge Demo Card */}
-        <div
-          style={{ background: T.surface, borderColor: T.border }}
-          className="rounded-2xl border backdrop-blur-xl p-5 shadow-[0_8px_30px_rgba(99,102,241,0.06)]"
-        >
-          <div className="flex items-center gap-2 mb-3">
-            <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
-            <h3 className="text-xs font-bold tracking-widest uppercase text-indigo-600">1-Click Judge Demo</h3>
-            <span className="ml-auto text-[10px] text-slate-400 font-mono">NovaTech Global</span>
-          </div>
-          <p className="text-[11px] text-slate-500 mb-3 leading-relaxed">
-            Instantly explore server-side RBAC. Each role unlocks different views and API permissions.
-          </p>
-
-          <div className="grid grid-cols-2 gap-2">
-            {[
-              { role: 'ADMIN',    label: 'Admin',    desc: 'Full workspace control', icon: Shield,   color: 'indigo' },
-              { role: 'MANAGER',  label: 'Manager',  desc: 'Rule & content approvals', icon: Briefcase, color: 'blue' },
-              { role: 'REVIEWER', label: 'Reviewer', desc: 'Review queue sign-off', icon: Search,    color: 'amber' },
-              { role: 'CREATOR',  label: 'Creator',  desc: 'Drafts only', icon: PenTool,  color: 'emerald' },
-            ].map((item) => {
-              const Icon = item.icon;
-              const isLoading = demoLoadingRole === item.role;
-              const colorMap = {
-                indigo:  { ring: 'hover:border-indigo-300  hover:bg-indigo-50',  badge: 'bg-indigo-100  text-indigo-600' },
-                blue:    { ring: 'hover:border-blue-300    hover:bg-blue-50',    badge: 'bg-blue-100    text-blue-600' },
-                amber:   { ring: 'hover:border-amber-300   hover:bg-amber-50',   badge: 'bg-amber-100   text-amber-600' },
-                emerald: { ring: 'hover:border-emerald-300 hover:bg-emerald-50', badge: 'bg-emerald-100 text-emerald-600' },
-              };
-              const c = colorMap[item.color];
-              return (
-                <button
-                  key={item.role}
-                  type="button"
-                  onClick={() => handleDemoLogin(item.role)}
-                  disabled={demoLoadingRole !== null}
-                  className={`p-3 rounded-xl bg-white border border-slate-200 text-left transition-all ${c.ring} active:scale-[0.98] disabled:opacity-50 cursor-pointer`}
-                >
-                  <div className="flex items-center justify-between mb-1">
-                    <div className="flex items-center gap-1.5">
-                      <Icon className="w-3.5 h-3.5 text-slate-500" />
-                      <span className="text-xs font-bold text-slate-800">{item.label}</span>
-                    </div>
-                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${c.badge}`}>
-                      {item.role}
-                    </span>
-                  </div>
-                  <p className="text-[10px] text-slate-400 leading-tight">{item.desc}</p>
-                  {isLoading && (
-                    <div className="mt-2 flex items-center gap-1 text-[10px] text-indigo-500">
-                      <Loader2 className="w-3 h-3 animate-spin" />
-                      <span>Signing in...</span>
-                    </div>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-
-          <p className="text-[10px] text-slate-400 mt-3 text-center leading-relaxed">
-            <strong>Creator</strong> role is restricted — see HTTP 403 enforcement live.
-          </p>
         </div>
 
         {/* Footer line */}
