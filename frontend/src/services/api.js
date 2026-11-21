@@ -36,13 +36,26 @@ function getHeaders(token, organisationId) {
 // In-flight request deduplicator to eliminate redundant concurrent API calls
 const inFlightRequests = new Map();
 
+async function fetchWithTimeout(url, options = {}, timeoutMs = 12000) {
+  if (options.signal) {
+    return fetch(url, options);
+  }
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 async function request(url, options = {}) {
   const method = (options.method || 'GET').toUpperCase();
   const isGet = method === 'GET';
 
   if (!isGet) {
     inFlightRequests.clear(); // Bust cache on mutations
-    const res = await fetch(url, options);
+    const res = await fetchWithTimeout(url, options);
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
       const err = new Error(data.error?.message || `Request failed (${res.status})`);
@@ -59,7 +72,7 @@ async function request(url, options = {}) {
 
   const promise = (async () => {
     try {
-      const res = await fetch(url, options);
+      const res = await fetchWithTimeout(url, options);
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         const err = new Error(data.error?.message || `Request failed (${res.status})`);

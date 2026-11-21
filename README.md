@@ -50,7 +50,7 @@ npm run dev
 - **Backend API:** [http://localhost:5000](http://localhost:5000) (Health check: `/api/health`)
 - **FastAPI AI Service:** [http://localhost:8000](http://localhost:8000) (Health check: `/health`)
 
-> 💡 **Instant Evaluation Tip:** Log in using the 1-click Quick Role Switcher (`CREATOR`, `REVIEWER`, `MANAGER`, `ADMIN`) or navigate directly to the Knowledge Base and click **Seed Demo Pack** to populate the complete **NovaTech Global** enterprise guidelines and approved facts.
+> 💡 **Instant Evaluation Tip:** Create a free account or sign in with Google/Email on the login page. Once signed in, you are automatically the **Admin** of your workspace where you can define Brand Guidelines, add Approved Facts, invite team members, submit content drafts (or try our sample brand pack), and run automated pre-publication reviews.
 
 ---
 
@@ -114,8 +114,8 @@ BrandLens AI introduces a structured, explainable pre-publication governance pip
 
 ### Implemented Capabilities
 - **Multi-Tenant Workspaces & RBAC:** Create and switch workspaces; invite teammates by email; assign `ADMIN`, `MANAGER`, `REVIEWER`, and `CREATOR` roles; enforce strict tenant isolation.
-- **Authentication & Demo Role Switching:** Email/password registration and login, Firebase Auth (Email & Google Sign-In) with Express JWT fallback, protected routes (`AuthPage` gate), session persistence across refreshes, and a 1-click Quick Role Switcher (`CREATOR`, `REVIEWER`, `MANAGER`, `ADMIN`) backed by distinct server-side personas.
-- **Brand Knowledge Base:** Manage Brand Guidelines (category, severity, version auto-increment on edits), Approved Facts, Deterministic Terminology Rules, Visual Brand Assets, an interactive WCAG 2.1 **Contrast Checker**, and a 1-click **NovaTech Global** demo brand pack seeder.
+- **Authentication & Enterprise RBAC:** Production-grade Firebase Authentication (Email/Password registration & login and Google Sign-In) with Express JWT fallback, protected routes (`AuthPage` gate), session persistence across refreshes, real user profiles, and server-verified role badges (`ADMIN`, `MANAGER`, `REVIEWER`, `CREATOR`) with strict server-side RBAC and tenant isolation.
+- **Brand Knowledge Base:** Manage Brand Guidelines (category, severity, version auto-increment on edits), Approved Facts, Deterministic Terminology Rules, Visual Brand Assets, an interactive WCAG 2.1 **Contrast Checker**, and sample brand pack onboarding.
 - **Multi-Format Document & Image Intake:** Upload `.pdf` (`pdfplumber` / `pypdf`), `.docx` (`python-docx` including tables), `.txt`, and `.jpg`/`.png`/`.webp` (Pillow + Tesseract OCR fallback) with strict extension, MIME, 10MB size, and binary magic-byte validation plus Cloudinary CDN storage.
 - **Visual & Accessibility Checks:** Deterministic Pillow dominant color extraction, WCAG 2.1 AA/AAA contrast ratio calculation, Euclidean brand palette matching, and alt-text presence/quality validation.
 - **Review Studio & Immutable Versioning:** Per-finding **Accept**, **Edit**, **Reject** (mandatory reason), and **Override** (mandatory justification) actions; immutable `ContentVersion` snapshots (`v1 -> v2 -> v3`); and an interactive **Side-by-Side / Unified Diff Viewer**.
@@ -348,8 +348,8 @@ Copy-Item ai-service\.env.example ai-service\.env
    MONGODB_URI=mongodb://localhost:27017/brandlens
    ```
 
-### Optional Demo Seeding
-You can seed the fictional **NovaTech Global** demo workspace and brand pack via CLI or via the UI button in **Brand Knowledge**:
+### Optional CLI Seeder (Development Only)
+For local development, you can optionally seed sample workspaces and users via the backend CLI seeder:
 ```bash
 cd backend
 npm run seed:demo
@@ -443,8 +443,6 @@ npm run dev
 | **Auth** | `POST /api/auth/login` | Public (Rate-limited) | Email/password login returning `HS256` JWT |
 | **Auth** | `POST /api/auth/google` | Verified Bearer Token | Sync Firebase Google user & return JWT + memberships |
 | **Auth** | `GET /api/auth/me` | Authenticated | Current user profile and active memberships |
-| **Auth** | `POST /api/auth/demo-login` | Public (Rate-limited) | 1-click NovaTech Global demo login by role |
-| **Auth** | `POST /api/auth/demo-switch-role` | Active Org Member | Switch between `CREATOR`, `REVIEWER`, `MANAGER`, `ADMIN` personas in current org |
 | **Auth** | `POST /api/auth/logout` | Public | Logout confirmation |
 | **Workspaces** | `GET /api/workspaces` | Authenticated | List user's active workspaces with roles |
 | **Workspaces** | `POST /api/workspaces` | Authenticated | Create new workspace (creator becomes `ADMIN`) |
@@ -459,7 +457,6 @@ npm run dev
 | **Knowledge** | `GET / POST / PATCH /api/organisations/:orgId/terminology` | Member / `ADMIN,MANAGER` | CRUD for deterministic terminology rules |
 | **Knowledge** | `GET / POST / PATCH /api/organisations/:orgId/assets` | Member / `ADMIN,MANAGER` | CRUD for brand palettes & visual assets |
 | **Knowledge** | `POST /api/organisations/:orgId/assets/upload` | `ADMIN,MANAGER` | Validated asset upload to Cloudinary (`PNG/JPG/WebP/PDF`) |
-| **Knowledge** | `POST /api/organisations/:orgId/knowledge/seed-demo` | `ADMIN,MANAGER` | Idempotently seed the NovaTech demo brand pack |
 | **Content** | `GET / POST /api/organisations/:orgId/contents` | Any Member | List drafts or submit text/files (runs extraction + review) |
 | **Content** | `GET /api/organisations/:orgId/contents/:contentId` | Any Member | Fetch draft, immutable version history, and latest review |
 | **Content** | `POST /api/organisations/:orgId/contents/:contentId/versions` | Any Member | Create immutable revision (`v2`, `v3`, ...); blocked if locked |
@@ -488,7 +485,7 @@ npm run dev
 ### Authentication
 - **Dual-Mode Token Verification (`backend/src/middleware/verifyFirebaseToken.js`):**
   1. Verifies Firebase ID tokens via Firebase Admin SDK (`admin.auth().verifyIdToken`) when configured.
-  2. Falls back to verifying `HS256`-pinned Express JWTs issued by `/api/auth/login`, `/api/auth/register`, and `/api/auth/demo-login`.
+  2. Falls back to verifying `HS256`-pinned Express JWTs issued by `/api/auth/login` and `/api/auth/register`.
   3. Rejects deactivated accounts (`isActive: false` -> `403`).
 - **Password Security:** Passwords are hashed with `bcryptjs` (12 salt rounds in dev/prod, 10 in test), bounded to `8–128` characters, and stored with `select: false` so hashes never leak in `.lean()` queries or JSON responses.
 - **Frontend Protected Routes:** `App.jsx` renders `AuthPage` whenever `!user || !token`, persists active tab via URL hash, and clears invalid sessions on `401`/`403` without silently auto-relogging in after logout.
@@ -565,7 +562,7 @@ The repository includes a root [vercel.json](vercel.json) configuring all three 
 | **`querySrv ETIMEOUT` or MongoDB fails to connect** | Verify `MONGODB_URI` in `backend/.env` and ensure your current IP address is allowlisted in MongoDB Atlas **Network Access**. |
 | **CORS blocked in browser** | Add your frontend origin (e.g., `http://localhost:5173` or deployed URL) to `FRONTEND_ORIGIN` or `ALLOWED_ORIGINS` in `backend/.env` and restart the backend. |
 | **`403 Access denied: Workspace header does not match target route workspace`** | Ensure `x-organisation-id` matches the `:organisationId` in the request URL; hard-refresh the browser (`Ctrl + Shift + R`) after switching workspaces. |
-| **`FIREBASE_PROJECT_ID / FIREBASE_PRIVATE_KEY not set` warning** | Expected in local dev without Firebase Admin credentials. Email/password JWT auth and demo roles still work; add Firebase Admin env vars or `FIREBASE_SERVICE_ACCOUNT_PATH` for full Firebase ID token verification. |
+| **`FIREBASE_PROJECT_ID / FIREBASE_PRIVATE_KEY not set` warning** | Expected in local dev without Firebase Admin credentials. Email/password JWT auth continues to work cleanly; add Firebase Admin env vars or `FIREBASE_SERVICE_ACCOUNT_PATH` for full Firebase ID token verification. |
 | **`Tesseract CLI not installed on host` on image uploads** | Install the Tesseract OCR binary and add it to your OS `PATH`. Even without Tesseract, Pillow dominant-color extraction, WCAG contrast, brand palette matching, and alt-text checks continue working. |
 | **Cloudinary upload returns `503`** | Set `CLOUDINARY_URL` or `CLOUDINARY_CLOUD_NAME` / `CLOUDINARY_API_KEY` / `CLOUDINARY_API_SECRET` in `backend/.env` and restart the backend. |
 | **`429 Too Many Requests` during manual testing** | Tiered rate limiting is active (25 auth requests / 15 min per IP). Wait for the `Retry-After` window or restart the local dev server. |
@@ -616,5 +613,5 @@ Developed by **Team ALGO_X** — Global Institute of Science and Technology:
 | :--- | :--- | :--- |
 | **Ranjan Mondal** | **Lead Full-Stack Developer** | • Architectural design of the 3-tier microservice architecture.<br>• Grounded Review Engine with universal numeric/promotional claim verification & tone rewrites.<br>• Frontend React 18 Review Studio, immutable version diff viewer, and ErrorBoundary resilience.<br>• Backend API security hardening: Helmet headers, tiered rate limiters, and CORS governance. |
 | **Sukhen Das** | **Full-Stack Developer** | • Separation-of-Duties approval queue workflow and server-side RBAC validation (`403` guard).<br>• Real-time collaborative comment threads on content revisions.<br>• Live Governance Insights dashboard telemetry and Ambiguous Guidelines detection queue.<br>• UI/UX polish across responsive Tailwind layouts, floating toasts, and empty state CTAs. |
-| **Joy Khatua** | **Database Architect** | • Multi-tenant MongoDB Atlas schema design across 10+ Mongoose models with strict tenant isolation.<br>• Cryptographic tamper-evident append-only Audit Log ledger implementation.<br>• Pre-Publication Compliance Certificate generation (Printable/Save PDF, Markdown `.md`, and JSON `.json`).<br>• Knowledge Base CRUD operations and 1-click NovaTech Global enterprise demo pack seeder. |
+| **Joy Khatua** | **Database Architect** | • Multi-tenant MongoDB Atlas schema design across 10+ Mongoose models with strict tenant isolation.<br>• Cryptographic tamper-evident append-only Audit Log ledger implementation.<br>• Pre-Publication Compliance Certificate generation (Printable/Save PDF, Markdown `.md`, and JSON `.json`).<br>• Knowledge Base CRUD operations, brand asset management, and sample brand pack support. |
 | **Chandan Patra** | **QA, Testing & Research** | • End-to-end integration and smoke test suites (`e2e_comprehensive.test.js`, `review-service-bugs.test.js`).<br>• Security audit test suite covering NoSQL injection, prototype pollution, IDOR, and rate limiting.<br>• WCAG 2.1 AA/AAA accessibility verification and contrast checker formula calibration.<br>• Technical documentation, architecture diagrams, and evaluator quickstart verification. |

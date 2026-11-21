@@ -13,6 +13,19 @@ export const API_BASE_URL = (
     : (import.meta.env.VITE_API_BASE_URL || 'https://brandlens-backend-ghtd.onrender.com')
 ).replace(/\/+$/, '');
 
+async function fetchWithTimeout(url, options = {}, timeoutMs = 12000) {
+  if (options.signal) {
+    return fetch(url, options);
+  }
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 /**
  * Enhanced fetch wrapper that automatically attaches Firebase Bearer ID tokens
  * and the active x-organisation-id header.
@@ -54,7 +67,7 @@ export async function apiFetch(endpoint, options = {}) {
     }
   }
 
-  const response = await fetch(url, {
+  const response = await fetchWithTimeout(url, {
     ...options,
     headers,
   });

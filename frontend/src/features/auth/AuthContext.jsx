@@ -119,19 +119,25 @@ export function AuthProvider({ children }) {
     }
 
     try {
-      // 1. Validate session token against backend /api/auth/me
-      const meData = await api.getMe(currentToken);
-      if (meData?.user) {
-        setUser(meData.user);
-        localStorage.setItem('brandlens_user', JSON.stringify(meData.user));
-      }
+      const syncPromise = (async () => {
+        // 1. Validate session token against backend /api/auth/me
+        const meData = await api.getMe(currentToken);
+        if (meData?.user) {
+          setUser(meData.user);
+          localStorage.setItem('brandlens_user', JSON.stringify(meData.user));
+        }
 
-      // 2. Fetch active workspaces
-      await fetchWorkspacesAndSync(currentToken);
+        // 2. Fetch active workspaces
+        await fetchWorkspacesAndSync(currentToken);
+      })();
+
+      // Strict 3-second fallback: if backend cold start is slow, unblock loading
+      const timeoutPromise = new Promise((resolve) => setTimeout(resolve, 3000));
+      await Promise.race([syncPromise, timeoutPromise]);
     } catch (err) {
-      console.warn('Session refresh error:', err.message);
+      console.warn('Session refresh error:', err?.message || err);
       // If token is invalid/expired (401/403), clear stale session rather than showing broken state
-      if (err.status === 401 || err.status === 403) {
+      if (err?.status === 401 || err?.status === 403) {
         localStorage.removeItem('brandlens_token');
         localStorage.removeItem('brandlens_user');
         localStorage.removeItem('brandlens_active_org_id');
@@ -145,6 +151,15 @@ export function AuthProvider({ children }) {
       setLoading(false);
     }
   }, [fetchWorkspacesAndSync]);
+
+  // Fallback safety timeout: ensure loading ALWAYS resolves to false within 3 seconds
+  // so visitors or users on slow cold-start backends are never blocked indefinitely
+  useEffect(() => {
+    const safetyTimer = setTimeout(() => {
+      setLoading(false);
+    }, 3000);
+    return () => clearTimeout(safetyTimer);
+  }, []);
 
   // Listen to Firebase Auth state changes
   useEffect(() => {
@@ -181,10 +196,14 @@ export function AuthProvider({ children }) {
           localStorage.setItem('brandlens_user', JSON.stringify(userObj));
           setUser(userObj);
 
-          // Sync with backend /api/workspaces (auto-activates pending invites!)
-          await fetchWorkspacesAndSync(idToken);
+          // Sync with backend /api/workspaces (auto-activates pending invites!) with 3-second safety race
+          const syncPromise = fetchWorkspacesAndSync(idToken);
+          const timeoutPromise = new Promise((resolve) => setTimeout(resolve, 3000));
+          await Promise.race([syncPromise, timeoutPromise]);
         } catch (tokenErr) {
           console.error('Error fetching Firebase token:', tokenErr);
+        } finally {
+          setLoading(false);
         }
       } else {
         setFirebaseUser(null);
@@ -194,8 +213,8 @@ export function AuthProvider({ children }) {
           setWorkspaces([]);
           setMemberships([]);
         }
+        setLoading(false);
       }
-      setLoading(false);
     });
 
     return () => unsubscribe();

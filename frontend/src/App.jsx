@@ -323,6 +323,40 @@ function MainApp() {
     };
   }, []);
 
+  // 1. Landing Page View (Root Route '/') - Render immediately, never block behind auth/workspace splash
+  if (routeState.view === 'landing') {
+    return (
+      <ErrorBoundary onGoHome={() => navigateTo('landing')}>
+        <Suspense fallback={<PageLoadingFallback />}>
+          <LandingPage onNavigate={navigateTo} />
+        </Suspense>
+      </ErrorBoundary>
+    );
+  }
+
+  // 2. Authentication View ('/login', '/signup') - Render immediately, never block behind auth/workspace splash
+  if (routeState.view === 'login') {
+    // If already authenticated and navigating to login, jump straight to workspace
+    if (user && token) {
+      navigateTo('app', { tab: 'dashboard' });
+      return null;
+    }
+
+    return (
+      <ErrorBoundary onGoHome={() => navigateTo('landing')}>
+        <Suspense fallback={<PageLoadingFallback />}>
+          <AuthPage
+            initialMode={routeState.authMode}
+            onAuthSuccess={() => navigateTo('app', { tab: 'dashboard' })}
+            onBackToHome={() => navigateTo('landing')}
+          />
+        </Suspense>
+      </ErrorBoundary>
+    );
+  }
+
+  // 3. Protected Workspace View ('/app', '#dashboard', etc.)
+  // Only show workspace splash while actively loading workspace on protected routes
   if (loading) {
     return (
       <div
@@ -406,39 +440,7 @@ function MainApp() {
     );
   }
 
-  // 1. Landing Page View (Root Route '/')
-  if (routeState.view === 'landing') {
-    return (
-      <ErrorBoundary onGoHome={() => navigateTo('landing')}>
-        <Suspense fallback={<PageLoadingFallback />}>
-          <LandingPage onNavigate={navigateTo} />
-        </Suspense>
-      </ErrorBoundary>
-    );
-  }
-
-  // 2. Authentication View ('/login', '/signup')
-  if (routeState.view === 'login') {
-    // If already authenticated and navigating to login, jump straight to workspace
-    if (user && token) {
-      navigateTo('app', { tab: 'dashboard' });
-      return null;
-    }
-
-    return (
-      <ErrorBoundary onGoHome={() => navigateTo('landing')}>
-        <Suspense fallback={<PageLoadingFallback />}>
-          <AuthPage
-            initialMode={routeState.authMode}
-            onAuthSuccess={() => navigateTo('app', { tab: 'dashboard' })}
-            onBackToHome={() => navigateTo('landing')}
-          />
-        </Suspense>
-      </ErrorBoundary>
-    );
-  }
-
-  // 3. Protected Workspace View ('/app', '#dashboard', etc.)
+  // 4. Protected Workspace View ('/app', '#dashboard', etc.)
   // If unauthenticated user lands on workspace URL, prompt AuthPage with link back to Landing
   if (!user || !token) {
     return (
