@@ -43,8 +43,6 @@ import { api } from '../services/api';
 import { DiffViewer } from '../components/common/DiffViewer';
 import { ModalPortal } from '../components/common/ModalPortal';
 
-const SAMPLE_DEMO_DRAFT = `Experience Nova Cloud today! We guarantee a 100% risk-free platform with automated scheduled backups across regions.`;
-
 export function ReviewPage() {
   const { user, token, activeOrg, activeRole } = useAuth();
   const [contents, setContents] = useState([]);
@@ -660,19 +658,6 @@ export function ReviewPage() {
         </div>
         <div className="flex items-center gap-2.5">
           <button
-            onClick={() => {
-              setNewTitle('NovaTech Cloud Launch Campaign');
-              setNewChannel('Social Media');
-              setNewAudience('Enterprise Decision Makers');
-              setNewText(SAMPLE_DEMO_DRAFT);
-              setShowNewModal(true);
-            }}
-            className="flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-brand-600 via-brand-500 to-indigo-600 hover:from-brand-700 hover:to-indigo-700 text-white rounded-xl text-xs font-bold shadow-sm shadow-brand-500/20 hover:shadow-md transition-all active:scale-95"
-          >
-            <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-            <span>Load Demo Sample</span>
-          </button>
-          <button
             onClick={() => setShowNewModal(true)}
             className="flex items-center gap-1.5 px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold shadow-sm transition-all active:scale-95"
           >
@@ -789,24 +774,10 @@ export function ReviewPage() {
               <div className="space-y-1.5 max-w-md mx-auto">
                 <h3 className="text-sm font-bold text-slate-800">No Content Submissions Yet</h3>
                 <p className="text-xs text-slate-500 leading-relaxed">
-                  Create a new content submission or load the interactive demo sample to run grounded brand compliance checks, terminology enforcement, and approval workflows.
+                  Create a new content submission to run grounded brand compliance checks, terminology enforcement, and approval workflows.
                 </p>
               </div>
               <div className="flex flex-wrap items-center justify-center gap-2.5 pt-1">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setNewTitle('NovaTech Cloud Launch Campaign');
-                    setNewChannel('Social Media');
-                    setNewAudience('Enterprise Decision Makers');
-                    setNewText(SAMPLE_DEMO_DRAFT);
-                    setShowNewModal(true);
-                  }}
-                  className="flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-brand-600 via-brand-500 to-indigo-600 hover:from-brand-700 hover:to-indigo-700 text-white rounded-xl text-xs font-bold shadow-sm shadow-brand-500/20 hover:shadow-md transition-all active:scale-95"
-                >
-                  <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-                  <span>Load Demo Sample</span>
-                </button>
                 <button
                   type="button"
                   onClick={() => setShowNewModal(true)}

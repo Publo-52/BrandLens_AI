@@ -18,13 +18,11 @@ import {
 import { useAuth } from './AuthContext';
 
 export function AuthModal({ isOpen, onClose }) {
-  const { login, register, loginWithGoogle, loginWithDemoRole } = useAuth();
+  const { login, register, loginWithGoogle } = useAuth();
   const [isRegister, setIsRegister] = useState(false);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
-  const [activeDemoRole, setActiveDemoRole] = useState(null);
-  const [isWakingServer, setIsWakingServer] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
   const [formData, setFormData] = useState({
@@ -113,26 +111,6 @@ export function AuthModal({ isOpen, onClose }) {
     } finally {
       setLoading(false);
       setGoogleLoading(false);
-    }
-  };
-
-  // Quick Demo Role Login helper
-  const handleDemoLogin = async (roleName) => {
-    setLoading(true);
-    setActiveDemoRole(roleName);
-    setError(null);
-    try {
-      if (loginWithDemoRole) {
-        await loginWithDemoRole(roleName.toUpperCase());
-      } else {
-        await login(`${roleName.toLowerCase()}@novatech.demo`, 'NovaTechDemo2026!');
-      }
-      onClose();
-    } catch (err) {
-      setError(err.message || `Failed to sign in as ${roleName}`);
-    } finally {
-      setLoading(false);
-      setActiveDemoRole(null);
     }
   };
 
@@ -384,96 +362,6 @@ export function AuthModal({ isOpen, onClose }) {
               )}
             </button>
           </form>
-
-          {/* Quick Demo Role Logins */}
-          {!isRegister && (
-            <div className="pt-3 border-t border-slate-100">
-              <div className="flex items-center justify-between mb-2">
-                <span className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                  <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                  1-Click Role Logins
-                </span>
-                <span className="text-[10px] text-slate-400 font-mono">Pre-Configured</span>
-              </div>
-
-              {isWakingServer && (
-                <div className="mb-2.5 p-2.5 bg-amber-50 border border-amber-200 rounded-xl text-[11px] text-amber-800 flex items-center gap-2 animate-pulse">
-                  <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-600 shrink-0" />
-                  <span>Waking up free cloud backend on Render (~30s on cold start)...</span>
-                </div>
-              )}
-
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <button
-                  type="button"
-                  disabled={loading}
-                  onClick={() => handleDemoLogin('ADMIN')}
-                  className="p-2.5 bg-gradient-to-br from-purple-50 to-slate-50 hover:from-purple-100 hover:to-purple-50 border border-purple-200 rounded-xl text-left transition-all disabled:opacity-50 relative flex flex-col justify-between group shadow-2xs"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-purple-900 text-[11px]">Admin</span>
-                    {activeDemoRole === 'ADMIN' ? (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin text-purple-600" />
-                    ) : (
-                      <Shield className="w-3.5 h-3.5 text-purple-500 group-hover:scale-110 transition-transform" />
-                    )}
-                  </div>
-                  <div className="text-[9px] text-purple-700 font-mono mt-0.5">ADMIN &bull; Full Policy Access</div>
-                </button>
-
-                <button
-                  type="button"
-                  disabled={loading}
-                  onClick={() => handleDemoLogin('MANAGER')}
-                  className="p-2.5 bg-gradient-to-br from-indigo-50 to-slate-50 hover:from-indigo-100 hover:to-indigo-50 border border-indigo-200 rounded-xl text-left transition-all disabled:opacity-50 relative flex flex-col justify-between group shadow-2xs"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-indigo-900 text-[11px]">Manager</span>
-                    {activeDemoRole === 'MANAGER' ? (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-600" />
-                    ) : (
-                      <ShieldCheck className="w-3.5 h-3.5 text-indigo-500 group-hover:scale-110 transition-transform" />
-                    )}
-                  </div>
-                  <div className="text-[9px] text-indigo-700 font-mono mt-0.5">MANAGER &bull; Release Approver</div>
-                </button>
-
-                <button
-                  type="button"
-                  disabled={loading}
-                  onClick={() => handleDemoLogin('REVIEWER')}
-                  className="p-2.5 bg-gradient-to-br from-amber-50 to-slate-50 hover:from-amber-100 hover:to-amber-50 border border-amber-200 rounded-xl text-left transition-all disabled:opacity-50 relative flex flex-col justify-between group shadow-2xs"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-amber-900 text-[11px]">Reviewer</span>
-                    {activeDemoRole === 'REVIEWER' ? (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-600" />
-                    ) : (
-                      <UserCheck className="w-3.5 h-3.5 text-amber-500 group-hover:scale-110 transition-transform" />
-                    )}
-                  </div>
-                  <div className="text-[9px] text-amber-700 font-mono mt-0.5">REVIEWER &bull; Finding Overrides</div>
-                </button>
-
-                <button
-                  type="button"
-                  disabled={loading}
-                  onClick={() => handleDemoLogin('CREATOR')}
-                  className="p-2.5 bg-gradient-to-br from-emerald-50 to-slate-50 hover:from-emerald-100 hover:to-emerald-50 border border-emerald-200 rounded-xl text-left transition-all disabled:opacity-50 relative flex flex-col justify-between group shadow-2xs"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-emerald-900 text-[11px]">Creator</span>
-                    {activeDemoRole === 'CREATOR' ? (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-600" />
-                    ) : (
-                      <User className="w-3.5 h-3.5 text-emerald-500 group-hover:scale-110 transition-transform" />
-                    )}
-                  </div>
-                  <div className="text-[9px] text-emerald-700 font-mono mt-0.5">CREATOR &bull; Cannot Self-Approve</div>
-                </button>
-              </div>
-            </div>
-          )}
 
           {/* Security guarantee footer */}
           <div className="pt-2 text-center text-[10px] text-slate-400 flex items-center justify-center gap-1.5">

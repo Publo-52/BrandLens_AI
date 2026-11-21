@@ -41,8 +41,6 @@ export function DashboardPage({ onNavigate }) {
   });
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState(null);
-  const [seedingDemo, setSeedingDemo] = useState(false);
-  const [seedSuccess, setSeedSuccess] = useState(null);
   const [copiedId, setCopiedId] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
@@ -98,25 +96,7 @@ export function DashboardPage({ onNavigate }) {
     loadDashboardData(isBg);
   }, [loadDashboardData]);
 
-  const handleSeedDemoPack = async () => {
-    if (!activeOrg?._id || !token || seedingDemo) return;
-    setSeedingDemo(true);
-    setLoadError(null);
-    setSeedSuccess(null);
-    try {
-      const res = await api.seedDemoBrandPack(activeOrg._id, token);
-      const guidelinesCount = res.seeded?.guidelines || 0;
-      const factsCount = res.seeded?.facts || 0;
-      const termsCount = res.seeded?.terminology || 0;
-      setSeedSuccess(`Sample Brand Pack loaded! Added ${guidelinesCount} guidelines, ${factsCount} facts, and ${termsCount} terms.`);
-      await loadDashboardData(false);
-    } catch (err) {
-      setLoadError(err.message || 'Failed to seed sample brand pack.');
-    } finally {
-      setSeedingDemo(false);
-    }
-  };
-
+  
   const handleCopyApproved = async (item, e) => {
     e.stopPropagation();
     try {
@@ -246,22 +226,6 @@ export function DashboardPage({ onNavigate }) {
         </div>
       </div>
 
-      {seedSuccess && (
-        <div className="p-3.5 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl text-xs flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-500" />
-            <span>{seedSuccess}</span>
-          </div>
-          <button
-            type="button"
-            onClick={() => setSeedSuccess(null)}
-            className="text-emerald-700 hover:text-emerald-900 font-semibold text-xs"
-          >
-            Dismiss
-          </button>
-        </div>
-      )}
-
       {/* 3-Step Getting Started Checklist & Onboarding */}
       <div className="bg-white rounded-3xl border border-slate-200/90 p-6 sm:p-7 shadow-xs space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -282,22 +246,7 @@ export function DashboardPage({ onNavigate }) {
             </p>
           </div>
 
-          {/* Sample Brand Pack Button */}
-          <div className="flex items-center gap-2 shrink-0">
-            <button
-              onClick={handleSeedDemoPack}
-              disabled={seedingDemo}
-              className="flex items-center gap-2 px-3.5 py-2.5 bg-gradient-to-r from-indigo-50 to-brand-50 hover:from-indigo-100 hover:to-brand-100 text-indigo-700 border border-indigo-200/80 rounded-xl text-xs font-bold transition-all shadow-2xs hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 cursor-pointer"
-              title="Loads the sample NovaTech Global brand rules, approved facts, and WCAG palette so you can test reviews immediately."
-            >
-              <Sparkles className={`w-3.5 h-3.5 text-indigo-600 ${seedingDemo ? 'animate-spin' : ''}`} />
-              <span>{seedingDemo ? 'Seeding Sample Pack...' : 'Try with Sample Brand Pack'}</span>
-              <span className="text-[9px] font-mono font-bold bg-indigo-200/60 text-indigo-800 px-1.5 py-0.5 rounded uppercase">
-                Sample
-              </span>
-            </button>
           </div>
-        </div>
 
         {/* 3 Step Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

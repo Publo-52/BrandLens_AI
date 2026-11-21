@@ -41,18 +41,13 @@ export async function apiFetch(endpoint, options = {}) {
     }
   }
 
-  // 3. Attach active x-organisation-id header (only for tenant-scoped endpoints, skip auth/demo-login)
+  // 3. Attach active x-organisation-id header (only for tenant-scoped endpoints, skip auth)
   if (!headers.has('x-organisation-id') && !headers.has('X-Organisation-Id')) {
-    const isAuthEndpoint =
-      typeof endpoint === 'string' &&
-      (endpoint.includes('/auth/') || endpoint.includes('demo-login'));
+    const isAuthEndpoint = typeof endpoint === 'string' && endpoint.includes('/auth/');
     if (!isAuthEndpoint) {
-      let orgId =
+      const orgId =
         options.organisationId ||
         (typeof window !== 'undefined' ? localStorage.getItem('brandlens_active_org_id') : null);
-      if (orgId === 'novatech-global-preview') {
-        orgId = '6af9d8a604f3ddc6a913904d';
-      }
       if (orgId && orgId !== 'undefined' && orgId !== 'null') {
         headers.set('x-organisation-id', orgId);
       }
@@ -156,44 +151,6 @@ export const workspaceApi = {
       return await apiFetch(`/api/organisations/${organisationId}/members`, {
         organisationId,
       });
-    }
-  },
-
-  // 1-Click Demo Login for Hackathon Judges
-  async demoLogin(role = 'ADMIN') {
-    const normalizedRole = role.toUpperCase();
-    try {
-      return await apiFetch('/api/workspaces/demo-login', {
-        method: 'POST',
-        body: JSON.stringify({ role: normalizedRole }),
-      });
-    } catch (err) {
-      if (err.statusCode === 404 || err.status === 404 || err.message?.includes('404')) {
-        try {
-          return await apiFetch('/api/auth/demo-login', {
-            method: 'POST',
-            body: JSON.stringify({ role: normalizedRole }),
-          });
-        } catch (authDemoErr) {
-          // Final fallback to /api/auth/login with pre-seeded demo credentials
-          const email = `${normalizedRole.toLowerCase()}@novatech.demo`;
-          const loginData = await apiFetch('/api/auth/login', {
-            method: 'POST',
-            body: JSON.stringify({ email, password: 'NovaTechDemo2026!' }),
-          });
-          return {
-            token: loginData.token,
-            user: loginData.user,
-            workspace: loginData.user?.organisations?.[0] || {
-              _id: '6af9d8a604f3ddc6a913904d',
-              name: 'NovaTech Global',
-              slug: 'novatech-global',
-              role: normalizedRole,
-            },
-          };
-        }
-      }
-      throw err;
     }
   },
 };

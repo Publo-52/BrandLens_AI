@@ -2,6 +2,7 @@ import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { Layout } from './components/layout/Layout';
 import { AuthProvider, useAuth } from './features/auth/AuthContext';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
+import { CreateWorkspaceModal } from './components/CreateWorkspaceModal';
 import { Loader2 } from 'lucide-react';
 
 // Resilient lazy loader: recovers automatically once if a stale hashed chunk 404s after a new deployment
@@ -221,7 +222,7 @@ function WorkspaceTabSkeleton() {
 }
 
 function MainApp() {
-  const { user, token, loading, loginWithDemoRole, activeOrg } = useAuth();
+  const { user, token, loading, activeOrg, workspaces } = useAuth();
   const [routeState, setRouteState] = useState(resolveRouteFromUrl);
   // Track visited workspace tabs for keep-alive preservation with instant switching
   const [visitedTabs, setVisitedTabs] = useState(() => new Set([routeState.tab]));
@@ -410,15 +411,7 @@ function MainApp() {
     return (
       <ErrorBoundary onGoHome={() => navigateTo('landing')}>
         <Suspense fallback={<PageLoadingFallback />}>
-          <LandingPage
-            onNavigate={navigateTo}
-            onDemoLogin={async (role) => {
-              if (loginWithDemoRole) {
-                await loginWithDemoRole(role);
-              }
-              navigateTo('app', { tab: 'dashboard' });
-            }}
-          />
+          <LandingPage onNavigate={navigateTo} />
         </Suspense>
       </ErrorBoundary>
     );
@@ -458,6 +451,15 @@ function MainApp() {
           />
         </Suspense>
       </ErrorBoundary>
+    );
+  }
+
+  // If authenticated user has 0 workspaces, prompt to create their first organisation
+  if (!loading && (!workspaces || workspaces.length === 0)) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+        <CreateWorkspaceModal isOpen={true} onClose={() => {}} canClose={false} />
+      </div>
     );
   }
 

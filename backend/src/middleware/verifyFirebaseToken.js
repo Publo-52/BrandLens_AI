@@ -60,21 +60,6 @@ export async function verifyFirebaseToken(req, res, next) {
       }
     }
 
-    // 3. Fallback: Demo token format restricted strictly to non-production / opt-in demo domains
-    if (!decoded && idToken.startsWith('demo:') && config.allowDemoAuth) {
-      const demoEmail = idToken.slice(5).toLowerCase().trim();
-      const allowedDemoDomains = ['@novatech.demo', '@rbac-test.local', '@brandlens.local', '@test.local'];
-      const isAllowedDemoEmail = allowedDemoDomains.some((domain) => demoEmail.endsWith(domain));
-      if (isAllowedDemoEmail && /^\S+@\S+\.\S+$/.test(demoEmail)) {
-        decoded = {
-          uid: `demo_${demoEmail.replace(/[^a-z0-9]/g, '_')}`,
-          email: demoEmail,
-          name: demoEmail.split('@')[0].toUpperCase(),
-          picture: '',
-        };
-      }
-    }
-
     if (!decoded) {
       return res.status(401).json({
         success: false,

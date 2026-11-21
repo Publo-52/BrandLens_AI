@@ -16,8 +16,6 @@ const API_BASE = (
     : (import.meta.env.VITE_API_BASE_URL || 'https://brandlens-backend-ghtd.onrender.com')
 ).replace(/\/+$/, '');
 
-const NOVATECH_GLOBAL_ID = '6af9d8a604f3ddc6a913904d';
-
 function getHeaders(token, organisationId) {
   const headers = { 'Content-Type': 'application/json' };
   if (token) {
@@ -26,12 +24,9 @@ function getHeaders(token, organisationId) {
   if (organisationId === false) {
     return headers;
   }
-  let orgId =
+  const orgId =
     organisationId ||
     (typeof window !== 'undefined' ? localStorage.getItem('brandlens_active_org_id') : null);
-  if (orgId === 'novatech-global-preview') {
-    orgId = NOVATECH_GLOBAL_ID;
-  }
   if (orgId && orgId !== 'undefined' && orgId !== 'null') {
     headers['x-organisation-id'] = orgId;
   }
@@ -146,22 +141,6 @@ export const api = {
       method: 'POST',
       headers: getHeaders(token, false),
       body: JSON.stringify({ name, settings }),
-    });
-  },
-
-  async demoLogin(role) {
-    return await request(`${API_BASE}/api/workspaces/demo-login`, {
-      method: 'POST',
-      headers: getHeaders(null, false),
-      body: JSON.stringify({ role }),
-    });
-  },
-
-  async demoSwitchRole(role, organisationId, token) {
-    return await request(`${API_BASE}/api/auth/demo-switch-role`, {
-      method: 'POST',
-      headers: getHeaders(token),
-      body: JSON.stringify({ role, organisationId }),
     });
   },
 
@@ -319,17 +298,6 @@ export const api = {
       headers: getHeaders(token, orgId),
       body: JSON.stringify(updateData),
     });
-  },
-
-  // Seed Demo Brand Pack (NovaTech)
-  async seedDemoKnowledge(orgId, token) {
-    return await request(`${API_BASE}/api/organisations/${orgId}/knowledge/seed-demo`, {
-      method: 'POST',
-      headers: getHeaders(token, orgId),
-    });
-  },
-  async seedDemoBrandPack(orgId, token) {
-    return this.seedDemoKnowledge(orgId, token);
   },
 
   // Content Intake & Review

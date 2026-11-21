@@ -29,7 +29,6 @@ export function KnowledgeBasePage() {
   const { user, token, activeOrg, activeRole } = useAuth();
   const [activeTab, setActiveTab] = useState('guidelines'); // 'guidelines' | 'facts' | 'terminology' | 'assets'
   const [loading, setLoading] = useState(false);
-  const [seedingDemo, setSeedingDemo] = useState(false);
   const [error, setError] = useState(null);
   const [successMsg, setSuccessMsg] = useState(null);
 
@@ -122,27 +121,6 @@ export function KnowledgeBasePage() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [showAddModal]);
-
-  const handleSeedDemo = async () => {
-    if (!activeOrg?._id || !token || seedingDemo) return;
-    setSeedingDemo(true);
-    setError(null);
-    try {
-      const res = await api.seedDemoBrandPack(activeOrg._id, token);
-      const guidelinesCount = res.seeded?.guidelines || 0;
-      const factsCount = res.seeded?.facts || 0;
-      const termsCount = res.seeded?.terminology || 0;
-      const assetsCount = res.seeded?.assets || 0;
-      setSuccessMsg(
-        `Brand Pack Seeded! Added ${guidelinesCount} guidelines, ${factsCount} facts, ${termsCount} terminology rules, and ${assetsCount} visual brand assets.`
-      );
-      await loadData();
-    } catch (err) {
-      setError(err.message || 'Failed to seed demo brand pack');
-    } finally {
-      setSeedingDemo(false);
-    }
-  };
 
   const getAddLabel = (tab = activeTab) => {
     switch (tab) {
@@ -357,20 +335,7 @@ export function KnowledgeBasePage() {
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-brand-600' : ''}`} />
           </button>
 
-          {canManage && (
-            <button
-              onClick={handleSeedDemo}
-              disabled={loading || seedingDemo}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-700 hover:to-indigo-700 disabled:opacity-60 disabled:cursor-not-allowed text-white rounded-lg text-xs font-semibold shadow-xs transition-all cursor-pointer"
-            >
-              {seedingDemo ? (
-                <RefreshCw className="w-3.5 h-3.5 animate-spin text-amber-300" />
-              ) : (
-                <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-              )}
-              <span>{seedingDemo ? 'Seeding Demo Pack...' : 'Seed Demo Pack'}</span>
-            </button>
-          )}
+          
 
           {canManage && (
             <button
@@ -579,7 +544,7 @@ export function KnowledgeBasePage() {
                   <BookOpen className="w-5 h-5 stroke-[1.9]" />
                 </div>
                 <p className="text-sm font-semibold text-slate-800">No guidelines found in this category</p>
-                <p className="text-xs text-slate-400">Click &ldquo;Seed Demo Pack&rdquo; above to automatically populate realistic rules.</p>
+                <p className="text-xs text-slate-400">Click &ldquo;Add Guideline&rdquo; above to create your first brand guideline rule.</p>
               </div>
             )}
           </div>
@@ -603,7 +568,7 @@ export function KnowledgeBasePage() {
                   <FileText className="w-5 h-5 stroke-[1.9]" />
                 </div>
                 <p className="text-sm font-semibold text-slate-800">No approved facts defined yet</p>
-                <p className="text-xs text-slate-400">Click &ldquo;Seed Demo Pack&rdquo; above to populate.</p>
+                <p className="text-xs text-slate-400">Click &ldquo;Add Fact&rdquo; above to register your first certified corporate fact.</p>
               </div>
             ) : filteredFacts.length === 0 ? (
               <div className="col-span-full text-center py-10 bg-white rounded-2xl border border-slate-200 p-6 space-y-2">
@@ -665,7 +630,7 @@ export function KnowledgeBasePage() {
                 {terminology.length === 0 ? (
                   <tr>
                     <td colSpan={4} className="py-8 text-center text-slate-400">
-                      No terminology rules defined yet. Click "Seed Demo Pack" above to populate.
+                      No terminology rules defined yet. Click "Add Terminology" above to define preferred and banned terms.
                     </td>
                   </tr>
                 ) : filteredTerminology.length === 0 ? (
@@ -712,7 +677,7 @@ export function KnowledgeBasePage() {
                   <Palette className="w-5 h-5 stroke-[1.9]" />
                 </div>
                 <p className="text-sm font-semibold text-slate-800">No brand visual assets registered yet</p>
-                <p className="text-xs text-slate-400">Click &ldquo;Seed Demo Pack&rdquo; above to populate.</p>
+                <p className="text-xs text-slate-400">Click &ldquo;Add Asset&rdquo; above to register official brand palettes, typography, or logo rules.</p>
               </div>
             ) : filteredAssets.length === 0 ? (
               <div className="col-span-full text-center py-10 bg-white rounded-2xl border border-slate-200 p-6 space-y-2">

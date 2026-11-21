@@ -12,16 +12,11 @@ import { api } from '../../services/api';
 
 const AuthContext = createContext(null);
 
-export const NOVATECH_GLOBAL_ID = '6af9d8a604f3ddc6a913904d';
-
 function extractOrgId(org) {
   if (!org) return null;
-  if (typeof org === 'string') {
-    return org === 'novatech-global-preview' ? NOVATECH_GLOBAL_ID : org;
-  }
+  if (typeof org === 'string') return org;
   const id = org._id || org.id || org.organisationId?._id || org.organisationId;
-  const stringId = id ? String(id) : null;
-  return stringId === 'novatech-global-preview' ? NOVATECH_GLOBAL_ID : stringId;
+  return id ? String(id) : null;
 }
 
 export function AuthProvider({ children }) {
@@ -46,20 +41,12 @@ export function AuthProvider({ children }) {
   const [memberships, setMemberships] = useState([]);
   const [workspaces, setWorkspaces] = useState([]);
   const [activeOrgId, setActiveOrgId] = useState(() => {
-    const saved = localStorage.getItem('brandlens_active_org_id');
-    if (saved === 'novatech-global-preview') {
-      localStorage.setItem('brandlens_active_org_id', NOVATECH_GLOBAL_ID);
-      return NOVATECH_GLOBAL_ID;
-    }
-    return saved || NOVATECH_GLOBAL_ID;
+    return typeof window !== 'undefined' ? localStorage.getItem('brandlens_active_org_id') : null;
   });
   const [loading, setLoading] = useState(true);
 
   const persistOrg = useCallback((id) => {
-    let stringId = id ? String(id) : null;
-    if (stringId === 'novatech-global-preview') {
-      stringId = NOVATECH_GLOBAL_ID;
-    }
+    const stringId = id ? String(id) : null;
     setActiveOrgId(stringId);
     if (stringId) {
       localStorage.setItem('brandlens_active_org_id', stringId);
@@ -341,41 +328,7 @@ export function AuthProvider({ children }) {
     }
   }, [fetchWorkspacesAndSync, persistOrg]);
 
-  // 1-Click Judge Demo Role Login
-  const loginWithDemoRole = useCallback(
-    async (role = 'ADMIN') => {
-      setLoading(true);
-      const normalizedRole = role.toUpperCase();
-      try {
-        localStorage.removeItem('brandlens_logged_out');
-        const data = await workspaceApi.demoLogin(normalizedRole);
-        if (!data?.token) {
-          throw new Error('Demo login did not return a valid session token.');
-        }
-
-        const tokenToUse = data.token;
-        const userToUse = data.user;
-        const wsToUse = data.workspace;
-
-        localStorage.setItem('brandlens_token', tokenToUse);
-        setToken(tokenToUse);
-        if (userToUse) {
-          localStorage.setItem('brandlens_user', JSON.stringify(userToUse));
-          setUser(userToUse);
-        }
-        if (wsToUse?._id) {
-          persistOrg(extractOrgId(wsToUse));
-        }
-        await fetchWorkspacesAndSync(tokenToUse);
-        return { token: tokenToUse, user: userToUse, workspace: wsToUse };
-      } finally {
-        setLoading(false);
-      }
-    },
-    [fetchWorkspacesAndSync, persistOrg]
-  );
-
-  // Unified login: tries Firebase Auth first, falls back to legacy/demo API login
+  // Unified login: tries Firebase Auth first, falls back to legacy/database login
   const login = useCallback(
     async (email, password) => {
       setLoading(true);
@@ -511,34 +464,6 @@ export function AuthProvider({ children }) {
     [persistOrg]
   );
 
-  const switchDemoRole = useCallback(
-    async (targetRole) => {
-      if (!token) return;
-      try {
-        const data = await api.demoSwitchRole(targetRole, activeOrgId, token);
-        if (data?.token) {
-          localStorage.setItem('brandlens_token', data.token);
-          if (data.user) {
-            localStorage.setItem('brandlens_user', JSON.stringify(data.user));
-          }
-          setToken(data.token);
-          setUser(data.user);
-          setMemberships(data.memberships || []);
-          await fetchWorkspacesAndSync(data.token);
-          return data;
-        }
-      } catch (err) {
-        if (err.status === 404) {
-          // Graceful compatibility fallback to /api/workspaces/demo-login
-          return await loginWithDemoRole(targetRole);
-        }
-        console.error('Failed to switch demo role:', err);
-        throw err;
-      }
-    },
-    [token, activeOrgId, fetchWorkspacesAndSync, loginWithDemoRole]
-  );
-
   // ── Derived active workspace & role ───────────────────────────────────────
   const activeWorkspace = useMemo(() => {
     const stringActiveId = activeOrgId ? String(activeOrgId) : null;
@@ -568,13 +493,11 @@ export function AuthProvider({ children }) {
       loginWithFirebase,
       signUpWithFirebase,
       loginWithGoogle,
-      loginWithDemoRole,
       login,
       register,
       logout,
       switchOrg,
       switchOrganisation: switchOrg,
-      switchDemoRole,
       refreshSession,
     }),
     [
@@ -589,12 +512,10 @@ export function AuthProvider({ children }) {
       loginWithFirebase,
       signUpWithFirebase,
       loginWithGoogle,
-      loginWithDemoRole,
       login,
       register,
       logout,
       switchOrg,
-      switchDemoRole,
       refreshSession,
     ]
   );

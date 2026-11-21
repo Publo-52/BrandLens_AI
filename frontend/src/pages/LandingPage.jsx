@@ -80,11 +80,10 @@ const SAMPLE_DATA = {
   }
 };
 
-export function LandingPage({ onNavigate, onDemoLogin }) {
-  const { user, loginWithDemoRole } = useAuth();
+export function LandingPage({ onNavigate }) {
+  const { user } = useAuth();
   const [currentSample, setCurrentSample] = useState('social');
   const [isFixed, setIsFixed] = useState(false);
-  const [demoRoleLoading, setDemoRoleLoading] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const mockupRef = useRef(null);
@@ -134,22 +133,6 @@ export function LandingPage({ onNavigate, onDemoLogin }) {
       if (animId) cancelAnimationFrame(animId);
     };
   }, []);
-
-  const handleDemoClick = async (role = 'ADMIN') => {
-    try {
-      setDemoRoleLoading(true);
-      if (onDemoLogin) {
-        await onDemoLogin(role);
-      } else if (loginWithDemoRole) {
-        await loginWithDemoRole(role);
-        if (onNavigate) onNavigate('app', { tab: 'dashboard' });
-      }
-    } catch (err) {
-      console.error('Judge Demo Error:', err);
-    } finally {
-      setDemoRoleLoading(false);
-    }
-  };
 
   const sample = SAMPLE_DATA[currentSample];
 
@@ -461,19 +444,6 @@ export function LandingPage({ onNavigate, onDemoLogin }) {
             >
               Sign In
             </button>
-            <button
-              onClick={() => handleDemoClick('ADMIN')}
-              disabled={demoRoleLoading}
-              style={{
-                background: 'var(--surface)',
-                borderColor: 'var(--border)',
-                color: 'var(--accent)'
-              }}
-              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold border backdrop-blur-md hover:-translate-y-0.5 transition-all cursor-pointer"
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>{demoRoleLoading ? 'Loading Judge Demo...' : '1-Click Judge Demo'}</span>
-            </button>
           </div>
 
           {/* Proof Strip */}
@@ -523,7 +493,7 @@ export function LandingPage({ onNavigate, onDemoLogin }) {
                   <span className="w-2.5 h-2.5 rounded-full bg-[#34d399] border border-[#10b981]/40" />
                 </div>
                 <span className="font-semibold text-[var(--text)] text-xs ml-1">
-                  Review Studio • Interactive Demo
+                  Review Studio • Interactive Preview
                 </span>
               </div>
 
@@ -739,7 +709,7 @@ export function LandingPage({ onNavigate, onDemoLogin }) {
               Ready to govern your brand?
             </h2>
             <p className="text-xs sm:text-sm text-[var(--muted)]">
-              Create your team workspace or test all roles with 1-click judge demo access.
+              Create your team workspace and publish brand-compliant content with complete confidence.
             </p>
           </div>
 
@@ -763,19 +733,6 @@ export function LandingPage({ onNavigate, onDemoLogin }) {
               className="px-5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold border hover:-translate-y-0.5 transition-all cursor-pointer"
             >
               Sign In
-            </button>
-            <button
-              onClick={() => handleDemoClick('ADMIN')}
-              disabled={demoRoleLoading}
-              style={{
-                background: 'var(--surface)',
-                borderColor: 'var(--border)',
-                color: 'var(--accent)'
-              }}
-              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold border hover:-translate-y-0.5 transition-all cursor-pointer"
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>{demoRoleLoading ? 'Loading...' : '1-Click Judge Demo'}</span>
             </button>
           </div>
         </div>

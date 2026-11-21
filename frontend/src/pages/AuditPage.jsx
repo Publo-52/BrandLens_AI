@@ -233,7 +233,7 @@ export function AuditPage({ isActive = true }) {
       action: 'CONTENT_INTAKE',
       entityType: 'CONTENT',
       entityId: String(c._id),
-      actorId: c.createdBy || { name: 'Content Creator', email: 'creator@novatech.demo' },
+      actorId: c.createdBy || { name: 'Content Creator', email: '' },
       createdAt: c.createdAt || new Date().toISOString(),
       details: {
         title: c.title,
