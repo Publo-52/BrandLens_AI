@@ -12,6 +12,8 @@ import {
   EyeOff,
   Loader2,
   Building2,
+  Copy,
+  Check,
 } from 'lucide-react';
 import { useAuth } from '../features/auth/AuthContext';
 
@@ -96,8 +98,49 @@ export function AuthPage({ onAuthSuccess, initialMode = 'signin', onBackToHome }
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [successMsg, setSuccessMsg] = useState(null);
+  const [copied, setCopied] = useState(false);
 
   const resetForm = () => { setError(null); setSuccessMsg(null); };
+
+  const handleCopyCredentials = async (demoEmail, demoPassword) => {
+    try {
+      const textToCopy = `Email: ${demoEmail}\nPassword: ${demoPassword}`;
+      if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(textToCopy);
+      } else if (typeof document !== 'undefined') {
+        const textarea = document.createElement('textarea');
+        textarea.value = textToCopy;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+      }
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    } catch (err) {
+      console.warn('Clipboard write failed:', err);
+    }
+  };
+
+  const handleFillAndSignIn = async (demoEmail, demoPassword) => {
+    setEmail(demoEmail);
+    setPassword(demoPassword);
+    setError(null);
+    setSuccessMsg(null);
+    setLoading(true);
+    try {
+      await login(demoEmail, demoPassword);
+      setSuccessMsg('Signed in! Loading workspace...');
+      if (onAuthSuccess) onAuthSuccess();
+    } catch (err) {
+      let msg = err.message || 'Authentication failed.';
+      if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') msg = 'Invalid email or password.';
+      else if (err.code === 'auth/user-not-found') msg = 'No account found with this email.';
+      setError(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleEmailAuth = async (e) => {
     e.preventDefault();
@@ -382,6 +425,89 @@ export function AuthPage({ onAuthSuccess, initialMode = 'signin', onBackToHome }
               )}
             </button>
           </form>
+
+          {/* Demo Account Credentials (For Evaluators & Quick Testing) */}
+          {mode === 'signin' && (
+            <div className="mt-5 pt-4 border-t border-slate-200/80">
+              <div className="rounded-xl border border-indigo-200/70 bg-gradient-to-br from-indigo-50/80 via-white to-purple-50/60 p-3.5 space-y-2.5 shadow-xs">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                    <span className="text-xs font-bold text-slate-800 tracking-tight">
+                      Demo Account Credentials
+                    </span>
+                  </div>
+                  <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-indigo-100/80 text-indigo-700 border border-indigo-200">
+                    EVALUATORS
+                  </span>
+                </div>
+
+                <p className="text-[11px] text-slate-500 leading-relaxed">
+                  Pre-configured workspace with verified brand guidelines, approved facts, and audit logs:
+                </p>
+
+                <div className="space-y-1.5 text-xs bg-white/90 rounded-lg p-2.5 border border-indigo-100/80 font-mono">
+                  <div className="flex items-center justify-between text-slate-600">
+                    <span className="text-[11px] font-sans text-slate-400">Workspace:</span>
+                    <span className="font-semibold text-slate-800 flex items-center gap-1.5 font-sans">
+                      Apex Brand Studio
+                      <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        ADMIN
+                      </span>
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-slate-600">
+                    <span className="text-[11px] font-sans text-slate-400">Email:</span>
+                    <span className="text-slate-800 text-[11.5px] font-medium select-all">
+                      riya.bose.ws2026@example.com
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-slate-600">
+                    <span className="text-[11px] font-sans text-slate-400">Password:</span>
+                    <span className="text-slate-800 text-[11.5px] font-medium select-all">
+                      RiyaBose
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 pt-0.5">
+                  <button
+                    type="button"
+                    onClick={() => handleCopyCredentials('riya.bose.ws2026@example.com', 'RiyaBose')}
+                    className="flex-1 py-1.5 px-3 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold flex items-center justify-center gap-1.5 transition-all shadow-2xs cursor-pointer"
+                  >
+                    {copied ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 text-emerald-600" />
+                        <span className="text-emerald-700 font-bold">Copied ✓</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5 text-slate-500" />
+                        <span>Copy Credentials</span>
+                      </>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={loading}
+                    onClick={() => handleFillAndSignIn('riya.bose.ws2026@example.com', 'RiyaBose')}
+                    className="flex-1 py-1.5 px-3 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition-all shadow-xs disabled:opacity-50 cursor-pointer"
+                  >
+                    {loading ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <>
+                        <Sparkles className="w-3.5 h-3.5 text-indigo-200" />
+                        <span>Fill & Sign In</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Footer line */}
