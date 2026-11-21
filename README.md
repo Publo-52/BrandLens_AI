@@ -13,7 +13,7 @@ BrandLens AI is a multi-tenant, explainable pre-publication content review and a
 
 ---
 
-## ⚡ 5-Minute Quickstart for Judges & Evaluators
+## ⚡ 5-Minute Quickstart
 
 Want to evaluate BrandLens AI immediately on your local machine? Run the stack in 3 simple steps:
 
