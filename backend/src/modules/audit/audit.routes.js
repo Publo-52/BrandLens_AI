@@ -70,7 +70,6 @@ router.get('/insights', authenticate, requireOrgAccess(), async (req, res, next)
       AuditLog.countDocuments({
         organisationId: orgId,
         $or: [
-          { action: 'FINDING_DECISION' },
           { action: 'OVERRIDE_RECORDED' },
           { 'details.reviewStatus': 'OVERRIDDEN' },
         ],

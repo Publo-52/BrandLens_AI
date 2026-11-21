@@ -115,15 +115,17 @@ export function ApprovalsPage({ isActive = true }) {
     )
   );
 
+  const activeWorkspaceId = activeOrg?._id || activeOrg?.id;
+
   const loadData = useCallback(async (isBackground = false) => {
-    if (!activeOrg?._id || !token) return;
+    if (!activeWorkspaceId || !token) return;
     if (isBackground) {
       setBackgroundRefreshing(true);
     } else {
       setLoading(true);
     }
     try {
-      const data = await api.getContents(activeOrg._id, token);
+      const data = await api.getContents(activeWorkspaceId, token);
       const all = data.contents || [];
       setContents(all);
 
@@ -147,25 +149,20 @@ export function ApprovalsPage({ isActive = true }) {
         setLoading(false);
       }
     }
-  }, [activeOrg, token]);
+  }, [activeWorkspaceId, token]);
 
+  // Auto-fetch approval queue on mount, when activeWorkspaceId changes, or when user navigates to #approvals
   useEffect(() => {
-    const isBg = contents.length > 0;
-    loadData(isBg);
-  }, [loadData]);
-
-  // Auto-refresh approval queue in background whenever user navigates to #approvals
-  useEffect(() => {
-    if (isActive) {
+    if (isActive && activeWorkspaceId && token) {
       const isBg = contents.length > 0;
       loadData(isBg);
     }
-  }, [isActive, loadData, contents.length]);
+  }, [isActive, activeWorkspaceId, token, loadData]);
 
   // Also listen for URL hash changes to #approvals
   useEffect(() => {
     const handleHash = () => {
-      if (typeof window !== 'undefined' && window.location.hash === '#approvals') {
+      if (typeof window !== 'undefined' && window.location.hash.toLowerCase().includes('approvals')) {
         const isBg = contents.length > 0;
         loadData(isBg);
       }
@@ -672,7 +669,7 @@ export function ApprovalsPage({ isActive = true }) {
                       <AlertCircle className="w-4 h-4 shrink-0 text-amber-400 mt-0.5" />
                       <div>
                         <span className="font-bold text-amber-300">Separation of Duties Active: </span>
-                        You authored this draft (v{selectedContent.currentVersionNumber}). Enterprise governance strictly prohibits authors from approving their own submissions. Please switch to an independent Manager or Admin account using the quick role-switcher in the top bar to sign off.
+                        You authored this draft (v{selectedContent.currentVersionNumber}). Enterprise governance strictly prohibits authors from approving their own submissions. Sign in with an independent Manager or Admin account to approve this submission.
                       </div>
                     </div>
                   )}

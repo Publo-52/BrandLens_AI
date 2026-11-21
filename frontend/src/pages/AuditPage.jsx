@@ -153,10 +153,8 @@ export function AuditPage({ isActive = true }) {
       setContents(allContents);
 
       // Pre-select first approved content for certificate if available
-      const approvedFirst = allContents.find((c) => c.status === 'APPROVED') || allContents[0];
-      if (approvedFirst) {
-        setSelectedCertContent(approvedFirst);
-      }
+      const approvedFirst = allContents.find((c) => c.status === 'APPROVED' || c.status === 'PUBLISHED');
+      setSelectedCertContent(approvedFirst || null);
     } catch (err) {
       if (!isBackground) {
         setError(err.message || 'Failed to load audit trail');
@@ -254,7 +252,13 @@ export function AuditPage({ isActive = true }) {
     const total = displayLogs.length;
     const approvals = displayLogs.filter((l) => APPROVAL_ACTIONS.has(l.action) || l.action === 'CONTENT_PUBLISHED').length 
       || contents.filter((c) => c.status === 'APPROVED' || c.status === 'PUBLISHED').length;
-    const overrides = displayLogs.filter((l) => l.action === 'FINDING_DECISION' || l.action === 'OVERRIDE_RECORDED' || l.details?.reviewStatus === 'OVERRIDDEN').length;
+    const overrides = displayLogs.filter((l) => {
+      if (l.action === 'OVERRIDE_RECORDED' || l.details?.reviewStatus === 'OVERRIDDEN') return true;
+      if (l.action === 'FINDING_DECISION' && l.details?.reviewStatus !== 'ACCEPTED' && l.details?.reviewStatus !== 'EDITED') {
+        return Boolean(l.reason || l.details?.reason);
+      }
+      return false;
+    }).length;
     const reviews = displayLogs.filter((l) => l.action === 'REVIEW_RUN' || l.action === 'REVIEW_COMPLETED').length 
       || contents.filter((c) => (c.reviewsCount && c.reviewsCount > 0) || c.latestReview).length 
       || contents.length;
@@ -262,12 +266,19 @@ export function AuditPage({ isActive = true }) {
     return { total, approvals, overrides, reviews, intakes };
   }, [displayLogs, contents]);
 
+  const approvedContents = useMemo(() => {
+    return contents.filter((c) => c.status === 'APPROVED' || c.status === 'PUBLISHED');
+  }, [contents]);
+
   const filteredLogs = useMemo(() => {
     return displayLogs.filter((log) => {
       if (actionFilter === 'APPROVAL_DECISION') {
         if (!APPROVAL_ACTIONS.has(log.action)) return false;
       } else if (actionFilter === 'CONTENT_INTAKE' || actionFilter === 'CONTENT_CREATED') {
         if (!INTAKE_ACTIONS.has(log.action)) return false;
+      } else if (actionFilter === 'FINDING_DECISION') {
+        const isOverride = log.action === 'OVERRIDE_RECORDED' || log.details?.reviewStatus === 'OVERRIDDEN' || (log.action === 'FINDING_DECISION' && log.details?.reviewStatus !== 'ACCEPTED' && log.details?.reviewStatus !== 'EDITED');
+        if (!isOverride) return false;
       } else if (actionFilter !== 'ALL' && log.action !== actionFilter) {
         return false;
       }
@@ -290,7 +301,7 @@ export function AuditPage({ isActive = true }) {
     });
   }, [displayLogs, actionFilter, searchQuery]);
 
-  const getActionBadge = (action) => {
+  const getActionBadge = (action, details = {}) => {
     switch (action) {
       case 'CONTENT_INTAKE':
       case 'CONTENT_CREATED':
@@ -310,6 +321,23 @@ export function AuditPage({ isActive = true }) {
           </span>
         );
       case 'FINDING_DECISION':
+      case 'OVERRIDE_RECORDED':
+        if (details?.reviewStatus === 'ACCEPTED') {
+          return (
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              Fix Accepted
+            </span>
+          );
+        }
+        if (details?.reviewStatus === 'EDITED') {
+          return (
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
+              <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
+              Fix Customized
+            </span>
+          );
+        }
         return (
           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">
             <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
@@ -603,7 +631,9 @@ export function AuditPage({ isActive = true }) {
                     <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-50 to-slate-100 border border-slate-200/80 flex items-center justify-center shadow-xs text-xs font-bold text-brand-700">
                       {log.action === 'APPROVAL_DECISION' ? (
                         <ShieldCheck className="w-4.5 h-4.5 text-emerald-600" />
-                      ) : log.action === 'FINDING_DECISION' ? (
+                      ) : log.details?.reviewStatus === 'ACCEPTED' ? (
+                        <Check className="w-4 h-4 text-emerald-600" />
+                      ) : log.action === 'FINDING_DECISION' || log.action === 'OVERRIDE_RECORDED' ? (
                         <AlertTriangle className="w-4 h-4 text-amber-600" />
                       ) : log.action === 'REVIEW_RUN' ? (
                         <FileCheck2 className="w-4 h-4 text-indigo-600" />
@@ -617,7 +647,7 @@ export function AuditPage({ isActive = true }) {
                   <div className="flex-1 min-w-0 space-y-2">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div className="flex flex-wrap items-center gap-2">
-                        {getActionBadge(log.action)}
+                        {getActionBadge(log.action, log.details)}
                         <span className="text-xs font-bold text-slate-800">
                           {log.actorId?.name || 'System Runner'}
                         </span>
@@ -764,26 +794,26 @@ export function AuditPage({ isActive = true }) {
 
             {/* Modal Body */}
             <div className="p-6 overflow-y-auto space-y-5">
-              {contents.length === 0 ? (
+              {approvedContents.length === 0 ? (
                 <div className="p-8 text-center bg-slate-50 border border-dashed border-slate-300 rounded-2xl space-y-3">
                   <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto border border-amber-200 shadow-2xs">
                     <Award className="w-6 h-6" />
                   </div>
                   <div className="space-y-1">
-                    <h4 className="text-sm font-bold text-slate-800">No Content Submissions in Workspace</h4>
+                    <h4 className="text-sm font-bold text-slate-800">No Formally Approved Submissions Yet</h4>
                     <p className="text-xs text-slate-500 max-w-sm mx-auto leading-relaxed">
-                      Pre-publication compliance certificates are generated for content drafts evaluated in the Review Studio. Submit a draft first to inspect and export tamper-evident certificates.
+                      No formally approved submissions yet. Approve a submission in the Approval Queue to issue a Pre-Publication Certificate.
                     </p>
                   </div>
                   <button
                     type="button"
                     onClick={() => {
                       setShowCertModal(false);
-                      if (typeof window !== 'undefined') window.location.hash = '#review';
+                      if (typeof window !== 'undefined') window.location.hash = '#approvals';
                     }}
                     className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-semibold shadow-sm transition-all cursor-pointer"
                   >
-                    <span>Open Review Studio</span>
+                    <span>Open Approval Queue</span>
                     <ChevronRight className="w-3.5 h-3.5" />
                   </button>
                 </div>
@@ -791,17 +821,17 @@ export function AuditPage({ isActive = true }) {
                 <>
                   <div>
                     <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                      Select Content Item to Inspect & Certify:
+                      Select Approved Submission to Inspect & Certify:
                     </label>
                     <select
                       value={selectedCertContent?._id || ''}
                       onChange={(e) => {
-                        const found = contents.find((c) => c._id === e.target.value);
+                        const found = approvedContents.find((c) => c._id === e.target.value);
                         if (found) setSelectedCertContent(found);
                       }}
                       className="w-full text-xs border border-slate-200 rounded-xl p-2.5 focus:ring-2 focus:ring-brand-500 focus:outline-none bg-slate-50 font-medium text-slate-800"
                     >
-                      {contents.map((c) => (
+                      {approvedContents.map((c) => (
                         <option key={c._id} value={c._id}>
                           [{c.status}] {c.title} (v{c.currentVersionNumber || 1})
                         </option>
